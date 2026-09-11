@@ -1,12 +1,37 @@
-# Tasks
+﻿# Tasks
 
-Placeholder for current tasks, progress, blockers, and completed work.
+This file tracks current work, progress, blockers, and completed work.
 
-## Current
+## Current Sprint
 
-## Progress
+### In Progress
 
-## Blockers
+- [ ]
 
-## Completed
+### Pending
 
+- [ ]
+
+### Blocked
+
+- [ ]
+
+### Completed
+
+- [ ]
+
+## Backlog
+
+- [ ]
+
+## Technical Debt
+
+- [ ]
+
+## Open Questions
+
+- [ ]
+
+## Recently Completed
+
+- [ ]

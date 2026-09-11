@@ -1,8 +1,85 @@
-# Interactions
+﻿# Interactions
 
-Placeholder for interaction behavior, animations, transitions, hover/focus/active states, responsive behavior, and other dynamic behavior.
+## Interaction Principles
 
-## Behaviors
+[TO BE DEFINED]
 
-## Responsive Notes
+## Interaction Specification
 
+### INTERACTION-XXX - [Interaction Name]
+
+#### Trigger
+
+[TO BE DEFINED]
+
+#### Initial State
+
+[TO BE DEFINED]
+
+#### User Action
+
+[TO BE DEFINED]
+
+#### Response
+
+[TO BE DEFINED]
+
+#### Final State
+
+[TO BE DEFINED]
+
+#### Animation
+
+[TO BE DEFINED]
+
+#### Transition
+
+[TO BE DEFINED]
+
+#### Duration
+
+[TO BE DEFINED]
+
+#### Easing
+
+[TO BE DEFINED]
+
+#### Mobile Behavior
+
+[TO BE DEFINED]
+
+#### Desktop Behavior
+
+[TO BE DEFINED]
+
+#### Accessibility Behavior
+
+[TO BE DEFINED]
+
+#### Error / Edge Cases
+
+[TO BE DEFINED]
+
+#### Related Screen
+
+[TO BE DEFINED]
+
+#### Related Component
+
+[TO BE DEFINED]
+
+## Interaction Categories
+
+- Navigation
+- Forms
+- Modals
+- Dropdowns
+- Menus
+- Hover
+- Focus
+- Drag/drop
+- Scroll
+- Loading
+- Notifications
+- Animation
+- Other
