@@ -2,11 +2,13 @@
 
 ## Purpose
 
-This directory contains database-related documentation and artifacts. Actual database technology and schema details are [TO BE DEFINED].
+This directory contains database-related documentation and artifacts. The approved database technology is PostgreSQL, provided by Neon. Schema details are [TO BE DEFINED].
 
 ## Database Technology
 
-[TO BE DEFINED]
+- Database: PostgreSQL
+- Provider: Neon
+- ORM: Prisma
 
 ## Schema
 
@@ -22,7 +24,7 @@ This directory contains database-related documentation and artifacts. Actual dat
 
 ## Migrations
 
-Migrations should describe controlled database structure changes over time. The migration tool and process are [TO BE DEFINED].
+Migrations should describe controlled database structure changes over time. Prisma is the approved ORM; the exact migration workflow is [TO BE DEFINED].
 
 ## Seed Data
 
@@ -47,3 +49,5 @@ Reference `.agents/main/conventions.md` for database naming conventions once def
 ## Security
 
 [TO BE DEFINED]
+
+

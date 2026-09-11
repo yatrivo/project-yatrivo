@@ -1,6 +1,6 @@
 ﻿# Development Conventions
 
-These conventions guide future implementation. Framework-specific rules must be added only after the technology stack is known.
+These conventions guide future implementation. Framework-specific rules may now be added for the approved stack as implementation conventions are confirmed. The approved stack is Next.js, React, TypeScript, a TypeScript backend/API, PostgreSQL, Neon, and Prisma.
 
 ## General Principles
 
@@ -87,3 +87,4 @@ These conventions guide future implementation. Framework-specific rules must be 
 - Update documentation when implementation changes documented behavior.
 - Record product, design, and architecture decisions in the appropriate documents.
 - Do not treat undocumented assumptions as requirements.
+
