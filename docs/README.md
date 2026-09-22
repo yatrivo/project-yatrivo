@@ -14,9 +14,19 @@ The `docs/` directory contains agreed project knowledge. Documentation should re
 - `requirements.md` defines functional and non-functional requirements.
 - `product.md` defines product context, goals, users, and business rules.
 - `user-flows.md` defines user journeys and application flows.
-- `design-system.md` defines global visual and interaction foundations from the design source of truth.
-- `figma/` translates Figma into implementation-ready screen, component, and interaction specifications.
+- `design-system.md` defines global visual and interaction foundations from the frontend code.
+- `frontend/` documents how the frontend app is maintained.
 - `decisions/` records architecture and product decisions that affect implementation.
+
+## Frontend Source Policy
+
+The `frontend/` folder now contains the approved Figma-originated frontend implementation. Treat it as the production frontend source, not reference material.
+
+- Use `frontend/src` components, pages, styles, assets, copy, and interaction patterns as the canonical frontend code.
+- Adapt existing `frontend/src` components in place instead of recreating or visually replicating them from scratch.
+- Preserve the approved frontend visual language unless a functional production requirement requires a targeted change.
+- When production data, routing, authentication, admin behavior, or API wiring is needed, adapt the frontend code around those contracts while keeping the UI components recognizable.
+- Do not describe existing frontend screens as loose references or inspiration in new documentation.
 
 ## Documentation Map
 
@@ -24,5 +34,7 @@ The `docs/` directory contains agreed project knowledge. Documentation should re
 - `product.md`
 - `user-flows.md`
 - `design-system.md`
-- `figma/`
+- `frontend/`
 - `decisions/`
+
+

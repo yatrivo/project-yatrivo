@@ -1,0 +1,42 @@
+@import 'tailwindcss';
+
+@font-face {
+  font-family: "Instrument Serif:Regular";
+  font-style: normal;
+  font-weight: 400;
+  src: url("https://static.figma.com/font/InstrumentSerif-Regular_1") format("woff2");
+}
+
+@font-face {
+  font-family: "DM Sans:Regular";
+  font-style: normal;
+  font-weight: 400;
+  src: url("https://static.figma.com/font/DMSans_opsz_wght__1") format("woff2");
+}
+
+:root {
+  --forest: #0f2922;
+  --forest-mid: #1a4a39;
+  --orange: #e8622a;
+  --orange-hover: #d45520;
+  --light-bg: #f7f8f5;
+  --border: #e2e8f0;
+  --muted: #4a5568;
+  --font-serif: "Instrument Serif:Regular", Georgia, serif;
+  --font-sans: "DM Sans:Regular", system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  font-family: var(--font-sans);
+  color: var(--forest);
+  background: white;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbar while allowing scroll */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #cbd5e0; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #a0aec0; }

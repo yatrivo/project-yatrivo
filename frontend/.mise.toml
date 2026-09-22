@@ -1,0 +1,3 @@
+[tools]
+node = "22"
+# pnpm reference removed; use npm via `npm --prefix frontend` instead

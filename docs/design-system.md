@@ -1,6 +1,8 @@
 ﻿# Design System
 
-This file documents global visual and design-system rules from the approved design source of truth. Do not invent actual values.
+This file documents global visual and design-system rules from the approved frontend code. Do not invent actual values or recreate components when the Figma implementation already provides them.
+
+The `frontend/` folder is the canonical source for visual design and frontend UI. Production frontend work should adapt that code in place, not rebuild the same UI independently.
 
 ## Design Principles
 
@@ -71,3 +73,4 @@ This file documents global visual and design-system rules from the approved desi
 ## Component Principles
 
 [TO BE DEFINED]
+
