@@ -26,6 +26,14 @@ Frontend Vite config must keep `3000` as the default. Backend work should use `4
 - Do not rebuild existing UI from screenshots or create a parallel frontend folder.
 - Keep reusable UI under `frontend/src/components`, pages under `frontend/src/pages`, admin screens under `frontend/src/admin`, data fixtures under `frontend/src/data`, and imported visual assets under `frontend/src/imports` until a better production asset structure is intentionally introduced.
 
+## Architecture Rules
+
+Follow the system architecture guidance in `system-architecture-rules.md` for all implementation work.
+
+This file defines required architecture, backend responsibility boundaries, database/cache/storage expectations, environment variable usage, performance/security rules, and required Architecture Impact reporting for feature work.
+
+Agents must read and apply these rules before implementing or changing features.
+
 ## Commands
 
 Use npm for the frontend. Run frontend commands from the repo root using the `--prefix` flag.
