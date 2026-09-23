@@ -7,7 +7,8 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "build:frontend": "npm --prefix frontend run build",
     "preview:frontend": "npm --prefix frontend run preview",
-    "check:env": "node scripts/test-env-connections.mjs"
+    "check:env": "node scripts/test-env-connections.mjs",
+    "db:migrate": "node scripts/run-migrations.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.799.0",
