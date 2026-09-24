@@ -1,4 +1,4 @@
-﻿import { config as loadEnv } from "dotenv";
+import { config as loadEnv } from "dotenv";
 import path from "node:path";
 import { z } from "zod";
 
@@ -27,7 +27,8 @@ const envSchema = z.object({
   JWT_ACCESS_TOKEN_SECRET: z.string().optional().or(z.literal("")),
   JWT_REFRESH_TOKEN_SECRET: z.string().optional().or(z.literal("")),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
-  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30)
+  REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(16).default(12)
 });
 
 export const env = envSchema.parse(process.env);

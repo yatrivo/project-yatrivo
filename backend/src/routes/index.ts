@@ -1,5 +1,7 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import { env } from "../config/env";
+import { authenticate, requireAdmin, requireSuperAdmin } from "../middleware/auth";
+import { authRouter } from "../modules/auth/auth.routes";
 import { healthRouter } from "../modules/health/health.routes";
 
 export const apiRouter = Router();
@@ -13,3 +15,26 @@ apiRouter.get("/", (_req, res) => {
 });
 
 apiRouter.use(healthRouter);
+apiRouter.use(authRouter);
+
+// Test routes to verify and demonstrate role authorization middleware
+if (env.NODE_ENV !== "production") {
+  apiRouter.get(
+    "/test/admin-only",
+    authenticate,
+    requireAdmin,
+    (req, res) => {
+      res.json({ message: "Admin access granted", user: req.user });
+    }
+  );
+
+  apiRouter.get(
+    "/test/super-admin-only",
+    authenticate,
+    requireSuperAdmin,
+    (req, res) => {
+      res.json({ message: "Super Admin access granted", user: req.user });
+    }
+  );
+}
+
