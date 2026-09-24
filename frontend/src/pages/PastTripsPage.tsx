@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -12,7 +13,7 @@ const Stars = ({ count = 5 }: { count?: number }) => (
 );
 
 export default function PastTripsPage() {
-  const { navigate, tripInstances, trips, destinations } = useApp();
+  const { tripInstances, trips, destinations } = useApp();
 
   const completedInstances = tripInstances
     .filter((inst) => inst.status === "completed")
@@ -63,13 +64,13 @@ export default function PastTripsPage() {
               if (!trip) return null;
               const coverImg = inst.completedPhotos?.[0] ?? trip.image;
               return (
-                <button
+                <Link
                   key={inst.id}
-                  onClick={() => navigate("completed-trip-detail", { tripInstanceId: inst.id })}
-                  className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full"
+                  to={`/past-trips/${inst.id}`}
+                  className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
                 >
                   <div className="relative h-52 overflow-hidden">
-                    <img src={coverImg} alt={trip.name} className="w-full h-full object-cover" />
+                    <img src={coverImg} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3 bg-[#0f2922]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
@@ -89,9 +90,9 @@ export default function PastTripsPage() {
                     ) : (
                       <p className="text-[#4a5568] text-sm leading-relaxed mb-3">{trip.highlights[0]}</p>
                     )}
-                    <div className="text-[#e8622a] text-xs font-medium">VIEW TRIP DETAILS →</div>
+                    <div className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</div>
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -106,12 +107,12 @@ export default function PastTripsPage() {
           <p className="text-[#4a5568] text-sm leading-relaxed mb-8 max-w-lg mx-auto">
             Join the growing Yatrivo family of mindful explorers. Your story is waiting to be written in the Himalayas.
           </p>
-          <button
-            onClick={() => navigate("plan")}
-            className="bg-[#e8622a] hover:bg-[#d45520] text-white font-medium px-8 py-3.5 rounded-full transition-colors text-sm tracking-wide"
+          <Link
+            to="/plan"
+            className="inline-block bg-[#e8622a] hover:bg-[#d45520] text-white font-medium px-8 py-3.5 rounded-full transition-colors text-sm tracking-wide"
           >
             PLAN MY TRIP NOW
-          </button>
+          </Link>
         </div>
       </section>
 

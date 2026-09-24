@@ -1,15 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
 const TABS = ["Personal Info", "Saved Trips", "My Enquiries", "Settings"];
+const TAB_KEYS = ["personal", "saved", "enquiries", "settings"];
 
 export default function ProfilePage() {
-  const { savedItems, enquiries, navigate, showToast } = useApp();
-  const [tab, setTab] = useState(0);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { savedItems, enquiries, showToast } = useApp();
+
+  const tabParam = searchParams.get("tab")?.toLowerCase();
+  const initialTabIndex = tabParam ? Math.max(0, TAB_KEYS.indexOf(tabParam)) : 0;
+  const [tab, setTab] = useState(initialTabIndex >= 0 ? initialTabIndex : 0);
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState("Traveller");
   const [email, setEmail] = useState("");
+
+  useEffect(() => {
+    if (tabParam) {
+      const idx = TAB_KEYS.indexOf(tabParam);
+      if (idx !== -1 && idx !== tab) {
+        setTab(idx);
+      }
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (index: number) => {
+    setTab(index);
+    setSearchParams(index === 0 ? {} : { tab: TAB_KEYS[index] });
+  };
 
   const initials = name.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
 
@@ -41,7 +61,7 @@ export default function ProfilePage() {
           {TABS.map((t, i) => (
             <button
               key={t}
-              onClick={() => setTab(i)}
+              onClick={() => handleTabChange(i)}
               className={`flex-1 min-w-max px-4 py-2.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${tab === i ? "bg-[#0f2922] text-white" : "text-[#4a5568] hover:text-[#0f2922]"}`}
             >
               {t}
@@ -88,7 +108,7 @@ export default function ProfilePage() {
                 <div className="text-4xl mb-4">🏔️</div>
                 <h3 className="text-[#0f2922] text-lg mb-2" style={{ fontFamily: "var(--font-serif)" }}>No Saved Trips Yet</h3>
                 <p className="text-[#4a5568] text-sm mb-5">Heart any destination or package to save it here.</p>
-                <button onClick={() => navigate("trips")} className="bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm">Browse Trips</button>
+                <Link to="/trips" className="inline-block bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm">Browse Trips</Link>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -98,7 +118,7 @@ export default function ProfilePage() {
                       <div className="text-[#0f2922] font-medium text-sm capitalize">{id}</div>
                       <div className="text-[#4a5568] text-xs mt-0.5">Saved destination</div>
                     </div>
-                    <button onClick={() => navigate("destination-detail", { destId: id })} className="text-[#e8622a] text-xs font-medium">View →</button>
+                    <Link to={`/destinations/${id}`} className="text-[#e8622a] text-xs font-medium hover:underline">View →</Link>
                   </div>
                 ))}
               </div>
@@ -113,7 +133,7 @@ export default function ProfilePage() {
                 <div className="text-4xl mb-4">📋</div>
                 <h3 className="text-[#0f2922] text-lg mb-2" style={{ fontFamily: "var(--font-serif)" }}>No Enquiries Yet</h3>
                 <p className="text-[#4a5568] text-sm mb-5">When you book or enquire about a trip, it'll appear here.</p>
-                <button onClick={() => navigate("trips")} className="bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm">Explore Trips</button>
+                <Link to="/trips" className="inline-block bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm">Explore Trips</Link>
               </div>
             ) : (
               <div className="space-y-4">
@@ -151,13 +171,14 @@ export default function ProfilePage() {
             </div>
             <div className="bg-white rounded-2xl border border-[#e2e8f0] p-7">
               <h3 className="text-[#0f2922] font-medium mb-4">Account</h3>
-              <button
-                onClick={() => { navigate("home"); showToast("Returned to home.", "info"); }}
-                className="flex items-center gap-2 text-red-600 text-sm font-medium hover:text-red-700 transition-colors"
+              <Link
+                to="/"
+                onClick={() => showToast("Returned to home.", "info")}
+                className="inline-flex items-center gap-2 text-red-600 text-sm font-medium hover:text-red-700 transition-colors"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                 Go Home
-              </button>
+              </Link>
             </div>
           </div>
         )}

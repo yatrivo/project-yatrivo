@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SaveButton from "@/components/SaveButton";
@@ -6,8 +7,16 @@ import SaveButton from "@/components/SaveButton";
 interface DayItem { day: string; title: string; desc: string; open: boolean }
 
 export default function TripDetailPage() {
-  const { pageParams, navigate, openEnquiryModal } = useApp();
-  const tripId = pageParams.tripId || "chopta-tungnath";
+  const { slug } = useParams<{ slug: string }>();
+  const { pageParams, openEnquiryModal, trips, destinations } = useApp();
+
+  const currentSlug = slug || pageParams.tripId || "chopta-trek";
+  const trip = trips.find(
+    (t) => t.id.toLowerCase() === currentSlug.toLowerCase()
+  ) || trips[0];
+
+  const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
+  const tripId = trip?.id ?? currentSlug;
 
   const [activeImg, setActiveImg] = useState(0);
   const [itinerary, setItinerary] = useState<DayItem[]>([
@@ -20,7 +29,7 @@ export default function TripDetailPage() {
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   const galleryImages = [
-    "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=900&h=600&fit=crop&auto=format",
+    trip?.image || "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=900&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=900&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=900&h=600&fit=crop&auto=format",
     "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&h=600&fit=crop&auto=format",
@@ -41,22 +50,32 @@ export default function TripDetailPage() {
     <div className="pb-20 md:pb-0">
       {/* Hero */}
       <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
-        <img src={galleryImages[activeImg]} alt="Chopta Tungnath" className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" />
+        <img src={galleryImages[activeImg]} alt={trip?.name ?? "Trip"} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
         <div className="relative h-full flex items-end pb-8 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
               <div className="flex items-center gap-2 mb-3 text-xs">
-                <button onClick={() => navigate("trips")} className="text-[#e8622a] hover:underline uppercase tracking-wide">TREKKING</button>
+                <Link to="/trips" className="text-[#e8622a] hover:underline uppercase tracking-wide">
+                  {trip?.category ?? "EXPERIENCE"}
+                </Link>
                 <span className="text-white/40">·</span>
-                <span className="text-white/60 uppercase tracking-wide">HIGH ALTITUDE</span>
-                <span className="text-white/40">·</span>
-                <span className="text-white/60 uppercase tracking-wide">CHOPTA</span>
+                <span className="text-white/60 uppercase tracking-wide">{trip?.badge ?? "ADVENTURE"}</span>
+                {destination && (
+                  <>
+                    <span className="text-white/40">·</span>
+                    <Link to={`/destinations/${destination.id}`} className="text-white/60 hover:text-white uppercase tracking-wide transition-colors">
+                      {destination.name}
+                    </Link>
+                  </>
+                )}
               </div>
-              <h1 className="text-white text-4xl sm:text-5xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>Chopta Tungnath Adventure</h1>
+              <h1 className="text-white text-4xl sm:text-5xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>
+                {trip?.name ?? "Himalayan Adventure"}
+              </h1>
               <div className="flex flex-wrap gap-5 text-white/80 text-sm">
-                <span>4 Days / 3 Nights</span>
-                <span>Difficulty: Moderate</span>
+                <span>{trip?.duration ?? "4 Days / 3 Nights"}</span>
+                <span>Difficulty: {trip?.difficulty ?? "Moderate"}</span>
                 <span>Max Altitude: 4,130 ft</span>
               </div>
             </div>
@@ -229,8 +248,10 @@ export default function TripDetailPage() {
             <div className="sticky top-24 space-y-4">
               <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white">
                 <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-2">STARTING PRICE</div>
-                <div className="text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>₹9,999</div>
-                <div className="text-white/60 text-xs mb-6">per person · 4 Days / 3 Nights</div>
+                <div className="text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                  {trip?.price ? `₹${trip.price.toLocaleString("en-IN")}` : "₹9,999"}
+                </div>
+                <div className="text-white/60 text-xs mb-6">per person · {trip?.duration ?? "4 Days / 3 Nights"}</div>
                 <button
                   onClick={() => openEnquiryModal(tripId)}
                   className="w-full flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white py-3.5 rounded-full text-sm font-semibold transition-colors mb-3"
@@ -269,7 +290,9 @@ export default function TripDetailPage() {
           WhatsApp to Enquire
         </button>
         <div className="text-right shrink-0">
-          <div className="text-[#0f2922] font-bold text-lg" style={{ fontFamily: "var(--font-serif)" }}>₹9,999</div>
+          <div className="text-[#0f2922] font-bold text-lg" style={{ fontFamily: "var(--font-serif)" }}>
+            {trip?.price ? `₹${trip.price.toLocaleString("en-IN")}` : "₹9,999"}
+          </div>
           <div className="text-[#4a5568] text-xs">per person</div>
         </div>
       </div>

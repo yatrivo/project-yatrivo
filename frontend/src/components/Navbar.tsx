@@ -1,27 +1,45 @@
 import { useState, useEffect } from "react";
-import { useApp, type Page } from "@/context/AppContext";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import logoImg from "@/imports/logo.png";
 
-const HERO_PAGES: Page[] = ["home", "trips", "trip-detail", "plan", "about", "reviews", "faq", "destination-detail", "travel-with-us", "past-trips", "completed-trip-detail", "review"];
-const NON_HERO_PAGES: Page[] = ["destinations", "terms", "privacy"];
-
-const navLinks: { label: string; page: Page }[] = [
-  { label: "Home", page: "home" },
-  { label: "Destinations", page: "destinations" },
-  { label: "Trips", page: "trips" },
-  { label: "Travel With Us", page: "travel-with-us" },
-  { label: "Past Trips", page: "past-trips" },
+const navLinks: { label: string; href: string }[] = [
+  { label: "Home", href: "/" },
+  { label: "Destinations", href: "/destinations" },
+  { label: "Trips", href: "/trips" },
+  { label: "Travel With Us", href: "/travel-with-us" },
+  { label: "Past Trips", href: "/past-trips" },
 ];
 
 export default function Navbar() {
-  const { page, navigate } = useApp();
+  const location = useLocation();
+  const pathname = location.pathname;
+
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
   const [hidden, setHidden] = useState(false);
   const [lastScrollY, setLastScrollY] = useState(0);
 
-  const isHeroPage = HERO_PAGES.includes(page);
-  const isNonHeroPage = NON_HERO_PAGES.includes(page);
+  const isHeroPage =
+    pathname === "/" ||
+    pathname.startsWith("/trips") ||
+    pathname === "/plan" ||
+    pathname === "/plan-trip" ||
+    pathname === "/about" ||
+    pathname === "/reviews" ||
+    pathname.startsWith("/reviews/") ||
+    pathname === "/review" ||
+    pathname === "/faq" ||
+    pathname === "/contact" ||
+    (pathname.startsWith("/destinations/") && pathname !== "/destinations") ||
+    pathname === "/travel-with-us" ||
+    pathname.startsWith("/past-trips");
+
+  const isNonHeroPage =
+    pathname === "/destinations" ||
+    pathname === "/terms" ||
+    pathname === "/privacy" ||
+    pathname === "/profile";
+
   const atTop = scrollY < 60;
   const transparent = isHeroPage && atTop;
 
@@ -40,13 +58,13 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, [lastScrollY]);
 
-  // Reset scroll state on page change
+  // Reset scroll and menu state on route change
   useEffect(() => {
     setScrollY(0);
     setLastScrollY(0);
     setHidden(false);
     setMenuOpen(false);
-  }, [page]);
+  }, [pathname]);
 
   const navBg = transparent
     ? "bg-transparent"
@@ -64,7 +82,7 @@ export default function Navbar() {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
           {/* Logo */}
-          <button onClick={() => navigate("home")} className="flex items-center gap-2 shrink-0">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
             <img src={logoImg} alt="Yatrivo" className="h-9 w-9 object-contain" />
             <div className="block text-left leading-tight">
               <div
@@ -85,31 +103,47 @@ export default function Navbar() {
                 EXPLORE MORE. TRAVEL BETTER.
               </div>
             </div>
-          </button>
+          </Link>
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
-            {navLinks.map((link) => (
-              <button
-                key={link.page}
-                onClick={() => navigate(link.page)}
-                style={{ textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.5)" : "none" }}
-                className={`relative px-3 py-1.5 text-sm font-medium transition-colors ${
-                  page === link.page ? `${textColor} font-medium` : `${mutedColor} hover:${textColor}`
-                }`}
-              >
-                {link.label}
-                {page === link.page && (
-                  <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#e8622a] rounded-full" />
-                )}
-              </button>
-            ))}
+            {navLinks.map((link) => {
+              const isMatch = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+              return (
+                <NavLink
+                  key={link.href}
+                  to={link.href}
+                  style={{ textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.5)" : "none" }}
+                  className={`relative px-3 py-1.5 text-sm font-medium transition-colors ${
+                    isMatch ? `${textColor} font-semibold` : `${mutedColor} hover:${textColor}`
+                  }`}
+                >
+                  {link.label}
+                  {isMatch && (
+                    <span className="absolute bottom-0 left-3 right-3 h-0.5 bg-[#e8622a] rounded-full" />
+                  )}
+                </NavLink>
+              );
+            })}
           </nav>
 
-          {/* CTA */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("plan")}
+          {/* CTA & Profile */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Link
+              to="/profile"
+              className={`p-2 rounded-full transition-colors flex items-center justify-center ${
+                transparent && !isNonHeroPage ? "text-white/80 hover:text-white" : "text-[#0f2922]/70 hover:text-[#0f2922]"
+              }`}
+              title="My Profile"
+              aria-label="User Profile"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </Link>
+
+            <Link
+              to="/plan"
               className={`hidden sm:inline-flex items-center text-sm font-medium px-4 py-2 rounded-full transition-all ${
                 transparent
                   ? "bg-white text-[#0f2922] hover:bg-white/90"
@@ -117,11 +151,12 @@ export default function Navbar() {
               }`}
             >
               PLAN MY TRIP
-            </button>
+            </Link>
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
               className={`lg:hidden p-2 ${textColor}`}
+              aria-label="Toggle navigation menu"
             >
               {menuOpen ? (
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -134,30 +169,47 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="lg:hidden border-t border-[#e2e8f0] bg-white">
+          <div className="lg:hidden border-t border-[#e2e8f0] bg-white shadow-xl">
             <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
-              {navLinks.map((link) => (
-                <button
-                  key={link.page}
-                  onClick={() => { navigate(link.page); setMenuOpen(false); }}
-                  className={`text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                    page === link.page ? "bg-[#f7f8f5] text-[#0f2922] font-medium" : "text-[#4a5568] hover:bg-[#f7f8f5]"
-                  }`}
-                >
-                  {link.label}
-                </button>
-              ))}
+              {navLinks.map((link) => {
+                const isMatch = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={`text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                      isMatch ? "bg-[#f7f8f5] text-[#0f2922] font-semibold" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
+              <Link
+                to="/profile"
+                onClick={() => setMenuOpen(false)}
+                className={`text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  pathname === "/profile" ? "bg-[#f7f8f5] text-[#0f2922] font-semibold" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                }`}
+              >
+                Profile & Saved Trips
+              </Link>
               <div className="mt-2 pt-2 border-t border-[#e2e8f0]">
-                <button onClick={() => { navigate("plan"); setMenuOpen(false); }} className="w-full bg-[#0f2922] text-white text-sm py-2.5 rounded-full">
+                <Link
+                  to="/plan"
+                  onClick={() => setMenuOpen(false)}
+                  className="w-full text-center bg-[#0f2922] text-white text-sm py-2.5 rounded-full block"
+                >
                   Plan My Trip
-                </button>
+                </Link>
               </div>
             </div>
           </div>
         )}
       </header>
 
-      {/* Spacer for fixed hero pages that aren't transparent (e.g. mid-scroll) - not needed for sticky non-hero pages */}
+      {/* Spacer for fixed hero pages that aren't transparent (e.g. mid-scroll) */}
       {!isHeroPage && !isNonHeroPage && <div className="h-16" />}
     </>
   );

@@ -1,13 +1,23 @@
 import { useState } from "react";
+import { useNavigate, useSearchParams, Navigate, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 
 export default function AdminLogin() {
-  const { adminLogin, navigate, showToast } = useApp();
+  const { adminLogin, adminLoggedIn, showToast } = useApp();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromParam = searchParams.get("from");
+  const returnUrl = fromParam ? decodeURIComponent(fromParam) : "/admin/dashboard";
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  if (adminLoggedIn) {
+    return <Navigate to={returnUrl} replace />;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -21,7 +31,7 @@ export default function AdminLogin() {
     try {
       const res = await adminLogin(cleanEmail, password);
       if (res.success) {
-        navigate("admin");
+        navigate(returnUrl, { replace: true });
         showToast("Welcome to Yatrivo Admin!", "success");
       } else {
         setError(res.error || "Invalid credentials. Please try again.");
@@ -35,16 +45,16 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#0f2922]">
-      <div className="w-full max-w-md mx-4">
+    <div className="min-h-screen flex items-center justify-center bg-[#0f2922] p-4">
+      <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-[#e8622a] flex items-center justify-center">
+          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
+            <div className="w-10 h-10 rounded-xl bg-[#e8622a] flex items-center justify-center group-hover:ring-2 group-hover:ring-white/30 transition">
               <span className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
             </div>
             <span className="text-white text-2xl font-bold" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</span>
-          </div>
+          </Link>
           <p className="text-[#a3bfb5] text-sm">Travel Admin Panel</p>
         </div>
 
@@ -121,8 +131,15 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-[#718096] mt-6">
-            Authorized administrative access only. Super Admin: <span className="font-mono bg-gray-100 px-1 rounded text-[#0f2922]">yatrivo3@gmail.com</span>
+          <div className="mt-6 pt-6 border-t border-[#e2e8f0] flex items-center justify-between text-xs text-[#718096]">
+            <Link to="/" className="hover:text-[#0f2922] transition flex items-center gap-1">
+              ← Return to public website
+            </Link>
+            <span>Authorized access</span>
+          </div>
+
+          <p className="text-center text-xs text-[#718096] mt-4">
+            Super Admin: <span className="font-mono bg-gray-100 px-1 rounded text-[#0f2922]">yatrivo3@gmail.com</span>
           </p>
         </div>
       </div>

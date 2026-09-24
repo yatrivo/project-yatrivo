@@ -1,14 +1,14 @@
-import { useApp, type Page } from "@/context/AppContext";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
-  const { navigate } = useApp();
-
   return (
     <footer style={{ background: "var(--forest)" }} className="text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
         {/* Brand */}
         <div>
-          <div className="text-2xl font-bold tracking-widest mb-1" style={{ fontFamily: "var(--font-serif)" }}>YATRIVO</div>
+          <Link to="/" className="inline-block text-2xl font-bold tracking-widest mb-1 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
+            YATRIVO
+          </Link>
           <div className="text-[#e8622a] text-[10px] tracking-widest uppercase font-medium mb-4">EXPLORE MORE. TRAVEL BETTER.</div>
           <p className="text-white/60 text-sm leading-relaxed">
             Uttarakhand's premium travel collective for mindful explorers. We design high-fidelity mountain retreats, spiritual pilgrimages, and raw alpine treks.
@@ -20,20 +20,20 @@ export default function Footer() {
           <h4 className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">POPULAR SPOTS</h4>
           <ul className="space-y-2.5">
             {[
-              { label: "Chopta", dest: "chopta" as const },
-              { label: "Auli Snow Slopes", dest: "auli" as const },
-              { label: "Kedarnath Shrine", dest: "kedarnath" as const },
-              { label: "Rishikesh Ganga", dest: "rishikesh" as const },
-              { label: "Mussoorie Hills", dest: "mussoorie" as const },
-              { label: "Kanatal Woods", dest: "kanatal" as const },
+              { label: "Chopta", dest: "chopta" },
+              { label: "Auli Snow Slopes", dest: "auli" },
+              { label: "Kedarnath Shrine", dest: "kedarnath" },
+              { label: "Rishikesh Ganga", dest: "rishikesh" },
+              { label: "Mussoorie Hills", dest: "mussoorie" },
+              { label: "Kanatal Woods", dest: "kanatal" },
             ].map((s) => (
               <li key={s.label}>
-                <button
-                  onClick={() => navigate("destination-detail", { destId: s.dest })}
-                  className="text-white/70 hover:text-white text-sm transition-colors text-left"
+                <Link
+                  to={`/destinations/${s.dest}`}
+                  className="text-white/70 hover:text-white text-sm transition-colors block text-left"
                 >
                   {s.label}
-                </button>
+                </Link>
               </li>
             ))}
           </ul>
@@ -43,20 +43,20 @@ export default function Footer() {
         <div>
           <h4 className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">CONNECT WITH US</h4>
           <div className="space-y-2.5 mb-4">
-            {([
-              { label: "Travel With Us", page: "travel-with-us" as Page },
-              { label: "Past Trips", page: "past-trips" as Page },
-              { label: "About Us", page: "about" as Page },
-              { label: "Reviews", page: "reviews" as Page },
-              { label: "FAQ & Contact", page: "faq" as Page },
-            ] as { label: string; page: Page }[]).map((l) => (
-              <div key={l.page}>
-                <button
-                  onClick={() => navigate(l.page)}
-                  className="text-white/70 hover:text-white text-sm transition-colors text-left"
+            {[
+              { label: "Travel With Us", path: "/travel-with-us" },
+              { label: "Past Trips", path: "/past-trips" },
+              { label: "About Us", path: "/about" },
+              { label: "Reviews", path: "/reviews" },
+              { label: "FAQ & Contact", path: "/faq" },
+            ].map((l) => (
+              <div key={l.path}>
+                <Link
+                  to={l.path}
+                  className="text-white/70 hover:text-white text-sm transition-colors block text-left"
                 >
                   {l.label}
-                </button>
+                </Link>
               </div>
             ))}
           </div>
@@ -84,9 +84,9 @@ export default function Footer() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-white/40">
           <span>© 2026 Yatrivo Travel Brand. Designed with mindfulness in Dehradun.</span>
           <div className="flex gap-4">
-            <button onClick={() => navigate("terms")} className="hover:text-white/70 transition-colors">Terms & Conditions</button>
-            <button onClick={() => navigate("privacy")} className="hover:text-white/70 transition-colors">Privacy Policy</button>
-            <button onClick={() => navigate("admin")} className="hover:text-white/70 transition-colors">Admin</button>
+            <Link to="/terms" className="hover:text-white/70 transition-colors">Terms & Conditions</Link>
+            <Link to="/privacy" className="hover:text-white/70 transition-colors">Privacy Policy</Link>
+            <Link to="/admin" className="hover:text-white/70 transition-colors">Admin</Link>
           </div>
         </div>
       </div>

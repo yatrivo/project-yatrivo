@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
 import { destinationsApi } from "@/api/destinations";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
@@ -7,11 +8,11 @@ import { REVIEWS, type Review } from "@/data/reviews";
 
 export type { TripInstance, AdminUser };
 
-
 export type Page =
   | "home" | "destinations" | "destination-detail" | "trips" | "trip-detail"
   | "plan" | "about" | "reviews" | "faq" | "terms" | "privacy" | "admin"
-  | "travel-with-us" | "past-trips" | "completed-trip-detail" | "review";
+  | "travel-with-us" | "past-trips" | "completed-trip-detail" | "review"
+  | "profile";
 
 export interface Enquiry {
   id: string;
@@ -126,7 +127,7 @@ interface AppContextType {
   // Navigation
   page: Page;
   pageParams: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string };
-  navigate: (page: Page, params?: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string }) => void;
+  navigate: (page: Page | string, params?: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string }) => void;
 
   // Saved / Favourites (no auth required)
   savedItems: Set<string>;
@@ -222,12 +223,35 @@ let enquiryIdCounter = 100;
 let galleryIdCounter = 20;
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const hasSavedToken = typeof window !== "undefined" && tokenStorage.hasTokens();
-  const initialIsAdmin = typeof window !== "undefined" && (window.location.pathname === "/admin" || window.location.hash === "#admin");
-  const initialPage: Page = hasSavedToken || initialIsAdmin ? "admin" : "home";
+  const routerNavigate = useNavigate();
+  const location = useLocation();
 
-  const [page, setPage] = useState<Page>(initialPage);
   const [pageParams, setPageParams] = useState<{ tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string }>({});
+
+  // Derive current logical page from router location for backwards compatibility
+  const page: Page = (() => {
+    const p = location.pathname;
+    if (p.startsWith("/admin")) return "admin";
+    if (p.startsWith("/destinations/") && p !== "/destinations") return "destination-detail";
+    if (p === "/destinations") return "destinations";
+    if (p.startsWith("/trips/") && p !== "/trips") return "trip-detail";
+    if (p === "/trips") return "trips";
+    if (p === "/plan" || p === "/plan-trip") return "plan";
+    if (p === "/about") return "about";
+    if (p === "/reviews") return "reviews";
+    if (p.startsWith("/reviews/") || p === "/review") return "review";
+    if (p === "/faq" || p === "/contact") return "faq";
+    if (p === "/terms") return "terms";
+    if (p === "/privacy") return "privacy";
+    if (p === "/travel-with-us") return "travel-with-us";
+    if (p.startsWith("/past-trips/") && p !== "/past-trips") return "completed-trip-detail";
+    if (p === "/past-trips") return "past-trips";
+    if (p === "/profile") return "profile";
+    return "home";
+  })();
+
+  const hasSavedToken = typeof window !== "undefined" && tokenStorage.hasTokens();
+
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
   const [enquiries, setEnquiries] = useState<Enquiry[]>([
     {
@@ -282,8 +306,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const u = tokenStorage.getUser();
     return u?.role === "super_admin" ? "superAdmin" : u?.role === "admin" ? "admin" : null;
   });
-  // If token exists, skip splash screen so admin directly lands on their dashboard!
-  const [splashDone, setSplashDoneState] = useState<boolean>(hasSavedToken);
+  const [splashDone, setSplashDoneState] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    if (tokenStorage.hasTokens()) return true;
+    if (window.location.pathname !== "/" && window.location.pathname !== "") return true;
+    if (sessionStorage.getItem("yatrivo_splash_shown") === "true") return true;
+    return false;
+  });
   const [faqItems, setFaqItems] = useState<FaqItem[]>(DEFAULT_FAQ_ITEMS);
   const [aboutContent, setAboutContent] = useState("");
   const [termsContent, setTermsContent] = useState("");
@@ -300,11 +329,36 @@ export function AppProvider({ children }: { children: ReactNode }) {
     { id: "BK003", customerName: "Ankit Gupta", customerPhone: "+91 97654 32109", destination: "Auli", tripName: "Auli Ski Adventure", tripDate: "Nov 20, 2026", travellers: [{ name: "Ankit Gupta", age: "32", gender: "Male" }, { name: "Sneha Gupta", age: "30", gender: "Female" }, { name: "Rohit Gupta", age: "8", gender: "Male" }], totalAmount: "₹43,500", paymentStatus: "Unpaid", status: "Confirmed", bookingDate: "2026-09-18" },
   ]);
 
-  const navigate = useCallback((p: Page, params: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string } = {}) => {
-    setPage(p);
+  // Unified navigate supporting both legacy page tokens and clean URL paths
+  const navigate = useCallback((p: Page | string, params: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string } = {}) => {
     setPageParams(params);
-    window.scrollTo({ top: 0, behavior: "instant" });
-  }, []);
+    let target = "/";
+    if (p.startsWith("/")) {
+      target = p;
+    } else {
+      switch (p) {
+        case "home": target = "/"; break;
+        case "destinations": target = "/destinations"; break;
+        case "destination-detail": target = `/destinations/${params.destId || "chopta"}`; break;
+        case "trips": target = "/trips"; break;
+        case "trip-detail": target = `/trips/${params.tripId || "chopta-trek"}`; break;
+        case "plan": target = "/plan"; break;
+        case "about": target = "/about"; break;
+        case "reviews": target = "/reviews"; break;
+        case "review": target = `/reviews/new${params.tripInstanceId ? `?instanceId=${params.tripInstanceId}` : ""}`; break;
+        case "faq": target = "/faq"; break;
+        case "terms": target = "/terms"; break;
+        case "privacy": target = "/privacy"; break;
+        case "travel-with-us": target = "/travel-with-us"; break;
+        case "past-trips": target = "/past-trips"; break;
+        case "completed-trip-detail": target = `/past-trips/${params.tripInstanceId || ""}`; break;
+        case "profile": target = "/profile"; break;
+        case "admin": target = "/admin"; break;
+        default: target = `/${p}`;
+      }
+    }
+    routerNavigate(target);
+  }, [routerNavigate]);
 
   const toggleSave = useCallback((id: string) => {
     setSavedItems((prev) => {
@@ -391,7 +445,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
             setAdminLoggedIn(false);
             setAdminUser(null);
             setAdminRole(null);
-            setPage("home");
           }
         }
       }
@@ -410,7 +463,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
       setAdminLoggedIn(true);
       setAdminRole(data.user.role === "super_admin" ? "superAdmin" : "admin");
       setSplashDoneState(true);
-      setPage("admin");
       return { success: true };
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : "Invalid credentials";
@@ -427,10 +479,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAdminLoggedIn(false);
     setAdminRole(null);
     setAdminUser(null);
-    navigate("home");
-  }, [navigate]);
+    routerNavigate("/admin/login");
+  }, [routerNavigate]);
 
-  const setSplashDone = useCallback(() => setSplashDoneState(true), []);
+  const setSplashDone = useCallback(() => {
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem("yatrivo_splash_shown", "true");
+    }
+    setSplashDoneState(true);
+  }, []);
 
   const addGalleryImage = useCallback((img: Omit<GalleryImage, "id" | "addedAt">) => {
     const id = `g${++galleryIdCounter}`;

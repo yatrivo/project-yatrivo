@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -15,11 +16,12 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function CompletedTripDetailPage() {
-  const { pageParams, navigate, openEnquiryModal, tripInstances, trips, destinations, reviews } = useApp();
+  const { instanceId } = useParams<{ instanceId: string }>();
+  const { pageParams, openEnquiryModal, tripInstances, trips, destinations, reviews } = useApp();
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  const instanceId = pageParams.tripInstanceId;
-  const instance = tripInstances.find((i) => i.id === instanceId);
+  const currentId = instanceId || pageParams.tripInstanceId;
+  const instance = tripInstances.find((i) => i.id === currentId);
   const trip = instance ? trips.find((t) => t.id === instance.tripId) : null;
   const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
 
@@ -27,12 +29,12 @@ export default function CompletedTripDetailPage() {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-[#4a5568]">
         <p className="text-lg">Trip not found.</p>
-        <button
-          onClick={() => navigate("past-trips")}
+        <Link
+          to="/past-trips"
           className="bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm hover:bg-[#1a4a39] transition-colors"
         >
           Back to Past Trips
-        </button>
+        </Link>
       </div>
     );
   }
@@ -53,13 +55,13 @@ export default function CompletedTripDetailPage() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <button
-            onClick={() => navigate("past-trips")}
-            className="flex items-center gap-2 text-white/70 hover:text-white text-sm mb-6 transition-colors"
+          <Link
+            to="/past-trips"
+            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm mb-6 transition-colors"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Past Trips
-          </button>
+          </Link>
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">{destination.name}</div>
           <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
           <div className="flex flex-wrap items-center gap-3">

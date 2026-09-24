@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -100,7 +101,13 @@ export default function ReviewsPage() {
             <div className="text-[#4a5568] text-sm leading-relaxed max-w-sm">
               Based on 1,450+ verified independent traveler reviews across Google, Trustpilot, and direct feedback.
             </div>
-            <div className="sm:ml-auto flex flex-wrap gap-2">
+            <div className="sm:ml-auto flex flex-wrap items-center gap-2">
+              <Link
+                to="/reviews/new"
+                className="bg-[#e8622a] hover:bg-[#d45520] text-white px-4 py-1.5 rounded-full text-sm font-medium transition-colors"
+              >
+                Write a Review
+              </Link>
               {[
                 { label: "All Reviews", val: "all" as Filter },
                 { label: "High Treks", val: "treks" as Filter },
@@ -157,12 +164,12 @@ export default function ReviewsPage() {
             <p className="text-[#4a5568] text-sm leading-relaxed mb-7">
               Whether you want a high alpine trek, sunrise yoga over Ganga rapids, or cozy cabin stargazing, join a collective of thoughtful, active young wanderers who explore Uttarakhand with certified local guides and certified execution.
             </p>
-            <button
-              onClick={() => navigate("plan")}
-              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3 rounded-full text-sm font-medium transition-colors"
+            <Link
+              to="/plan"
+              className="inline-block bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3 rounded-full text-sm font-medium transition-colors"
             >
               PLAN YOUR ADVENTURE
-            </button>
+            </Link>
           </div>
           <div className="rounded-2xl overflow-hidden h-72">
             <img

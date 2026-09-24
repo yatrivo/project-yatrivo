@@ -469,13 +469,16 @@ function TripCard({
   );
 }
 
+import { useNavigate, Link } from "react-router-dom";
+
 // ── Main component ──────────────────────────────────────────────────────────
 
 interface Props {
-  setAdminPage: (p: AdminPage) => void;
+  setAdminPage?: (p: AdminPage) => void;
 }
 
-export default function AdminTrips({ setAdminPage }: Props) {
+export default function AdminTrips({ setAdminPage }: Props = {}) {
+  const navigate = useNavigate();
   const { trips, setTrips, tripInstances, setTripInstances, showToast, destinations } = useApp();
 
   const [search, setSearch] = useState("");
@@ -559,12 +562,13 @@ export default function AdminTrips({ setAdminPage }: Props) {
           <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Trips</h2>
           <p className="text-[#718096] text-sm mt-0.5">{trips.length} trips · {tripInstances.filter((i) => i.status === "upcoming").length} upcoming departures</p>
         </div>
-        <button
-          onClick={() => setAdminPage("trip-editor")}
-          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+        <Link
+          to="/admin/trips/new"
+          onClick={() => setAdminPage?.("trip-editor")}
+          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition inline-flex items-center gap-1"
         >
           + Add New Trip
-        </button>
+        </Link>
       </div>
 
       {/* Filters */}
@@ -600,7 +604,10 @@ export default function AdminTrips({ setAdminPage }: Props) {
               key={trip.id}
               trip={trip}
               instances={getInstances(trip.id)}
-              onEditTrip={() => setAdminPage("trip-editor")}
+              onEditTrip={() => {
+                setAdminPage?.("trip-editor");
+                navigate(`/admin/trips/${trip.id}/edit`);
+              }}
               onDuplicateTrip={() => handleDuplicateTrip(trip)}
               onDeleteTrip={() => handleDeleteTrip(trip.id)}
               onEditInstance={openEdit}
@@ -643,7 +650,13 @@ export default function AdminTrips({ setAdminPage }: Props) {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
-                        <button onClick={() => setAdminPage("trip-editor")} className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition">Edit</button>
+                        <Link
+                          to={`/admin/trips/${trip.id}/edit`}
+                          onClick={() => setAdminPage?.("trip-editor")}
+                          className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition"
+                        >
+                          Edit
+                        </Link>
                         <button onClick={() => handleDuplicateTrip(trip)} className="text-[#718096] hover:text-[#0f2922] text-xs font-medium transition">Duplicate</button>
                         <button onClick={() => handleDeleteTrip(trip.id)} className="text-red-500 hover:text-red-700 text-xs font-medium transition">Archive</button>
                         <button onClick={() => setAddingInstanceTrip(trip)} className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition">+ Departure</button>

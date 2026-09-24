@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -107,13 +108,10 @@ export default function DestinationsPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {sorted.map((d) => (
-            <div
+            <Link
               key={d.id}
-              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group cursor-pointer"
-              onClick={() => navigate("destination-detail", { destId: d.id })}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => e.key === "Enter" && navigate("destination-detail", { destId: d.id })}
+              to={`/destinations/${d.id}`}
+              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group block cursor-pointer"
             >
               <div className="h-52 overflow-hidden">
                 <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -125,7 +123,7 @@ export default function DestinationsPage() {
                 </div>
                 <p className="text-[#4a5568] text-sm">{d.tagline}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </div>
@@ -139,12 +137,12 @@ export default function DestinationsPage() {
             <p className="text-white/60 text-sm leading-relaxed mb-7">
               Uttarakhand alters dramatically with seasons. Winter brings powder snow to Auli, Spring dresses Chopta in deep rhododendron pink, Monsoon cleanses Rishikesh, and Autumn unlocks the clearest high-altitude stargazing. Let us guide you on the perfect timing.
             </p>
-            <button
-              onClick={() => navigate("faq")}
-              className="text-white border-b border-white/40 text-sm pb-0.5 hover:border-white transition-colors"
+            <Link
+              to="/faq"
+              className="text-white border-b border-white/40 text-sm pb-0.5 hover:border-white transition-colors inline-block"
             >
               READ OUR WEATHER GUIDE
-            </button>
+            </Link>
           </div>
           <div className="space-y-3">
             {seasons.map((s) => (

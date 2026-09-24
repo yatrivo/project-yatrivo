@@ -1,11 +1,12 @@
 import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import type { Enquiry, Traveller } from "@/context/AppContext";
 import { useApp } from "@/context/AppContext";
 import type { AdminPage } from "./AdminLayout";
 
 interface Props {
-  enquiry: Enquiry | null;
-  setAdminPage: (p: AdminPage) => void;
+  enquiry?: Enquiry | null;
+  setAdminPage?: (p: AdminPage) => void;
 }
 
 const STATUSES = ["Received", "Contacted", "Quoted", "Confirmed", "Lost", "Cancelled"] as const;
@@ -183,8 +184,11 @@ function CreateBookingModal({ enquiry, onClose }: CreateBookingModalProps) {
   );
 }
 
-export default function AdminEnquiryDetail({ enquiry, setAdminPage }: Props) {
-  const { showToast } = useApp();
+export default function AdminEnquiryDetail({ enquiry: propEnquiry, setAdminPage }: Props = {}) {
+  const { id } = useParams<{ id: string }>();
+  const { enquiries, showToast } = useApp();
+  const enquiry = propEnquiry || enquiries.find((e) => e.id === id);
+
   const [status, setStatus] = useState<string>(enquiry?.status ?? "Received");
   const [assignee, setAssignee] = useState(TEAM[0]);
   const [originalStatus] = useState<string>(enquiry?.status ?? "Received");
@@ -196,9 +200,15 @@ export default function AdminEnquiryDetail({ enquiry, setAdminPage }: Props) {
 
   if (!enquiry) {
     return (
-      <div className="p-6 text-center text-[#718096]">
-        No enquiry selected.
-        <button onClick={() => setAdminPage("enquiries")} className="ml-2 text-[#e8622a] underline">Go back</button>
+      <div className="p-8 text-center text-[#718096]">
+        <p className="text-base mb-3">Enquiry {id ? `"${id}"` : ""} not found.</p>
+        <Link
+          to="/admin/enquiries"
+          onClick={() => setAdminPage?.("enquiries")}
+          className="inline-block bg-[#0f2922] text-white px-5 py-2 rounded-lg text-sm hover:bg-[#1a4a39] transition"
+        >
+          ← Back to Enquiries
+        </Link>
       </div>
     );
   }
@@ -232,15 +242,16 @@ export default function AdminEnquiryDetail({ enquiry, setAdminPage }: Props) {
       )}
 
       {/* Back */}
-      <button
-        onClick={() => setAdminPage("enquiries")}
-        className="flex items-center gap-2 text-[#718096] hover:text-[#0f2922] transition text-sm"
+      <Link
+        to="/admin/enquiries"
+        onClick={() => setAdminPage?.("enquiries")}
+        className="inline-flex items-center gap-2 text-[#718096] hover:text-[#0f2922] transition text-sm"
       >
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
         </svg>
         Back to Enquiries
-      </button>
+      </Link>
 
       <div>
         <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>

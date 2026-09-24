@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -150,12 +151,12 @@ export default function PlanMyTripPage() {
               <p className="text-[#0f2922] font-medium text-sm mb-2">Enquiry ID: <span className="text-[#e8622a]">{submittedId}</span></p>
               <p className="text-[#4a5568] text-sm mb-8">We'll reach out at <strong>{form.phone}</strong>.</p>
               <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                <button onClick={() => navigate("trips")} className="border border-[#0f2922] text-[#0f2922] px-6 py-3 rounded-full text-sm font-medium hover:bg-[#0f2922] hover:text-white transition-colors">
+                <Link to="/trips" className="border border-[#0f2922] text-[#0f2922] px-6 py-3 rounded-full text-sm font-medium hover:bg-[#0f2922] hover:text-white transition-colors">
                   Browse Trips
-                </button>
-                <button onClick={() => navigate("home")} className="bg-[#e8622a] text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-[#d45520] transition-colors">
+                </Link>
+                <Link to="/" className="bg-[#e8622a] text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-[#d45520] transition-colors">
                   Back to Home
-                </button>
+                </Link>
               </div>
             </div>
           ) : (
@@ -414,7 +415,7 @@ export default function PlanMyTripPage() {
               {/* Navigation */}
               <div className="px-7 pb-7 flex items-center justify-between gap-4">
                 <button
-                  onClick={() => step > 0 ? setStep(step - 1) : navigate("home")}
+                  onClick={() => step > 0 ? setStep(step - 1) : navigate("/")}
                   className="flex items-center gap-2 text-[#4a5568] text-sm hover:text-[#0f2922] transition-colors"
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>

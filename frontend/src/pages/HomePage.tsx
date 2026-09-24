@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -121,15 +122,15 @@ export default function HomePage() {
                 </p>
               )}
             <div className="flex flex-wrap items-center gap-3 mb-1">
-              <button
-                onClick={() => navigate("trip-detail", { tripId: currentSlide.tripId })}
-                className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all"
+              <Link
+                to={`/trips/${currentSlide.tripId}`}
+                className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all inline-block"
               >
                 VIEW TRIP
-              </button>
+              </Link>
               <button
                 onClick={() => openEnquiryModal(currentSlide.tripId!)}
-                className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 transition-colors"
+                className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer"
               >
                 INQUIRE NOW →
               </button>
@@ -137,12 +138,12 @@ export default function HomePage() {
             </>
           ) : (
             <div className="flex flex-wrap gap-3">
-              <button onClick={() => navigate("trips")} className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all">
+              <Link to="/trips" className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all inline-block">
                 EXPLORE PACKAGES
-              </button>
-              <button onClick={() => navigate("plan")} className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 transition-colors">
+              </Link>
+              <Link to="/plan" className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium inline-flex items-center gap-2 transition-colors">
                 PLAN MY EXCURSION →
-              </button>
+              </Link>
             </div>
           )}
         </div>
@@ -175,9 +176,9 @@ export default function HomePage() {
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">CURATED HIMALAYAN WONDERS</div>
               <h2 className="text-[#0f2922] text-3xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Destinations that Stir the Soul</h2>
             </div>
-            <button onClick={() => navigate("destinations")} className="border border-[#0f2922] text-[#0f2922] text-sm px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0">
+            <Link to="/destinations" className="border border-[#0f2922] text-[#0f2922] text-sm px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0 inline-block">
               VIEW ALL DESTINATIONS
-            </button>
+            </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {[
@@ -185,21 +186,18 @@ export default function HomePage() {
               { id: "auli", name: "Auli Slopes", img: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=480&fit=crop&auto=format", tag: "SKI SEASON" },
               { id: "kedarnath", name: "Kedarnath", img: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=480&fit=crop&auto=format", tag: "SPIRITUAL" },
             ].map((d) => (
-              <div
+              <Link
                 key={d.id}
-                className="group relative rounded-2xl overflow-hidden h-72 cursor-pointer"
-                onClick={() => navigate("destination-detail", { destId: d.id })}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => e.key === "Enter" && navigate("destination-detail", { destId: d.id })}
+                to={`/destinations/${d.id}`}
+                className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
               >
                 <img src={d.img} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
-<div className="absolute bottom-0 left-0 p-5">
+                <div className="absolute bottom-0 left-0 p-5">
                   <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wider mb-1">{d.tag}</div>
                   <div className="text-white text-xl font-medium" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -230,12 +228,12 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() => navigate("travel-with-us")}
-                className="border border-[#0f2922] text-[#0f2922] text-sm px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium"
+              <Link
+                to="/travel-with-us"
+                className="border border-[#0f2922] text-[#0f2922] text-sm px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium inline-block"
               >
                 Travel With Us →
-              </button>
+              </Link>
             </div>
           </div>
         </div>
@@ -265,9 +263,12 @@ export default function HomePage() {
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Travel Better?</h2>
           <p className="text-white/70 text-base mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
-          <button onClick={() => navigate("plan")} className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide">
+          <Link
+            to="/plan"
+            className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide inline-block"
+          >
             BOOK YOUR JOURNEY NOW
-          </button>
+          </Link>
         </div>
       </section>
 

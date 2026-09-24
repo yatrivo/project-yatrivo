@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -15,9 +16,10 @@ function StarRating({ rating }: { rating: number }) {
 }
 
 export default function DestinationDetailPage() {
-  const { pageParams, navigate, openEnquiryModal, destinations, trips, tripInstances, reviews } = useApp();
-  const destId = pageParams.destId || "chopta";
-  const dest = destinations.find((d) => d.id === destId || d.slug === destId) || destinations[0];
+  const { slug } = useParams<{ slug: string }>();
+  const { pageParams, openEnquiryModal, destinations, trips, tripInstances, reviews } = useApp();
+  const destId = slug || pageParams.destId || "chopta";
+  const dest = destinations.find((d) => d.id.toLowerCase() === destId.toLowerCase() || (d.slug && d.slug.toLowerCase() === destId.toLowerCase())) || destinations.find((d) => d.id === "chopta") || destinations[0];
   const destTrips = trips.filter((t) => t.destination === destId || (dest && (t.destination === dest.id || t.destination === dest.slug)));
   const destReviews = reviews.filter((r) => (r.destination === destId || (dest && (r.destination === dest.id || r.destination === dest.slug))) && r.status === "published");
 
@@ -139,12 +141,12 @@ export default function DestinationDetailPage() {
                           <div className="w-full bg-[#e2e8f0] rounded-full h-1 mb-3">
                             <div className="bg-[#e8622a] h-1 rounded-full transition-all" style={{ width: `${100 - spotsPercent}%` }} />
                           </div>
-                          <button
-                            onClick={() => navigate("trip-detail", { tripId: inst.tripId })}
-                            className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm py-2.5 rounded-full font-medium transition-colors"
+                          <Link
+                            to={`/trips/${inst.tripId}`}
+                            className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm py-2.5 rounded-full font-medium transition-colors block text-center"
                           >
                             VIEW TRIP
-                          </button>
+                          </Link>
                         </div>
                       </div>
                     );
@@ -153,9 +155,9 @@ export default function DestinationDetailPage() {
               ) : (
                 <div className="bg-[#f7f8f5] rounded-2xl p-8 text-center">
                   <p className="text-[#4a5568] text-sm mb-4">No upcoming trips scheduled. Check back soon.</p>
-                  <button onClick={() => navigate("trips")} className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors">
+                  <Link to="/trips" className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
                     Browse All Trips
-                  </button>
+                  </Link>
                 </div>
               )}
             </section>
@@ -222,9 +224,9 @@ export default function DestinationDetailPage() {
               >
                 Enquire About {dest.name}
               </button>
-              <button onClick={() => navigate("plan")} className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10">
+              <Link to="/plan" className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
                 Plan a Custom Trip
-              </button>
+              </Link>
             </div>
           </div>
         </div>

@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -81,7 +82,7 @@ export default function PrivacyPage() {
           )}
           <div className="mt-8 text-center">
             <p className="text-[#4a5568] text-sm mb-4">
-              Questions? Read our <button onClick={() => navigate("terms")} className="text-[#e8622a] hover:underline">Terms & Conditions</button> or email us at <a href="mailto:hello@yatrivo.com" className="text-[#e8622a] hover:underline">hello@yatrivo.com</a>.
+              Questions? Read our <Link to="/terms" className="text-[#e8622a] hover:underline">Terms & Conditions</Link> or email us at <a href="mailto:hello@yatrivo.com" className="text-[#e8622a] hover:underline">hello@yatrivo.com</a>.
             </p>
           </div>
         </div>

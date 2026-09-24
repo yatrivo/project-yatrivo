@@ -157,14 +157,17 @@ const STATUS_BADGE: Record<string, string> = {
   Cancelled: "bg-gray-100 text-gray-600",
 };
 
+import { useNavigate } from "react-router-dom";
+
 const TABS = ["All", "Received", "Contacted", "Quoted", "Confirmed"] as const;
 
 interface Props {
-  setAdminPage: (p: AdminPage) => void;
-  setSelectedEnquiry: (e: Enquiry) => void;
+  setAdminPage?: (p: AdminPage) => void;
+  setSelectedEnquiry?: (e: Enquiry) => void;
 }
 
-export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Props) {
+export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Props = {}) {
+  const navigate = useNavigate();
   const { enquiries } = useApp();
   const [tab, setTab] = useState<string>("All");
   const [search, setSearch] = useState("");
@@ -183,8 +186,9 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   const handleRowClick = (e: Enquiry) => {
-    setSelectedEnquiry(e);
-    setAdminPage("enquiry-detail");
+    setSelectedEnquiry?.(e);
+    setAdminPage?.("enquiry-detail");
+    navigate(`/admin/enquiries/${e.id}`);
   };
 
   return (

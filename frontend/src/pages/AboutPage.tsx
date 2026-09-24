@@ -1,8 +1,9 @@
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
 export default function AboutPage() {
-  const { navigate, aboutContent } = useApp();
+  const { aboutContent } = useApp();
   return (
     <div>
       {/* Hero */}
@@ -116,12 +117,12 @@ export default function AboutPage() {
           <p className="text-white/70 text-base mb-8">
             Step off the tourist trail. Explore Uttarakhand with local safety, certified guides, and small youthful groups.
           </p>
-          <button
-            onClick={() => navigate("plan")}
-            className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
+          <Link
+            to="/plan"
+            className="inline-block bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
           >
             START PLANNING NOW
-          </button>
+          </Link>
         </div>
       </section>
 

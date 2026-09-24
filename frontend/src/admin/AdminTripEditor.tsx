@@ -52,39 +52,45 @@ function GallerySection() {
   );
 }
 
+import { useParams, useNavigate, Link } from "react-router-dom";
+
 interface Props {
-  setAdminPage: (p: AdminPage) => void;
+  setAdminPage?: (p: AdminPage) => void;
 }
 
-export default function AdminTripEditor({ setAdminPage }: Props) {
-  const { showToast } = useApp();
+export default function AdminTripEditor({ setAdminPage }: Props = {}) {
+  const { id } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const { showToast, trips } = useApp();
+
+  const existingTrip = id ? trips.find((t) => t.id === id) : null;
   const [activeSection, setActiveSection] = useState<Section>("basic");
 
   // Basic Info
-  const [tripName, setTripName] = useState("");
-  const [tripImage, setTripImage] = useState("");
-  const [destination, setDestination] = useState("Rishikesh");
-  const [duration, setDuration] = useState("3 Days");
-  const [difficulty, setDifficulty] = useState("Easy");
-  const [shortDesc, setShortDesc] = useState("");
-  const [highlights, setHighlights] = useState(["", ""]);
+  const [tripName, setTripName] = useState(existingTrip?.name ?? "");
+  const [tripImage, setTripImage] = useState(existingTrip?.image ?? "");
+  const [destination, setDestination] = useState(existingTrip?.destination ?? "Rishikesh");
+  const [duration, setDuration] = useState(existingTrip?.duration ?? "3 Days");
+  const [difficulty, setDifficulty] = useState(existingTrip?.difficulty ?? "Easy");
+  const [shortDesc, setShortDesc] = useState(existingTrip?.highlights?.[0] ?? "");
+  const [highlights, setHighlights] = useState(existingTrip?.highlights ?? ["", ""]);
 
   // Itinerary
   const [days, setDays] = useState<Day[]>([{ title: "", description: "" }]);
 
   // Inclusions
-  const [inclusions, setInclusions] = useState(["Accommodation", "Meals", "Transport"]);
-  const [exclusions, setExclusions] = useState(["Airfare", "Personal expenses"]);
+  const [inclusions, setInclusions] = useState(existingTrip?.inclusions ?? ["Accommodation", "Meals", "Transport"]);
+  const [exclusions, setExclusions] = useState(existingTrip?.exclusions ?? ["Airfare", "Personal expenses"]);
 
   // Pricing
-  const [price, setPrice] = useState("");
+  const [price, setPrice] = useState(existingTrip ? String(existingTrip.price) : "");
   const [priceNotes, setPriceNotes] = useState("");
   const [addons, setAddons] = useState<Addon[]>([{ name: "", price: "" }]);
 
   // SEO
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDesc, setMetaDesc] = useState("");
-  const [slug, setSlug] = useState("");
+  const [slug, setSlug] = useState(existingTrip?.id ?? "");
 
   const addDay = () => setDays([...days, { title: "", description: "" }]);
   const removeDay = (i: number) => setDays(days.filter((_, idx) => idx !== i));
@@ -98,7 +104,8 @@ export default function AdminTripEditor({ setAdminPage }: Props) {
 
   const handleSave = (publish: boolean) => {
     showToast(publish ? "Trip published!" : "Draft saved!", "success");
-    setAdminPage("trips");
+    setAdminPage?.("trips");
+    navigate("/admin/trips");
   };
 
   return (
@@ -106,11 +113,17 @@ export default function AdminTripEditor({ setAdminPage }: Props) {
       {/* Left section nav */}
       <div className="w-44 shrink-0 bg-white border-r border-[#e2e8f0] py-4">
         <div className="px-4 mb-4">
-          <button onClick={() => setAdminPage("trips")} className="flex items-center gap-1.5 text-[#718096] hover:text-[#0f2922] text-xs transition">
+          <Link
+            to="/admin/trips"
+            onClick={() => setAdminPage?.("trips")}
+            className="inline-flex items-center gap-1.5 text-[#718096] hover:text-[#0f2922] text-xs transition"
+          >
             <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/></svg>
-            Back
-          </button>
-          <h3 className="font-semibold text-[#0f2922] text-sm mt-3">Trip Editor</h3>
+            Back to Trips
+          </Link>
+          <h3 className="font-semibold text-[#0f2922] text-sm mt-3">
+            {existingTrip ? "Edit Trip" : "New Trip"}
+          </h3>
         </div>
         <nav className="space-y-0.5 px-2">
           {SECTIONS.map((s) => (

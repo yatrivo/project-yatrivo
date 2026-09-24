@@ -1,10 +1,12 @@
-import { useState } from "react";
+import { Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import type { Enquiry } from "@/context/AppContext";
 import Navbar from "@/components/Navbar";
 import ToastContainer from "@/components/Toast";
 import EnquiryModal from "@/components/EnquiryModal";
 import SplashScreen from "@/components/SplashScreen";
+import ScrollToTop from "@/components/ScrollToTop";
+
+// Public pages
 import HomePage from "@/pages/HomePage";
 import DestinationsPage from "@/pages/DestinationsPage";
 import DestinationDetailPage from "@/pages/DestinationDetailPage";
@@ -13,21 +15,25 @@ import TripDetailPage from "@/pages/TripDetailPage";
 import PlanMyTripPage from "@/pages/PlanMyTripPage";
 import AboutPage from "@/pages/AboutPage";
 import ReviewsPage from "@/pages/ReviewsPage";
+import ReviewPage from "@/pages/ReviewPage";
 import FAQContactPage from "@/pages/FAQContactPage";
 import TermsPage from "@/pages/TermsPage";
 import PrivacyPage from "@/pages/PrivacyPage";
 import TravelWithUsPage from "@/pages/TravelWithUsPage";
 import PastTripsPage from "@/pages/PastTripsPage";
 import CompletedTripDetailPage from "@/pages/CompletedTripDetailPage";
-import ReviewPage from "@/pages/ReviewPage";
+import ProfilePage from "@/pages/ProfilePage";
+import NotFoundPage from "@/pages/NotFoundPage";
+
+// Admin components
 import AdminLogin from "@/admin/AdminLogin";
 import AdminLayout from "@/admin/AdminLayout";
-import type { AdminPage } from "@/admin/AdminLayout";
 import AdminDashboard from "@/admin/AdminDashboard";
 import AdminEnquiries from "@/admin/AdminEnquiries";
 import AdminEnquiryDetail from "@/admin/AdminEnquiryDetail";
 import AdminTrips from "@/admin/AdminTrips";
 import AdminTripEditor from "@/admin/AdminTripEditor";
+import AdminTripInstances from "@/admin/AdminTripInstances";
 import AdminDestinations from "@/admin/AdminDestinations";
 import AdminBookings from "@/admin/AdminBookings";
 import AdminUsers from "@/admin/AdminUsers";
@@ -36,76 +42,104 @@ import AdminMedia from "@/admin/AdminMedia";
 import AdminContent from "@/admin/AdminContent";
 import AdminAnalytics from "@/admin/AdminAnalytics";
 import AdminNotifications from "@/admin/AdminNotifications";
-import AdminTripInstances from "@/admin/AdminTripInstances";
 import AdminSettings from "@/admin/AdminSettings";
 import AdminAuditLogs from "@/admin/AdminAuditLogs";
 
-export default function App() {
-  const { page, navigate, adminLoggedIn, splashDone, setSplashDone } = useApp();
-  const [adminPage, setAdminPage] = useState<AdminPage>("dashboard");
-  const [selectedEnquiry, setSelectedEnquiry] = useState<Enquiry | null>(null);
-
-  if (!splashDone) {
-    return <SplashScreen onDone={setSplashDone} />;
-  }
-
-  // Admin flow
-  if (page === "admin") {
-    if (!adminLoggedIn) {
-      return <AdminLogin />;
-    }
-    return (
-      <>
-        <ToastContainer />
-        <AdminLayout adminPage={adminPage} setAdminPage={setAdminPage}>
-          {adminPage === "dashboard" && <AdminDashboard setAdminPage={setAdminPage} />}
-          {adminPage === "enquiries" && (
-            <AdminEnquiries setAdminPage={setAdminPage} setSelectedEnquiry={setSelectedEnquiry} />
-          )}
-          {adminPage === "enquiry-detail" && (
-            <AdminEnquiryDetail enquiry={selectedEnquiry} setAdminPage={setAdminPage} />
-          )}
-          {adminPage === "trips" && <AdminTrips setAdminPage={setAdminPage} />}
-          {adminPage === "trip-editor" && <AdminTripEditor setAdminPage={setAdminPage} />}
-          {adminPage === "destinations" && <AdminDestinations />}
-          {adminPage === "bookings" && <AdminBookings />}
-          {adminPage === "users" && <AdminUsers />}
-          {adminPage === "reviews" && <AdminReviews />}
-          {adminPage === "media" && <AdminMedia />}
-          {adminPage === "content" && <AdminContent />}
-          {adminPage === "analytics" && <AdminAnalytics />}
-          {adminPage === "trip-instances" && <AdminTripInstances />}
-          {adminPage === "notifications" && <AdminNotifications />}
-          {adminPage === "settings" && <AdminSettings />}
-          {adminPage === "audit-logs" && <AdminAuditLogs />}
-        </AdminLayout>
-      </>
-    );
-  }
-
-  // Main site
+function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col">
       <Navbar />
       <ToastContainer />
       <EnquiryModal />
       <main className="flex-1">
-        {page === "home" && <HomePage />}
-        {page === "destinations" && <DestinationsPage />}
-        {page === "destination-detail" && <DestinationDetailPage />}
-        {page === "trips" && <TripsPage />}
-        {page === "trip-detail" && <TripDetailPage />}
-        {page === "plan" && <PlanMyTripPage />}
-        {page === "about" && <AboutPage />}
-        {page === "reviews" && <ReviewsPage />}
-        {page === "faq" && <FAQContactPage />}
-        {page === "terms" && <TermsPage />}
-        {page === "privacy" && <PrivacyPage />}
-        {page === "travel-with-us" && <TravelWithUsPage />}
-        {page === "past-trips" && <PastTripsPage />}
-        {page === "completed-trip-detail" && <CompletedTripDetailPage />}
-        {page === "review" && <ReviewPage />}
+        <Outlet />
       </main>
     </div>
+  );
+}
+
+function ProtectedAdminRoute() {
+  const { adminLoggedIn } = useApp();
+  const location = useLocation();
+
+  if (!adminLoggedIn) {
+    const from = encodeURIComponent(location.pathname + location.search);
+    return <Navigate to={`/admin/login?from=${from}`} replace />;
+  }
+
+  return (
+    <>
+      <ToastContainer />
+      <AdminLayout>
+        <Outlet />
+      </AdminLayout>
+    </>
+  );
+}
+
+export default function App() {
+  const { splashDone, setSplashDone } = useApp();
+
+  if (!splashDone) {
+    return <SplashScreen onDone={setSplashDone} />;
+  }
+
+  return (
+    <>
+      <ScrollToTop />
+      <Routes>
+        {/* Public Website Routes */}
+        <Route element={<PublicLayout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/destinations" element={<DestinationsPage />} />
+          <Route path="/destinations/:slug" element={<DestinationDetailPage />} />
+          <Route path="/trips" element={<TripsPage />} />
+          <Route path="/trips/:slug" element={<TripDetailPage />} />
+          <Route path="/travel-with-us" element={<TravelWithUsPage />} />
+          <Route path="/past-trips" element={<PastTripsPage />} />
+          <Route path="/past-trips/:instanceId" element={<CompletedTripDetailPage />} />
+          <Route path="/plan" element={<PlanMyTripPage />} />
+          <Route path="/plan-trip" element={<Navigate to="/plan" replace />} />
+          <Route path="/about" element={<AboutPage />} />
+          <Route path="/reviews" element={<ReviewsPage />} />
+          <Route path="/reviews/new" element={<ReviewPage />} />
+          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/faq" element={<FAQContactPage />} />
+          <Route path="/contact" element={<Navigate to="/faq" replace />} />
+          <Route path="/terms" element={<TermsPage />} />
+          <Route path="/privacy" element={<PrivacyPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+        </Route>
+
+        {/* Admin Login Route */}
+        <Route path="/admin/login" element={<AdminLogin />} />
+
+        {/* Protected Admin Routes */}
+        <Route path="/admin" element={<ProtectedAdminRoute />}>
+          <Route index element={<Navigate to="/admin/dashboard" replace />} />
+          <Route path="dashboard" element={<AdminDashboard />} />
+          <Route path="enquiries" element={<AdminEnquiries />} />
+          <Route path="enquiries/:id" element={<AdminEnquiryDetail />} />
+          <Route path="trips" element={<AdminTrips />} />
+          <Route path="trips/new" element={<AdminTripEditor />} />
+          <Route path="trips/:id/edit" element={<AdminTripEditor />} />
+          <Route path="trip-instances" element={<AdminTripInstances />} />
+          <Route path="destinations" element={<AdminDestinations />} />
+          <Route path="bookings" element={<AdminBookings />} />
+          <Route path="users" element={<AdminUsers />} />
+          <Route path="reviews" element={<AdminReviews />} />
+          <Route path="media" element={<AdminMedia />} />
+          <Route path="content" element={<AdminContent />} />
+          <Route path="analytics" element={<AdminAnalytics />} />
+          <Route path="notifications" element={<AdminNotifications />} />
+          <Route path="settings" element={<AdminSettings />} />
+          <Route path="audit-logs" element={<AdminAuditLogs />} />
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
+        </Route>
+
+        {/* Global 404 Route */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+    </>
   );
 }

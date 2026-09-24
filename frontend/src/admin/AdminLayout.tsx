@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 
 export type AdminPage =
@@ -7,21 +8,24 @@ export type AdminPage =
   | "media" | "content" | "analytics" | "notifications" | "settings" | "audit-logs";
 
 interface AdminLayoutProps {
-  adminPage: AdminPage;
-  setAdminPage: (page: AdminPage) => void;
-  children: React.ReactNode;
+  adminPage?: AdminPage;
+  setAdminPage?: (page: AdminPage) => void;
+  children?: React.ReactNode;
 }
 
 const NAV_ITEMS: { id: AdminPage; label: string; icon: React.ReactNode }[] = [
   { id: "dashboard", label: "Dashboard", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="3" width="7" height="7" rx="1" strokeWidth={2}/><rect x="3" y="14" width="7" height="7" rx="1" strokeWidth={2}/><rect x="14" y="14" width="7" height="7" rx="1" strokeWidth={2}/></svg> },
   { id: "enquiries", label: "Enquiries", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg> },
   { id: "trips", label: "Trips", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21l1.65-3.8a9 9 0 1 1 3.4 2.9L3 21"/></svg> },
+  { id: "trip-instances", label: "Departures", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> },
   { id: "destinations", label: "Destinations", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg> },
   { id: "bookings", label: "Bookings", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg> },
   { id: "users", label: "Admins", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg> },
   { id: "reviews", label: "Reviews", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg> },
   { id: "media", label: "Media", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg> },
   { id: "content", label: "Content", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg> },
+  { id: "analytics", label: "Analytics", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg> },
+  { id: "notifications", label: "Notifications", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg> },
   { id: "settings", label: "Settings", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg> },
   { id: "audit-logs", label: "Audit Logs", icon: <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg> },
 ];
@@ -32,10 +36,31 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const unreadEnquiries = enquiries.filter((e) => e.status === "Received").length;
 
-  const activePage = ["enquiry-detail"].includes(adminPage) ? "enquiries" : ["trip-editor"].includes(adminPage) ? "trips" : adminPage;
+  const getActivePage = (): AdminPage => {
+    const p = location.pathname;
+    if (p === "/admin" || p === "/admin/" || p.startsWith("/admin/dashboard")) return "dashboard";
+    if (p.startsWith("/admin/enquiries")) return "enquiries";
+    if (p.startsWith("/admin/trips")) return "trips";
+    if (p.startsWith("/admin/trip-instances")) return "trip-instances";
+    if (p.startsWith("/admin/destinations")) return "destinations";
+    if (p.startsWith("/admin/bookings")) return "bookings";
+    if (p.startsWith("/admin/users")) return "users";
+    if (p.startsWith("/admin/reviews")) return "reviews";
+    if (p.startsWith("/admin/media")) return "media";
+    if (p.startsWith("/admin/content")) return "content";
+    if (p.startsWith("/admin/analytics")) return "analytics";
+    if (p.startsWith("/admin/notifications")) return "notifications";
+    if (p.startsWith("/admin/settings")) return "settings";
+    if (p.startsWith("/admin/audit-logs")) return "audit-logs";
+    return adminPage || "dashboard";
+  };
+
+  const activePage = getActivePage();
 
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
@@ -52,11 +77,11 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
         </div>
       ) : (
         <div className="p-4 border-b border-[#1a3d31] flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-[#e8622a] flex items-center justify-center shrink-0">
+          <Link to="/admin/dashboard" className="w-9 h-9 rounded-xl bg-[#e8622a] flex items-center justify-center shrink-0">
             <span className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
-          </div>
+          </Link>
           <div className="flex-1 min-w-0">
-            <div className="text-white font-bold text-base leading-tight" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</div>
+            <Link to="/admin/dashboard" className="text-white font-bold text-base leading-tight block hover:text-[#7aab95] transition" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</Link>
             <div className="text-[#7aab95] text-xs">Admin Panel</div>
           </div>
           <button
@@ -75,10 +100,15 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
       <nav className="flex-1 overflow-y-auto py-3 px-2 space-y-0.5">
         {NAV_ITEMS.map((item) => {
           const isActive = activePage === item.id;
+          const targetUrl = item.id === "dashboard" ? "/admin/dashboard" : `/admin/${item.id}`;
           return (
-            <button
+            <NavLink
               key={item.id}
-              onClick={() => { setAdminPage(item.id); setMobileOpen(false); }}
+              to={targetUrl}
+              onClick={() => {
+                setAdminPage?.(item.id);
+                setMobileOpen(false);
+              }}
               title={collapsed ? item.label : undefined}
               className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all text-sm font-medium relative ${
                 isActive
@@ -103,7 +133,7 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
                   )}
                 </>
               )}
-            </button>
+            </NavLink>
           );
         })}
       </nav>
@@ -163,6 +193,7 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
                 onClick={async () => {
                   setLogoutConfirmOpen(false);
                   await adminLogout();
+                  navigate("/admin/login");
                 }}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
               >
@@ -207,14 +238,28 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
               {NAV_ITEMS.find(n => n.id === activePage)?.label ?? "Admin"}
             </h1>
           </div>
-          <div className="flex items-center gap-2 text-[#718096] text-xs">
-            <span>Yatrivo Admin</span>
+          <div className="flex items-center gap-3">
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#0f2922] bg-[#f0f4f1] hover:bg-[#e2e8f0] rounded-lg transition"
+              title="Open public website in new tab"
+            >
+              <span>Live Site</span>
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+              </svg>
+            </Link>
+            <div className="hidden sm:flex items-center gap-2 text-[#718096] text-xs">
+              <span>Yatrivo Admin</span>
+            </div>
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-y-auto">
-          {children}
+          {children || <Outlet />}
         </main>
       </div>
     </div>

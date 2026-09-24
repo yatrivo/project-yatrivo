@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import type { Review } from "@/data/reviews";
@@ -33,9 +34,10 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 let reviewCounter = 200;
 
 export default function ReviewPage() {
-  const { pageParams, tripInstances, trips, reviews, setReviews } = useApp();
+  const [searchParams] = useSearchParams();
+  const { pageParams, tripInstances, trips, setReviews } = useApp();
 
-  const instanceId = pageParams.tripInstanceId;
+  const instanceId = searchParams.get("instanceId") || searchParams.get("instance") || pageParams.tripInstanceId;
   const instance = instanceId ? tripInstances.find((i) => i.id === instanceId) : null;
   const prefilledTrip = instance ? trips.find((t) => t.id === instance.tripId) : null;
 
@@ -109,9 +111,15 @@ export default function ReviewPage() {
             <div className="bg-white border border-[#e2e8f0] rounded-2xl p-10 text-center">
               <div className="text-4xl mb-4">🙏</div>
               <h2 className="text-[#0f2922] text-2xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>Thank You!</h2>
-              <p className="text-[#4a5568] text-sm leading-relaxed">
+              <p className="text-[#4a5568] text-sm leading-relaxed mb-6">
                 Your review has been submitted and is awaiting approval. We appreciate you taking the time to share your Yatrivo experience.
               </p>
+              <Link
+                to="/reviews"
+                className="inline-block bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm font-medium hover:bg-[#1a4a39] transition-colors"
+              >
+                Back to Reviews
+              </Link>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="bg-white border border-[#e2e8f0] rounded-2xl p-8 space-y-6">

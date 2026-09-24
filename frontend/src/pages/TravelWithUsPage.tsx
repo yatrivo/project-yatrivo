@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 
@@ -34,7 +35,7 @@ const highlights = [
 ];
 
 export default function TravelWithUsPage() {
-  const { navigate, tripInstances, trips, destinations } = useApp();
+  const { tripInstances, trips, destinations } = useApp();
 
   const recentCompleted = tripInstances
     .filter((inst) => inst.status === "completed")
@@ -60,18 +61,18 @@ export default function TravelWithUsPage() {
             Small groups, authentic experiences, and deep connection with the Himalayas. No crowded buses, no rushed itineraries — just real adventure with like-minded explorers.
           </p>
           <div className="flex flex-wrap gap-4">
-            <button
-              onClick={() => navigate("trips")}
+            <Link
+              to="/trips"
               className="border border-white text-white px-7 py-3.5 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all"
             >
               EXPLORE TRIPS
-            </button>
-            <button
-              onClick={() => navigate("plan")}
+            </Link>
+            <Link
+              to="/plan"
               className="bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3.5 rounded-full text-sm font-medium transition-colors"
             >
               PLAN MY TRIP →
-            </button>
+            </Link>
           </div>
         </div>
       </section>
@@ -105,13 +106,13 @@ export default function TravelWithUsPage() {
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {highlights.map((h) => (
-              <div key={h.id} className="relative rounded-2xl overflow-hidden h-52 group cursor-pointer" onClick={() => navigate("trips")}>
+              <Link key={h.id} to="/trips" className="relative rounded-2xl overflow-hidden h-52 group block">
                 <img src={h.img} alt={h.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 p-4">
                   <div className="text-white font-medium text-sm" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         </div>
@@ -132,23 +133,23 @@ export default function TravelWithUsPage() {
               if (!trip) return null;
               const coverImg = inst.completedPhotos?.[0] ?? trip.image;
               return (
-                <button
+                <Link
                   key={inst.id}
-                  onClick={() => navigate("completed-trip-detail", { tripInstanceId: inst.id })}
-                  className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full"
+                  to={`/past-trips/${inst.id}`}
+                  className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
                 >
-                  <div className="relative h-48">
-                    <img src={coverImg} alt={destination?.name ?? trip.destination} className="w-full h-full object-cover" />
+                  <div className="relative h-48 overflow-hidden">
+                    <img src={coverImg} alt={destination?.name ?? trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3 bg-[#0f2922]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
                   </div>
                   <div className="p-4">
                     <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-1">{destination?.name ?? trip.destination}</div>
-                    <h3 className="text-[#0f2922] font-semibold mb-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
+                    <h3 className="text-[#0f2922] font-semibold mb-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
                     <div className="text-[#4a5568] text-xs">{inst.displayDate}</div>
                   </div>
-                </button>
+                </Link>
               );
             })}
           </div>
@@ -162,12 +163,12 @@ export default function TravelWithUsPage() {
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Explore?</h2>
           <p className="text-white/70 text-base mb-8">Tell us your dream Himalayan experience and our team will design the perfect itinerary for you.</p>
-          <button
-            onClick={() => navigate("plan")}
-            className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
+          <Link
+            to="/plan"
+            className="inline-block bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
           >
             PLAN MY TRIP NOW
-          </button>
+          </Link>
         </div>
       </section>
 
