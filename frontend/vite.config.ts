@@ -21,10 +21,22 @@ export default defineConfig({
     host: '0.0.0.0',
     port: FRONTEND_PORT,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
   },
   preview: {
     host: '0.0.0.0',
     port: FRONTEND_PORT,
     strictPort: true,
+    proxy: {
+      '/api': {
+        target: process.env.VITE_API_BASE_URL || 'http://localhost:4000',
+        changeOrigin: true,
+      },
+    },
   },
 })

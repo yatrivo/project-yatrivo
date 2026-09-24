@@ -27,8 +27,8 @@ const NAV_ITEMS: { id: AdminPage; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function AdminLayout({ adminPage, setAdminPage, children }: AdminLayoutProps) {
-  const { adminLogout, adminRole, enquiries } = useApp();
-  const isSuperAdmin = adminRole === "superAdmin";
+  const { adminLogout, adminRole, adminUser, enquiries } = useApp();
+  const isSuperAdmin = adminRole === "superAdmin" || adminUser?.role === "super_admin";
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
@@ -112,16 +112,22 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
       <div className="p-3 border-t border-[#1a3d31]">
         {!collapsed && (
           <div className="flex items-center gap-2 px-3 py-2 mb-2">
-            <div className="w-7 h-7 rounded-full bg-[#e8622a] flex items-center justify-center text-white text-xs font-bold">A</div>
-            <div>
-              <div className="text-white text-xs font-semibold">{isSuperAdmin ? "Super Admin" : "Admin"}</div>
-              <div className="text-[#7aab95] text-xs">admin@yatrivo.com</div>
+            <div className="w-7 h-7 rounded-full bg-[#e8622a] flex items-center justify-center text-white text-xs font-bold uppercase shrink-0">
+              {adminUser?.fullName?.[0] || (isSuperAdmin ? "S" : "A")}
+            </div>
+            <div className="min-w-0">
+              <div className="text-white text-xs font-semibold truncate">
+                {adminUser?.fullName || (isSuperAdmin ? "Super Admin" : "Admin")}
+              </div>
+              <div className="text-[#7aab95] text-xs truncate max-w-[140px]" title={adminUser?.email || "admin@yatrivo.com"}>
+                {adminUser?.email || "admin@yatrivo.com"}
+              </div>
             </div>
           </div>
         )}
         <button
           onClick={() => setLogoutConfirmOpen(true)}
-          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[#a3bfb5] hover:bg-red-900/30 hover:text-red-400 transition text-sm"
+          className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-[#a3bfb5] hover:bg-red-900/30 hover:text-red-400 transition text-sm cursor-pointer"
           title={collapsed ? "Logout" : undefined}
         >
           <svg className="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,13 +155,16 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={() => setLogoutConfirmOpen(false)}
-                className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition"
+                className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
-                onClick={() => { setLogoutConfirmOpen(false); adminLogout(); }}
-                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg transition"
+                onClick={async () => {
+                  setLogoutConfirmOpen(false);
+                  await adminLogout();
+                }}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
               >
                 Log Out
               </button>

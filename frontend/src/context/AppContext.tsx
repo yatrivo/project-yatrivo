@@ -1,9 +1,11 @@
-import { createContext, useContext, useState, useCallback, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, type Dispatch, type SetStateAction } from "react";
+import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
 
-export type { TripInstance };
+export type { TripInstance, AdminUser };
+
 
 export type Page =
   | "home" | "destinations" | "destination-detail" | "trips" | "trip-detail"
@@ -147,8 +149,9 @@ interface AppContextType {
   // Admin
   adminLoggedIn: boolean;
   adminRole: "superAdmin" | "admin" | null;
-  adminLogin: (role: "superAdmin" | "admin") => void;
-  adminLogout: () => void;
+  adminUser: AdminUser | null;
+  adminLogin: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  adminLogout: () => Promise<void>;
 
   // Splash
   splashDone: boolean;
@@ -217,7 +220,11 @@ let enquiryIdCounter = 100;
 let galleryIdCounter = 20;
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [page, setPage] = useState<Page>("home");
+  const hasSavedToken = typeof window !== "undefined" && tokenStorage.hasTokens();
+  const initialIsAdmin = typeof window !== "undefined" && (window.location.pathname === "/admin" || window.location.hash === "#admin");
+  const initialPage: Page = hasSavedToken || initialIsAdmin ? "admin" : "home";
+
+  const [page, setPage] = useState<Page>(initialPage);
   const [pageParams, setPageParams] = useState<{ tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string }>({});
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
   const [enquiries, setEnquiries] = useState<Enquiry[]>([
@@ -267,9 +274,14 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [enquiryModalOpen, setEnquiryModalOpen] = useState(false);
   const [enquiryTripId, setEnquiryTripId] = useState("");
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const [adminLoggedIn, setAdminLoggedIn] = useState(false);
-  const [adminRole, setAdminRole] = useState<"superAdmin" | "admin" | null>(null);
-  const [splashDone, setSplashDoneState] = useState(false);
+  const [adminLoggedIn, setAdminLoggedIn] = useState<boolean>(hasSavedToken);
+  const [adminUser, setAdminUser] = useState<AdminUser | null>(() => tokenStorage.getUser());
+  const [adminRole, setAdminRole] = useState<"superAdmin" | "admin" | null>(() => {
+    const u = tokenStorage.getUser();
+    return u?.role === "super_admin" ? "superAdmin" : u?.role === "admin" ? "admin" : null;
+  });
+  // If token exists, skip splash screen so admin directly lands on their dashboard!
+  const [splashDone, setSplashDoneState] = useState<boolean>(hasSavedToken);
   const [faqItems, setFaqItems] = useState<FaqItem[]>(DEFAULT_FAQ_ITEMS);
   const [aboutContent, setAboutContent] = useState("");
   const [termsContent, setTermsContent] = useState("");
@@ -331,13 +343,88 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }, 3500);
   }, []);
 
-  const adminLogin = useCallback((role: "superAdmin" | "admin") => {
-    setAdminLoggedIn(true);
-    setAdminRole(role);
+  // Auto-verify / rehydrate persisted session in the background
+  useEffect(() => {
+    let isMounted = true;
+
+    const verifySession = async () => {
+      const accessToken = tokenStorage.getAccessToken();
+      const refreshToken = tokenStorage.getRefreshToken();
+
+      if (!accessToken && !refreshToken) {
+        if (isMounted) {
+          setAdminLoggedIn(false);
+          setAdminUser(null);
+          setAdminRole(null);
+        }
+        return;
+      }
+
+      if (accessToken) {
+        try {
+          const user = await authApi.getMe(accessToken);
+          if (isMounted) {
+            setAdminUser(user);
+            setAdminLoggedIn(true);
+            setAdminRole(user.role === "super_admin" ? "superAdmin" : "admin");
+          }
+          return;
+        } catch {
+          // Access token might be expired, proceed to refresh below
+        }
+      }
+
+      if (refreshToken) {
+        try {
+          const newTokens = await authApi.refresh(refreshToken);
+          const user = await authApi.getMe(newTokens.accessToken);
+          if (isMounted) {
+            setAdminUser(user);
+            setAdminLoggedIn(true);
+            setAdminRole(user.role === "super_admin" ? "superAdmin" : "admin");
+          }
+        } catch {
+          if (isMounted) {
+            tokenStorage.clearSession();
+            setAdminLoggedIn(false);
+            setAdminUser(null);
+            setAdminRole(null);
+            setPage("home");
+          }
+        }
+      }
+    };
+
+    void verifySession();
+    return () => {
+      isMounted = false;
+    };
   }, []);
-  const adminLogout = useCallback(() => {
+
+  const adminLogin = useCallback(async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const data = await authApi.login({ email, password });
+      setAdminUser(data.user);
+      setAdminLoggedIn(true);
+      setAdminRole(data.user.role === "super_admin" ? "superAdmin" : "admin");
+      setSplashDoneState(true);
+      setPage("admin");
+      return { success: true };
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : "Invalid credentials";
+      return { success: false, error: errorMsg };
+    }
+  }, []);
+
+  const adminLogout = useCallback(async () => {
+    try {
+      await authApi.logout();
+    } catch (err) {
+      console.warn("Logout error:", err);
+    }
     setAdminLoggedIn(false);
     setAdminRole(null);
+    setAdminUser(null);
     navigate("home");
   }, [navigate]);
 
@@ -359,7 +446,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       enquiries, addEnquiry,
       enquiryModalOpen, enquiryTripId, openEnquiryModal, closeEnquiryModal,
       toasts, showToast,
-      adminLoggedIn, adminRole, adminLogin, adminLogout,
+      adminLoggedIn, adminRole, adminUser, adminLogin, adminLogout,
       splashDone, setSplashDone,
       destinations, setDestinations,
       trips, setTrips,

@@ -24,8 +24,8 @@ async function main() {
 
     const testUsers = [
       {
-        email: 'superadmin@yatrivo.com',
-        fullName: 'Super Administrator',
+        email: 'yatrivo3@gmail.com',
+        fullName: 'Yatrivo Super Admin',
         role: 'super_admin',
         status: 'active'
       },

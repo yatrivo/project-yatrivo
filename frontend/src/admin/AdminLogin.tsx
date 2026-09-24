@@ -12,24 +12,26 @@ export default function AdminLogin() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!email || !password) {
+    const cleanEmail = email.trim();
+    if (!cleanEmail || !password) {
       setError("Please enter email and password.");
       return;
     }
     setLoading(true);
-    await new Promise((r) => setTimeout(r, 800));
-    if (password === "admin123") {
-      adminLogin("superAdmin");
-      navigate("admin");
-      showToast("Welcome to Yatrivo Admin!", "success");
-    } else if (password === "staff123") {
-      adminLogin("admin");
-      navigate("admin");
-      showToast("Welcome to Yatrivo Admin!", "success");
-    } else {
-      setError("Invalid credentials. Please try again.");
+    try {
+      const res = await adminLogin(cleanEmail, password);
+      if (res.success) {
+        navigate("admin");
+        showToast("Welcome to Yatrivo Admin!", "success");
+      } else {
+        setError(res.error || "Invalid credentials. Please try again.");
+      }
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Authentication failed";
+      setError(message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -58,7 +60,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@yatrivo.com"
+                placeholder="yatrivo3@gmail.com"
                 className="w-full border border-[#e2e8f0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0f2922] transition"
               />
             </div>
@@ -103,7 +105,7 @@ export default function AdminLogin() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-70"
+              className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white font-semibold py-3 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer"
             >
               {loading ? (
                 <>
@@ -119,8 +121,8 @@ export default function AdminLogin() {
             </button>
           </form>
 
-          <p className="text-center text-xs text-[#a0aec0] mt-6">
-            Hint: password <span className="font-mono bg-gray-100 px-1 rounded">admin123</span> = Super Admin &nbsp;|&nbsp; <span className="font-mono bg-gray-100 px-1 rounded">staff123</span> = Admin
+          <p className="text-center text-xs text-[#718096] mt-6">
+            Authorized administrative access only. Super Admin: <span className="font-mono bg-gray-100 px-1 rounded text-[#0f2922]">yatrivo3@gmail.com</span>
           </p>
         </div>
       </div>

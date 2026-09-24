@@ -35,7 +35,13 @@ Before implementing a feature or screen:
 
 - Read relevant agent instructions.
 - Read relevant project documentation.
-- Inspect the existing implementation.
+- Inspect only the files and modules relevant to the requested change.
+- Start with architecture rules relevant to the task, the target module, and direct dependencies/interfaces of that module.
+- Read database schema or migrations only when the task affects persistence.
+- Reuse existing shared infrastructure only when it will actually be used.
+- Avoid recursively reading the repository or unrelated modules just to gain context.
+- Expand inspection only when the existing code or architecture requires it.
+- Prefer repository structure, Graphify/indexed project context, and targeted search before opening large files.
 - Identify dependencies and affected modules.
 - Check the corresponding Figma specification when UI is involved.
 - Determine whether requirements are sufficiently defined.

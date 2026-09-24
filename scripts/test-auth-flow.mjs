@@ -107,7 +107,7 @@ async function run() {
     console.log('\n7. Super Admin login success');
     const superAdminLoginRes = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: 'superadmin@yatrivo.com', password: 'YatrivoAdmin@2026!' })
+      body: JSON.stringify({ email: 'yatrivo3@gmail.com', password: 'YatrivoAdmin@2026!' })
     });
     assert(superAdminLoginRes.status === 200, 'Returns 200 status');
     assert(superAdminLoginRes.data.data.user.role === 'super_admin', 'User role is super_admin');
@@ -218,7 +218,7 @@ async function run() {
     // Re-login super admin to test revoke-all
     const reLoginSuper = await request('/auth/login', {
       method: 'POST',
-      body: JSON.stringify({ email: 'superadmin@yatrivo.com', password: 'YatrivoAdmin@2026!' })
+      body: JSON.stringify({ email: 'yatrivo3@gmail.com', password: 'YatrivoAdmin@2026!' })
     });
     const superTokens = reLoginSuper.data.data.tokens;
 

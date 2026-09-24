@@ -10,8 +10,8 @@ interface AdminUser {
 }
 
 const INITIAL_ADMINS: AdminUser[] = [
-  { id: "1", name: "Priya Kapoor", email: "priya@yatrivo.com", role: "Super Admin", lastActive: "Today" },
-  { id: "2", name: "Rohit Negi", email: "rohit@yatrivo.com", role: "Admin", lastActive: "Yesterday" },
+  { id: "1", name: "Yatrivo Super Admin", email: "yatrivo3@gmail.com", role: "Super Admin", lastActive: "Just now" },
+  { id: "2", name: "Operations Admin", email: "admin@yatrivo.com", role: "Admin", lastActive: "Today" },
 ];
 
 function initials(name: string) {
