@@ -1,9 +1,16 @@
-﻿import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
+import { Pool, PoolClient, QueryResult, QueryResultRow } from "pg";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 
+// Sanitize connection string to replace legacy sslmode values with sslmode=verify-full,
+// avoiding pg-connection-string deprecation warnings while maintaining SSL compatibility
+const sanitizedConnectionString = env.DATABASE_URL.replace(
+  /sslmode=(require|prefer|verify-ca)/g,
+  "sslmode=verify-full"
+);
+
 export const db = new Pool({
-  connectionString: env.DATABASE_URL,
+  connectionString: sanitizedConnectionString,
   max: env.DB_POOL_MAX,
   ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : undefined
 });

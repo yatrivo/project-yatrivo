@@ -22,7 +22,9 @@ export interface CreateDestinationPayload {
   bestTime?: string;
   elevation?: string;
   image?: string;
+  coverMediaId?: string | null;
   gallery?: string[];
+  galleryMediaIds?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;

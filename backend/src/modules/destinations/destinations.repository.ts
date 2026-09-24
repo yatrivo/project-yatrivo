@@ -7,6 +7,7 @@ import type {
   DestinationCategory,
   DestinationDto,
   DestinationFilters,
+  DestinationGalleryMediaItem,
   DestinationHighlightRecord,
   DestinationRecord,
   UpdateDestinationInput
@@ -42,8 +43,16 @@ export function toApiCategory(cat: DbDestinationCategory): DestinationCategory {
 export function toDestinationDto(
   record: DestinationRecord,
   highlights: string[] = [],
-  activities: string[] = []
+  activities: string[] = [],
+  galleryMedia: DestinationGalleryMediaItem[] = [],
+  coverMediaUrl?: string | null
 ): DestinationDto {
+  const image = coverMediaUrl || record.cover_image_url || "";
+  const gallery =
+    galleryMedia.length > 0
+      ? galleryMedia.map((m) => m.url)
+      : record.gallery_image_urls || [];
+
   return {
     id: record.id,
     slug: record.slug,
@@ -56,8 +65,10 @@ export function toDestinationDto(
     elevation: record.elevation_label || undefined,
     status: record.status,
     sortOrder: record.sort_order,
-    image: record.cover_image_url || "",
-    gallery: record.gallery_image_urls || [],
+    image,
+    coverMediaId: record.cover_media_id,
+    gallery,
+    galleryMedia,
     highlights,
     activities,
     seoTitle: record.seo_title,
@@ -66,6 +77,122 @@ export function toDestinationDto(
     updatedAt: new Date(record.updated_at).toISOString(),
     archivedAt: record.archived_at ? new Date(record.archived_at).toISOString() : null
   };
+}
+
+async function resolveCoverMedia(
+  coverMediaId?: string | null,
+  imageUrl?: string | null,
+  destinationName = "Destination",
+  executor: QueryExecutor = getExecutor()
+): Promise<{ coverMediaId: string | null; coverImageUrl: string | null }> {
+  if (coverMediaId) {
+    const res = await executor.query<{ id: string; public_url: string; external_url: string }>(
+      `SELECT id, public_url, external_url FROM media_assets WHERE id = $1`,
+      [coverMediaId]
+    );
+    if (res.rows.length > 0) {
+      const url = res.rows[0].public_url || res.rows[0].external_url || null;
+      return { coverMediaId, coverImageUrl: url };
+    }
+  }
+
+  if (imageUrl) {
+    const existing = await executor.query<{ id: string }>(
+      `SELECT id FROM media_assets WHERE external_url = $1 OR public_url = $1 LIMIT 1`,
+      [imageUrl]
+    );
+    if (existing.rows.length > 0) {
+      return { coverMediaId: existing.rows[0].id, coverImageUrl: imageUrl };
+    }
+
+    const created = await executor.query<{ id: string }>(
+      `INSERT INTO media_assets (category, label, external_url, public_url)
+       VALUES ('destinations', $1, $2, $2)
+       RETURNING id`,
+      [`${destinationName} Cover`, imageUrl]
+    );
+    return { coverMediaId: created.rows[0].id, coverImageUrl: imageUrl };
+  }
+
+  return { coverMediaId: null, coverImageUrl: null };
+}
+
+async function syncDestinationGalleryMedia(
+  destinationId: string,
+  destinationName: string,
+  galleryMediaIds?: string[] | null,
+  galleryUrls?: string[] | null,
+  executor: QueryExecutor = getExecutor()
+): Promise<string[]> {
+  if (galleryMediaIds === undefined && galleryUrls === undefined) {
+    return [];
+  }
+
+  // 1. Unlink existing gallery relationships for this destination
+  // Note: NEVER deletes the underlying media_assets!
+  await executor.query(
+    `DELETE FROM destination_media WHERE destination_id = $1 AND usage = 'gallery'`,
+    [destinationId]
+  );
+
+  const finalUrls: string[] = [];
+
+  // Case A: array of media asset UUIDs provided
+  if (galleryMediaIds && galleryMediaIds.length > 0) {
+    for (let i = 0; i < galleryMediaIds.length; i++) {
+      const mediaId = galleryMediaIds[i];
+      const mRes = await executor.query<{ public_url: string; external_url: string }>(
+        `SELECT public_url, external_url FROM media_assets WHERE id = $1`,
+        [mediaId]
+      );
+      if (mRes.rows.length > 0) {
+        const url = mRes.rows[0].public_url || mRes.rows[0].external_url || "";
+        finalUrls.push(url);
+        await executor.query(
+          `INSERT INTO destination_media (destination_id, media_id, usage, sort_order)
+           VALUES ($1, $2, 'gallery', $3)
+           ON CONFLICT (destination_id, media_id, usage) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+          [destinationId, mediaId, i + 1]
+        );
+      }
+    }
+    return finalUrls;
+  }
+
+  // Case B: array of URLs provided
+  if (galleryUrls && galleryUrls.length > 0) {
+    for (let i = 0; i < galleryUrls.length; i++) {
+      const gUrl = galleryUrls[i];
+      if (!gUrl) continue;
+      finalUrls.push(gUrl);
+
+      let mediaId: string;
+      const existing = await executor.query<{ id: string }>(
+        `SELECT id FROM media_assets WHERE external_url = $1 OR public_url = $1 LIMIT 1`,
+        [gUrl]
+      );
+      if (existing.rows.length > 0) {
+        mediaId = existing.rows[0].id;
+      } else {
+        const created = await executor.query<{ id: string }>(
+          `INSERT INTO media_assets (category, label, external_url, public_url)
+           VALUES ('destinations', $1, $2, $2)
+           RETURNING id`,
+          [`${destinationName} Gallery ${i + 1}`, gUrl]
+        );
+        mediaId = created.rows[0].id;
+      }
+
+      await executor.query(
+        `INSERT INTO destination_media (destination_id, media_id, usage, sort_order)
+         VALUES ($1, $2, 'gallery', $3)
+         ON CONFLICT (destination_id, media_id, usage) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+        [destinationId, mediaId, i + 1]
+      );
+    }
+  }
+
+  return finalUrls;
 }
 
 export const destinationsRepository = {
@@ -83,7 +210,6 @@ export const destinationsRepository = {
       conditions.push(`d.status = $${paramIndex++}`);
       params.push(filters.status);
     } else if (!filters.includeArchived && filters.status !== "all") {
-      // Normal public flow excludes archived destinations
       conditions.push(`d.status = 'active'`);
     }
 
@@ -104,29 +230,32 @@ export const destinationsRepository = {
 
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-    // Count query
     const countResult = await executor.query<{ count: string }>(
       `SELECT count(*)::text as count FROM destinations d ${whereClause}`,
       params
     );
     const total = parseInt(countResult.rows[0]?.count || "0", 10);
 
-    // List query with archived destinations at the bottom as required:
-    // ORDER BY (CASE WHEN status = 'archived' THEN 1 ELSE 0 END) ASC, sort_order ASC, created_at DESC
     const limit = filters.limit || 50;
     const offset = filters.offset || 0;
     const queryParams = [...params, limit, offset];
     const limitParamIndex = paramIndex++;
     const offsetParamIndex = paramIndex++;
 
-    const listResult = await executor.query<DestinationRecord>(
+    const listResult = await executor.query<
+      DestinationRecord & {
+        resolved_cover_url: string | null;
+      }
+    >(
       `SELECT d.id, d.slug, d.name, d.tagline, d.description, d.category,
               d.season_label, d.best_time_label, d.elevation_label, d.status,
               d.sort_order, d.seo_title, d.seo_description, d.og_media_id,
               d.cover_media_id, d.cover_image_url, d.gallery_image_urls,
               d.created_by_user_id, d.updated_by_user_id, d.created_at,
-              d.updated_at, d.archived_at
+              d.updated_at, d.archived_at,
+              COALESCE(cma.public_url, cma.external_url, d.cover_image_url) AS resolved_cover_url
        FROM destinations d
+       LEFT JOIN media_assets cma ON cma.id = d.cover_media_id
        ${whereClause}
        ORDER BY (CASE WHEN d.status = 'archived' THEN 1 ELSE 0 END) ASC,
                 d.sort_order ASC,
@@ -141,23 +270,37 @@ export const destinationsRepository = {
 
     const destinationIds = listResult.rows.map((row) => row.id);
 
-    // Fetch highlights and activities
-    const [highlightsResult, activitiesResult] = await Promise.all([
-      executor.query<DestinationHighlightRecord>(
-        `SELECT destination_id, text, sort_order
-         FROM destination_highlights
-         WHERE destination_id = ANY($1)
-         ORDER BY sort_order ASC`,
-        [destinationIds]
-      ),
-      executor.query<DestinationActivityRecord>(
-        `SELECT destination_id, name, sort_order
-         FROM destination_activities
-         WHERE destination_id = ANY($1)
-         ORDER BY sort_order ASC`,
-        [destinationIds]
-      )
-    ]);
+    // Fetch highlights, activities, and gallery media
+    const highlightsResult = await executor.query<DestinationHighlightRecord>(
+      `SELECT destination_id, text, sort_order
+       FROM destination_highlights
+       WHERE destination_id = ANY($1)
+       ORDER BY sort_order ASC`,
+      [destinationIds]
+    );
+    const activitiesResult = await executor.query<DestinationActivityRecord>(
+      `SELECT destination_id, name, sort_order
+       FROM destination_activities
+       WHERE destination_id = ANY($1)
+       ORDER BY sort_order ASC`,
+      [destinationIds]
+    );
+    const galleryMediaResult = await executor.query<{
+      id: string;
+      destination_id: string;
+      media_id: string;
+      alt_text: string | null;
+      sort_order: number;
+      url: string;
+    }>(
+      `SELECT dm.id, dm.destination_id, dm.media_id, dm.alt_text, dm.sort_order,
+              COALESCE(ma.public_url, ma.external_url, '') AS url
+       FROM destination_media dm
+       JOIN media_assets ma ON ma.id = dm.media_id
+       WHERE dm.destination_id = ANY($1) AND dm.usage = 'gallery'
+       ORDER BY dm.sort_order ASC`,
+      [destinationIds]
+    );
 
     const highlightsMap = new Map<string, string[]>();
     for (const h of highlightsResult.rows) {
@@ -173,11 +316,26 @@ export const destinationsRepository = {
       activitiesMap.set(a.destination_id, list);
     }
 
+    const galleryMediaMap = new Map<string, DestinationGalleryMediaItem[]>();
+    for (const gm of galleryMediaResult.rows) {
+      const list = galleryMediaMap.get(gm.destination_id) || [];
+      list.push({
+        id: gm.id,
+        mediaId: gm.media_id,
+        url: gm.url,
+        altText: gm.alt_text,
+        sortOrder: gm.sort_order
+      });
+      galleryMediaMap.set(gm.destination_id, list);
+    }
+
     const destinations = listResult.rows.map((row) =>
       toDestinationDto(
         row,
         highlightsMap.get(row.id) || [],
-        activitiesMap.get(row.id) || []
+        activitiesMap.get(row.id) || [],
+        galleryMediaMap.get(row.id) || [],
+        row.resolved_cover_url
       )
     );
 
@@ -195,31 +353,64 @@ export const destinationsRepository = {
       );
 
     const queryText = isUuid
-      ? `SELECT * FROM destinations WHERE id = $1`
-      : `SELECT * FROM destinations WHERE slug = $1`;
+      ? `SELECT d.*, COALESCE(cma.public_url, cma.external_url, d.cover_image_url) AS resolved_cover_url
+         FROM destinations d
+         LEFT JOIN media_assets cma ON cma.id = d.cover_media_id
+         WHERE d.id = $1`
+      : `SELECT d.*, COALESCE(cma.public_url, cma.external_url, d.cover_image_url) AS resolved_cover_url
+         FROM destinations d
+         LEFT JOIN media_assets cma ON cma.id = d.cover_media_id
+         WHERE d.slug = $1`;
 
-    const result = await executor.query<DestinationRecord>(queryText, [idOrSlug]);
+    const result = await executor.query<
+      DestinationRecord & { resolved_cover_url: string | null }
+    >(queryText, [idOrSlug]);
+
     if (result.rows.length === 0) {
       return null;
     }
 
     const dest = result.rows[0];
 
-    const [highlightsResult, activitiesResult] = await Promise.all([
-      executor.query<DestinationHighlightRecord>(
-        `SELECT text FROM destination_highlights WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [dest.id]
-      ),
-      executor.query<DestinationActivityRecord>(
-        `SELECT name FROM destination_activities WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [dest.id]
-      )
-    ]);
+    const highlightsResult = await executor.query<DestinationHighlightRecord>(
+      `SELECT text FROM destination_highlights WHERE destination_id = $1 ORDER BY sort_order ASC`,
+      [dest.id]
+    );
+    const activitiesResult = await executor.query<DestinationActivityRecord>(
+      `SELECT name FROM destination_activities WHERE destination_id = $1 ORDER BY sort_order ASC`,
+      [dest.id]
+    );
+    const galleryMediaResult = await executor.query<{
+      id: string;
+      destination_id: string;
+      media_id: string;
+      alt_text: string | null;
+      sort_order: number;
+      url: string;
+    }>(
+      `SELECT dm.id, dm.destination_id, dm.media_id, dm.alt_text, dm.sort_order,
+              COALESCE(ma.public_url, ma.external_url, '') AS url
+       FROM destination_media dm
+       JOIN media_assets ma ON ma.id = dm.media_id
+       WHERE dm.destination_id = $1 AND dm.usage = 'gallery'
+       ORDER BY dm.sort_order ASC`,
+      [dest.id]
+    );
+
+    const galleryMedia: DestinationGalleryMediaItem[] = galleryMediaResult.rows.map((gm) => ({
+      id: gm.id,
+      mediaId: gm.media_id,
+      url: gm.url,
+      altText: gm.alt_text,
+      sortOrder: gm.sort_order
+    }));
 
     return toDestinationDto(
       dest,
       highlightsResult.rows.map((h) => h.text),
-      activitiesResult.rows.map((a) => a.name)
+      activitiesResult.rows.map((a) => a.name),
+      galleryMedia,
+      dest.resolved_cover_url
     );
   },
 
@@ -230,12 +421,21 @@ export const destinationsRepository = {
   ): Promise<DestinationDto> {
     const executor = getExecutor(client);
 
+    // Resolve cover media
+    const coverInfo = await resolveCoverMedia(
+      data.coverMediaId,
+      data.image,
+      data.name,
+      executor
+    );
+
     const insertResult = await executor.query<DestinationRecord>(
       `INSERT INTO destinations (
          name, slug, tagline, description, category, season_label,
-         best_time_label, elevation_label, status, sort_order, cover_image_url,
-         gallery_image_urls, seo_title, seo_description, created_by_user_id, updated_by_user_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10, $11, $12, $13, $14, $14)
+         best_time_label, elevation_label, status, sort_order,
+         cover_media_id, cover_image_url, gallery_image_urls,
+         seo_title, seo_description, created_by_user_id, updated_by_user_id
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10, $11, $12, $13, $14, $15, $15)
        RETURNING *`,
       [
         data.name,
@@ -247,7 +447,8 @@ export const destinationsRepository = {
         data.bestTime || null,
         data.elevation || null,
         data.sortOrder || 0,
-        data.image || null,
+        coverInfo.coverMediaId,
+        coverInfo.coverImageUrl,
         data.gallery || [],
         data.seoTitle || null,
         data.seoDescription || null,
@@ -257,6 +458,24 @@ export const destinationsRepository = {
 
     const dest = insertResult.rows[0];
 
+    // Sync gallery media in destination_media
+    const galleryUrls = await syncDestinationGalleryMedia(
+      dest.id,
+      dest.name,
+      data.galleryMediaIds,
+      data.gallery,
+      executor
+    );
+
+    if (galleryUrls.length > 0) {
+      await executor.query(
+        `UPDATE destinations SET gallery_image_urls = $1 WHERE id = $2`,
+        [galleryUrls, dest.id]
+      );
+      dest.gallery_image_urls = galleryUrls;
+    }
+
+    // Highlights
     if (data.highlights && data.highlights.length > 0) {
       for (let i = 0; i < data.highlights.length; i++) {
         await executor.query(
@@ -267,6 +486,7 @@ export const destinationsRepository = {
       }
     }
 
+    // Activities
     if (data.activities && data.activities.length > 0) {
       for (let i = 0; i < data.activities.length; i++) {
         await executor.query(
@@ -277,7 +497,7 @@ export const destinationsRepository = {
       }
     }
 
-    return toDestinationDto(dest, data.highlights || [], data.activities || []);
+    return this.findByIdOrSlug(dest.id, client) as Promise<DestinationDto>;
   },
 
   async update(
@@ -328,14 +548,21 @@ export const destinationsRepository = {
       updateFields.push(`sort_order = $${idx++}`);
       updateParams.push(data.sortOrder);
     }
-    if (data.image !== undefined) {
+
+    // Resolve cover media if updated
+    if (data.coverMediaId !== undefined || data.image !== undefined) {
+      const coverInfo = await resolveCoverMedia(
+        data.coverMediaId,
+        data.image,
+        data.name || "Destination",
+        executor
+      );
+      updateFields.push(`cover_media_id = $${idx++}`);
+      updateParams.push(coverInfo.coverMediaId);
       updateFields.push(`cover_image_url = $${idx++}`);
-      updateParams.push(data.image || null);
+      updateParams.push(coverInfo.coverImageUrl);
     }
-    if (data.gallery !== undefined) {
-      updateFields.push(`gallery_image_urls = $${idx++}`);
-      updateParams.push(data.gallery);
-    }
+
     if (data.seoTitle !== undefined) {
       updateFields.push(`seo_title = $${idx++}`);
       updateParams.push(data.seoTitle || null);
@@ -354,18 +581,31 @@ export const destinationsRepository = {
     updateParams.push(id);
     const idParamIdx = idx;
 
-    const result = await executor.query<DestinationRecord>(
-      `UPDATE destinations
-       SET ${updateFields.join(", ")}
-       WHERE id = $${idParamIdx}
-       RETURNING *`,
-      updateParams
-    );
+    if (updateFields.length > 0) {
+      await executor.query(
+        `UPDATE destinations
+         SET ${updateFields.join(", ")}
+         WHERE id = $${idParamIdx}`,
+        updateParams
+      );
+    }
 
-    const dest = result.rows[0];
+    // Sync gallery media if provided
+    if (data.galleryMediaIds !== undefined || data.gallery !== undefined) {
+      const galleryUrls = await syncDestinationGalleryMedia(
+        id,
+        data.name || "Destination",
+        data.galleryMediaIds,
+        data.gallery,
+        executor
+      );
+      await executor.query(
+        `UPDATE destinations SET gallery_image_urls = $1 WHERE id = $2`,
+        [galleryUrls, id]
+      );
+    }
 
     // Highlights update
-    let highlights: string[] = [];
     if (data.highlights !== undefined) {
       await executor.query(`DELETE FROM destination_highlights WHERE destination_id = $1`, [id]);
       for (let i = 0; i < data.highlights.length; i++) {
@@ -375,17 +615,9 @@ export const destinationsRepository = {
           [id, data.highlights[i], i]
         );
       }
-      highlights = data.highlights;
-    } else {
-      const hRes = await executor.query<DestinationHighlightRecord>(
-        `SELECT text FROM destination_highlights WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      );
-      highlights = hRes.rows.map((h) => h.text);
     }
 
     // Activities update
-    let activities: string[] = [];
     if (data.activities !== undefined) {
       await executor.query(`DELETE FROM destination_activities WHERE destination_id = $1`, [id]);
       for (let i = 0; i < data.activities.length; i++) {
@@ -395,16 +627,9 @@ export const destinationsRepository = {
           [id, data.activities[i], i]
         );
       }
-      activities = data.activities;
-    } else {
-      const aRes = await executor.query<DestinationActivityRecord>(
-        `SELECT name FROM destination_activities WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      );
-      activities = aRes.rows.map((a) => a.name);
     }
 
-    return toDestinationDto(dest, highlights, activities);
+    return this.findByIdOrSlug(id, client) as Promise<DestinationDto>;
   },
 
   async archive(
@@ -413,34 +638,17 @@ export const destinationsRepository = {
     client?: PoolClient
   ): Promise<DestinationDto> {
     const executor = getExecutor(client);
-    const result = await executor.query<DestinationRecord>(
+    await executor.query(
       `UPDATE destinations
        SET status = 'archived',
            archived_at = NOW(),
            updated_at = NOW(),
            updated_by_user_id = $1
-       WHERE id = $2
-       RETURNING *`,
+       WHERE id = $2`,
       [actorUserId || null, id]
     );
 
-    const dest = result.rows[0];
-    const [hRes, aRes] = await Promise.all([
-      executor.query<DestinationHighlightRecord>(
-        `SELECT text FROM destination_highlights WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      ),
-      executor.query<DestinationActivityRecord>(
-        `SELECT name FROM destination_activities WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      )
-    ]);
-
-    return toDestinationDto(
-      dest,
-      hRes.rows.map((h) => h.text),
-      aRes.rows.map((a) => a.name)
-    );
+    return this.findByIdOrSlug(id, client) as Promise<DestinationDto>;
   },
 
   async unarchive(
@@ -449,33 +657,16 @@ export const destinationsRepository = {
     client?: PoolClient
   ): Promise<DestinationDto> {
     const executor = getExecutor(client);
-    const result = await executor.query<DestinationRecord>(
+    await executor.query(
       `UPDATE destinations
        SET status = 'active',
            archived_at = NULL,
            updated_at = NOW(),
            updated_by_user_id = $1
-       WHERE id = $2
-       RETURNING *`,
+       WHERE id = $2`,
       [actorUserId || null, id]
     );
 
-    const dest = result.rows[0];
-    const [hRes, aRes] = await Promise.all([
-      executor.query<DestinationHighlightRecord>(
-        `SELECT text FROM destination_highlights WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      ),
-      executor.query<DestinationActivityRecord>(
-        `SELECT name FROM destination_activities WHERE destination_id = $1 ORDER BY sort_order ASC`,
-        [id]
-      )
-    ]);
-
-    return toDestinationDto(
-      dest,
-      hRes.rows.map((h) => h.text),
-      aRes.rows.map((a) => a.name)
-    );
+    return this.findByIdOrSlug(id, client) as Promise<DestinationDto>;
   }
 };

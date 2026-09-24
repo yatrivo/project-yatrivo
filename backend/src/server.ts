@@ -1,4 +1,5 @@
-﻿import { env } from "./config/env";
+import "./config/dns";
+import { env } from "./config/env";
 import { logger } from "./config/logger";
 import { closeDatabase } from "./db/postgres";
 import { createApp } from "./app";

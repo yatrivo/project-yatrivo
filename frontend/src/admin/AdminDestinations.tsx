@@ -13,7 +13,9 @@ interface DestFormData {
   bestTime: string;
   elevation: string;
   image: string;
+  coverMediaId?: string | null;
   gallery: string[];
+  galleryMediaIds?: string[];
   highlights: string[];
   activities: string[];
 }
@@ -27,7 +29,9 @@ const EMPTY_FORM: DestFormData = {
   bestTime: "",
   elevation: "",
   image: "",
+  coverMediaId: null,
   gallery: [],
+  galleryMediaIds: [],
   highlights: [],
   activities: [],
 };
@@ -42,7 +46,9 @@ function destToForm(d: Destination): DestFormData {
     bestTime: d.bestTime || "",
     elevation: d.elevation ?? "",
     image: d.image || "",
+    coverMediaId: d.coverMediaId || null,
     gallery: d.gallery ?? [],
+    galleryMediaIds: d.galleryMedia?.map((m) => m.mediaId) || [],
     highlights: d.highlights ?? [],
     activities: d.activities ?? [],
   };
@@ -87,6 +93,7 @@ function DestinationModal({
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-white font-semibold" style={{ fontFamily: "var(--font-serif, serif)" }}>{title}</h3>
           <button
+            type="button"
             onClick={onClose}
             disabled={isSaving}
             className="text-[#a3bfb5] hover:text-white transition disabled:opacity-50"
@@ -178,7 +185,12 @@ function DestinationModal({
           <MediaPicker
             label="Main Image *"
             value={form.image}
-            onChange={(url) => set("image", url)}
+            mediaId={form.coverMediaId}
+            onChange={(url, id) => {
+              set("image", url);
+              if (id) set("coverMediaId", id);
+            }}
+            defaultCategory="destinations"
           />
 
           {/* Gallery */}
@@ -189,17 +201,30 @@ function DestinationModal({
                 <div key={i} className="flex items-center gap-2">
                   <MediaPicker
                     value={url}
-                    onChange={(newUrl) => {
+                    mediaId={form.galleryMediaIds?.[i]}
+                    onChange={(newUrl, newId) => {
                       const g = [...form.gallery];
                       g[i] = newUrl;
                       set("gallery", g);
+                      if (newId) {
+                        const gm = [...(form.galleryMediaIds || [])];
+                        gm[i] = newId;
+                        set("galleryMediaIds", gm);
+                      }
                     }}
                     className="flex-1"
+                    defaultCategory="destinations"
                   />
                   <button
                     type="button"
-                    onClick={() => set("gallery", form.gallery.filter((_, j) => j !== i))}
+                    onClick={() => {
+                      set("gallery", form.gallery.filter((_, j) => j !== i));
+                      if (form.galleryMediaIds) {
+                        set("galleryMediaIds", form.galleryMediaIds.filter((_, j) => j !== i));
+                      }
+                    }}
                     className="text-red-500 hover:text-red-700 text-xs px-2 shrink-0"
+                    title="Remove image from destination (retained in media library)"
                   >
                     ✕
                   </button>
@@ -209,15 +234,17 @@ function DestinationModal({
                 <div>
                   <MediaPicker
                     value={newGallery}
-                    onChange={(url) => {
+                    onChange={(url, newId) => {
                       if (url) {
                         set("gallery", [...form.gallery, url]);
+                        if (newId) {
+                          set("galleryMediaIds", [...(form.galleryMediaIds || []), newId]);
+                        }
                         setNewGallery("");
-                      } else {
-                        setNewGallery(url);
                       }
                     }}
                     label="Add gallery image"
+                    defaultCategory="destinations"
                   />
                 </div>
               )}
@@ -512,7 +539,9 @@ export default function AdminDestinations() {
         bestTime: form.bestTime,
         elevation: form.elevation || undefined,
         image: form.image,
+        coverMediaId: form.coverMediaId || undefined,
         gallery: form.gallery,
+        galleryMediaIds: form.galleryMediaIds && form.galleryMediaIds.length > 0 ? form.galleryMediaIds : undefined,
         highlights: form.highlights,
         activities: form.activities,
       });
@@ -541,7 +570,9 @@ export default function AdminDestinations() {
         bestTime: form.bestTime,
         elevation: form.elevation || undefined,
         image: form.image,
+        coverMediaId: form.coverMediaId,
         gallery: form.gallery,
+        galleryMediaIds: form.galleryMediaIds,
         highlights: form.highlights,
         activities: form.activities,
       });

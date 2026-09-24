@@ -4,6 +4,7 @@ import { authenticate, requireAdmin, requireSuperAdmin } from "../middleware/aut
 import { authRouter } from "../modules/auth/auth.routes";
 import { destinationsRouter } from "../modules/destinations/destinations.routes";
 import { healthRouter } from "../modules/health/health.routes";
+import { mediaRouter } from "../modules/media/media.routes";
 
 export const apiRouter = Router();
 
@@ -18,6 +19,7 @@ apiRouter.get("/", (_req, res) => {
 apiRouter.use(healthRouter);
 apiRouter.use(authRouter);
 apiRouter.use(destinationsRouter);
+apiRouter.use("/media", mediaRouter);
 
 // Test routes to verify and demonstrate role authorization middleware
 if (env.NODE_ENV !== "production") {

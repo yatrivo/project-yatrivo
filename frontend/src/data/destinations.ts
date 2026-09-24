@@ -1,3 +1,11 @@
+export interface DestinationGalleryMediaItem {
+  id: string;
+  mediaId: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+}
+
 export interface Destination {
   id: string;
   slug?: string;
@@ -5,7 +13,9 @@ export interface Destination {
   tagline: string;
   description: string;
   image: string;
+  coverMediaId?: string | null;
   gallery: string[];
+  galleryMedia?: DestinationGalleryMediaItem[];
   category: "high-altitude" | "spiritual" | "weekend";
   season: string;
   highlights: string[];

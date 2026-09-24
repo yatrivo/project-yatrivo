@@ -28,7 +28,12 @@ const envSchema = z.object({
   JWT_REFRESH_TOKEN_SECRET: z.string().optional().or(z.literal("")),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
-  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(16).default(12)
+  BCRYPT_SALT_ROUNDS: z.coerce.number().int().min(10).max(16).default(12),
+  AWS_BUCKET_NAME: z.string().default("yatrivo-media"),
+  AWS_ENDPOINT_URL_S3: z.string().url().optional().or(z.literal("")),
+  AWS_ACCESS_KEY_ID: z.string().optional().or(z.literal("")),
+  AWS_SECRET_ACCESS_KEY: z.string().optional().or(z.literal("")),
+  AWS_REGION: z.string().default("ap-southeast-1")
 });
 
 export const env = envSchema.parse(process.env);
@@ -40,4 +45,10 @@ export const corsOrigins = env.CORS_ORIGIN.split(",")
 export const isProduction = env.NODE_ENV === "production";
 export const isRedisConfigured = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
 export const isJwtConfigured = Boolean(env.JWT_ACCESS_TOKEN_SECRET && env.JWT_REFRESH_TOKEN_SECRET);
+export const isStorageConfigured = Boolean(
+  env.AWS_BUCKET_NAME &&
+  env.AWS_ENDPOINT_URL_S3 &&
+  env.AWS_ACCESS_KEY_ID &&
+  env.AWS_SECRET_ACCESS_KEY
+);
 

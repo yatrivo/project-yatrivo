@@ -1,4 +1,5 @@
-﻿import express from "express";
+import "./config/dns";
+import express from "express";
 import { env } from "./config/env";
 import { errorHandler } from "./errors/errorHandler";
 import { notFound } from "./middleware/notFound";

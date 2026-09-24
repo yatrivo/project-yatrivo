@@ -57,6 +57,14 @@ export interface DestinationActivityRecord {
   sort_order: number;
 }
 
+export interface DestinationGalleryMediaItem {
+  id: string;
+  mediaId: string;
+  url: string;
+  altText: string | null;
+  sortOrder: number;
+}
+
 export interface DestinationDto {
   id: string;
   slug: string;
@@ -70,7 +78,9 @@ export interface DestinationDto {
   status: DestinationStatus;
   sortOrder: number;
   image: string;
+  coverMediaId?: string | null;
   gallery: string[];
+  galleryMedia?: DestinationGalleryMediaItem[];
   highlights: string[];
   activities: string[];
   seoTitle?: string | null;
@@ -89,8 +99,10 @@ export interface CreateDestinationInput {
   season?: string;
   bestTime?: string;
   elevation?: string;
-  image: string;
+  image?: string;
+  coverMediaId?: string;
   gallery?: string[];
+  galleryMediaIds?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;
@@ -108,7 +120,9 @@ export interface UpdateDestinationInput {
   bestTime?: string;
   elevation?: string;
   image?: string;
+  coverMediaId?: string | null;
   gallery?: string[];
+  galleryMediaIds?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;
