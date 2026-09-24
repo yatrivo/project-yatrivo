@@ -17,9 +17,9 @@ function StarRating({ rating }: { rating: number }) {
 export default function DestinationDetailPage() {
   const { pageParams, navigate, openEnquiryModal, destinations, trips, tripInstances, reviews } = useApp();
   const destId = pageParams.destId || "chopta";
-  const dest = destinations.find((d) => d.id === destId) || destinations[0];
-  const destTrips = trips.filter((t) => t.destination === destId);
-  const destReviews = reviews.filter((r) => r.destination === destId && r.status === "published");
+  const dest = destinations.find((d) => d.id === destId || d.slug === destId) || destinations[0];
+  const destTrips = trips.filter((t) => t.destination === destId || (dest && (t.destination === dest.id || t.destination === dest.slug)));
+  const destReviews = reviews.filter((r) => (r.destination === destId || (dest && (r.destination === dest.id || r.destination === dest.slug))) && r.status === "published");
 
   // Upcoming trip instances for this destination, sorted by date
   const upcomingInstances = tripInstances

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, type Dispatch, type SetStateAction } from "react";
 import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
+import { destinationsApi } from "@/api/destinations";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
@@ -160,6 +161,7 @@ interface AppContextType {
   // Data
   destinations: Destination[];
   setDestinations: Dispatch<SetStateAction<Destination[]>>;
+  refreshDestinations: () => Promise<void>;
   trips: Trip[];
   setTrips: Dispatch<SetStateAction<Trip[]>>;
   tripInstances: TripInstance[];
@@ -439,6 +441,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setGalleryImages((prev) => prev.filter((g) => g.id !== id));
   }, []);
 
+  const refreshDestinations = useCallback(async () => {
+    try {
+      const data = await destinationsApi.list({ includeArchived: tokenStorage.hasTokens() });
+      if (data.destinations && data.destinations.length > 0) {
+        setDestinations(data.destinations);
+      }
+    } catch (err) {
+      console.warn("Failed to load destinations from backend:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    void refreshDestinations();
+  }, [refreshDestinations, adminLoggedIn]);
+
   return (
     <AppContext.Provider value={{
       page, pageParams, navigate,
@@ -448,7 +465,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       toasts, showToast,
       adminLoggedIn, adminRole, adminUser, adminLogin, adminLogout,
       splashDone, setSplashDone,
-      destinations, setDestinations,
+      destinations, setDestinations, refreshDestinations,
       trips, setTrips,
       tripInstances, setTripInstances,
       reviews, setReviews,

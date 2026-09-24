@@ -21,7 +21,7 @@ export default function CompletedTripDetailPage() {
   const instanceId = pageParams.tripInstanceId;
   const instance = tripInstances.find((i) => i.id === instanceId);
   const trip = instance ? trips.find((t) => t.id === instance.tripId) : null;
-  const destination = trip ? destinations.find((d) => d.id === trip.destination) : null;
+  const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
 
   if (!instance || !trip || !destination) {
     return (

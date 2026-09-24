@@ -1,5 +1,6 @@
 export interface Destination {
   id: string;
+  slug?: string;
   name: string;
   tagline: string;
   description: string;
@@ -11,6 +12,9 @@ export interface Destination {
   activities: string[];
   elevation?: string;
   bestTime: string;
+  status?: "active" | "archived" | "draft";
+  archivedAt?: string | null;
+  sortOrder?: number;
 }
 
 export const INITIAL_DESTINATIONS: Destination[] = [

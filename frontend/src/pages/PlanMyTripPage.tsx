@@ -58,7 +58,7 @@ export default function PlanMyTripPage() {
   const filteredTrips = trips.filter((t) => {
     if (!form.destination || form.destination === "Not decided yet") return true;
     const dest = destinations.find((d) => d.name === form.destination);
-    return dest ? t.destination === dest.id : true;
+    return dest ? (t.destination === dest.id || t.destination === dest.slug) : true;
   });
 
   const toggleInterest = (val: string) => {

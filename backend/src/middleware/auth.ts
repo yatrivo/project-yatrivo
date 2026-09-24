@@ -2,5 +2,6 @@ export {
   authenticate,
   authorize,
   requireAdmin,
-  requireSuperAdmin
+  requireSuperAdmin,
+  optionalAuthenticate
 } from "../modules/auth/auth.middleware";

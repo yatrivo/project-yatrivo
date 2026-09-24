@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useApp } from "@/context/AppContext";
 import type { Destination } from "@/data/destinations";
+import { destinationsApi } from "@/api/destinations";
 import MediaPicker from "@/components/MediaPicker";
 
 interface DestFormData {
@@ -18,20 +19,29 @@ interface DestFormData {
 }
 
 const EMPTY_FORM: DestFormData = {
-  name: "", tagline: "", description: "", category: "weekend", season: "",
-  bestTime: "", elevation: "", image: "", gallery: [], highlights: [], activities: [],
+  name: "",
+  tagline: "",
+  description: "",
+  category: "weekend",
+  season: "",
+  bestTime: "",
+  elevation: "",
+  image: "",
+  gallery: [],
+  highlights: [],
+  activities: [],
 };
 
 function destToForm(d: Destination): DestFormData {
   return {
     name: d.name,
-    tagline: d.tagline,
-    description: d.description,
-    category: d.category,
-    season: d.season,
-    bestTime: d.bestTime,
+    tagline: d.tagline || "",
+    description: d.description || "",
+    category: (d.category as DestFormData["category"]) || "weekend",
+    season: d.season || "",
+    bestTime: d.bestTime || "",
     elevation: d.elevation ?? "",
-    image: d.image,
+    image: d.image || "",
     gallery: d.gallery ?? [],
     highlights: d.highlights ?? [],
     activities: d.activities ?? [],
@@ -43,11 +53,13 @@ function DestinationModal({
   title,
   onClose,
   onSave,
+  isSaving,
 }: {
   initial: DestFormData;
   title: string;
   onClose: () => void;
-  onSave: (form: DestFormData) => void;
+  onSave: (form: DestFormData) => Promise<void>;
+  isSaving: boolean;
 }) {
   const [form, setForm] = useState<DestFormData>(initial);
   const [errors, setErrors] = useState<string[]>([]);
@@ -58,24 +70,30 @@ function DestinationModal({
   const set = <K extends keyof DestFormData>(field: K, value: DestFormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
     if (!form.name.trim()) errs.push("Name is required.");
     if (!form.image.trim()) errs.push("Main image URL is required.");
     setErrors(errs);
     if (errs.length > 0) return;
-    onSave(form);
+    await onSave(form);
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSaving ? undefined : onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden">
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-white font-semibold" style={{ fontFamily: "var(--font-serif, serif)" }}>{title}</h3>
-          <button onClick={onClose} className="text-[#a3bfb5] hover:text-white transition">
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+          <button
+            onClick={onClose}
+            disabled={isSaving}
+            className="text-[#a3bfb5] hover:text-white transition disabled:opacity-50"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
         <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
@@ -87,20 +105,42 @@ function DestinationModal({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
-              <label className="block text-sm font-medium text-[#4a5568] mb-1">Name <span className="text-red-500">*</span></label>
-              <input value={form.name} onChange={(e) => set("name", e.target.value)} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                Name <span className="text-red-500">*</span>
+              </label>
+              <input
+                value={form.name}
+                onChange={(e) => set("name", e.target.value)}
+                placeholder="e.g. Chopta Valley"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Tagline</label>
-              <input value={form.tagline} onChange={(e) => set("tagline", e.target.value)} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              <input
+                value={form.tagline}
+                onChange={(e) => set("tagline", e.target.value)}
+                placeholder="e.g. Alpine meadows & dense forest"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Description</label>
-              <textarea value={form.description} onChange={(e) => set("description", e.target.value)} rows={3} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none" />
+              <textarea
+                value={form.description}
+                onChange={(e) => set("description", e.target.value)}
+                rows={3}
+                placeholder="Brief summary of the destination..."
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Category</label>
-              <select value={form.category} onChange={(e) => set("category", e.target.value as DestFormData["category"])} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+              <select
+                value={form.category}
+                onChange={(e) => set("category", e.target.value as DestFormData["category"])}
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
+              >
                 <option value="high-altitude">High Altitude</option>
                 <option value="spiritual">Spiritual</option>
                 <option value="weekend">Weekend</option>
@@ -108,15 +148,30 @@ function DestinationModal({
             </div>
             <div>
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Elevation</label>
-              <input value={form.elevation} onChange={(e) => set("elevation", e.target.value)} placeholder="e.g. 2,680 m" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              <input
+                value={form.elevation}
+                onChange={(e) => set("elevation", e.target.value)}
+                placeholder="e.g. 2,680 m"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Season</label>
-              <input value={form.season} onChange={(e) => set("season", e.target.value)} placeholder="e.g. Oct – Mar" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              <input
+                value={form.season}
+                onChange={(e) => set("season", e.target.value)}
+                placeholder="e.g. Oct – Mar"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              />
             </div>
             <div>
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Best Time</label>
-              <input value={form.bestTime} onChange={(e) => set("bestTime", e.target.value)} placeholder="e.g. November" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              <input
+                value={form.bestTime}
+                onChange={(e) => set("bestTime", e.target.value)}
+                placeholder="e.g. November"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              />
             </div>
           </div>
 
@@ -134,17 +189,34 @@ function DestinationModal({
                 <div key={i} className="flex items-center gap-2">
                   <MediaPicker
                     value={url}
-                    onChange={(newUrl) => { const g = [...form.gallery]; g[i] = newUrl; set("gallery", g); }}
+                    onChange={(newUrl) => {
+                      const g = [...form.gallery];
+                      g[i] = newUrl;
+                      set("gallery", g);
+                    }}
                     className="flex-1"
                   />
-                  <button type="button" onClick={() => set("gallery", form.gallery.filter((_, j) => j !== i))} className="text-red-500 hover:text-red-700 text-xs px-2 shrink-0">✕</button>
+                  <button
+                    type="button"
+                    onClick={() => set("gallery", form.gallery.filter((_, j) => j !== i))}
+                    className="text-red-500 hover:text-red-700 text-xs px-2 shrink-0"
+                  >
+                    ✕
+                  </button>
                 </div>
               ))}
               {form.gallery.length < 4 && (
                 <div>
                   <MediaPicker
                     value={newGallery}
-                    onChange={(url) => { if (url) { set("gallery", [...form.gallery, url]); setNewGallery(""); } else { setNewGallery(url); } }}
+                    onChange={(url) => {
+                      if (url) {
+                        set("gallery", [...form.gallery, url]);
+                        setNewGallery("");
+                      } else {
+                        setNewGallery(url);
+                      }
+                    }}
                     label="Add gallery image"
                   />
                 </div>
@@ -157,16 +229,46 @@ function DestinationModal({
             <label className="block text-sm font-medium text-[#4a5568] mb-2">Highlights</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {form.highlights.map((h, i) => (
-                <span key={i} className="bg-[#f0f9f4] text-[#0f2922] text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                <span key={i} className="bg-[#f0f9f4] text-[#0f2922] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#c3dfd3]">
                   {h}
-                  <button type="button" onClick={() => set("highlights", form.highlights.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600">✕</button>
+                  <button
+                    type="button"
+                    onClick={() => set("highlights", form.highlights.filter((_, j) => j !== i))}
+                    className="text-red-400 hover:text-red-600 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
                 </span>
               ))}
             </div>
             <div className="flex gap-2">
-              <input value={newHighlight} onChange={(e) => setNewHighlight(e.target.value)} placeholder="Add highlight..." className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newHighlight.trim()) { set("highlights", [...form.highlights, newHighlight.trim()]); setNewHighlight(""); } } }} />
-              <button type="button" onClick={() => { if (newHighlight.trim()) { set("highlights", [...form.highlights, newHighlight.trim()]); setNewHighlight(""); } }} className="bg-[#0f2922] text-white text-xs px-3 rounded-lg">Add</button>
+              <input
+                value={newHighlight}
+                onChange={(e) => setNewHighlight(e.target.value)}
+                placeholder="Add highlight and press Enter..."
+                className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (newHighlight.trim()) {
+                      set("highlights", [...form.highlights, newHighlight.trim()]);
+                      setNewHighlight("");
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newHighlight.trim()) {
+                    set("highlights", [...form.highlights, newHighlight.trim()]);
+                    setNewHighlight("");
+                  }
+                }}
+                className="bg-[#0f2922] text-white text-xs px-3 rounded-lg hover:bg-[#1a3f35] transition"
+              >
+                Add
+              </button>
             </div>
           </div>
 
@@ -175,22 +277,75 @@ function DestinationModal({
             <label className="block text-sm font-medium text-[#4a5568] mb-2">Activities</label>
             <div className="flex flex-wrap gap-2 mb-2">
               {form.activities.map((a, i) => (
-                <span key={i} className="bg-[#fff3ee] text-[#e8622a] text-xs px-2 py-1 rounded-full flex items-center gap-1">
+                <span key={i} className="bg-[#fff3ee] text-[#e8622a] text-xs px-2.5 py-1 rounded-full flex items-center gap-1.5 border border-[#ffd5c2]">
                   {a}
-                  <button type="button" onClick={() => set("activities", form.activities.filter((_, j) => j !== i))} className="text-red-400 hover:text-red-600">✕</button>
+                  <button
+                    type="button"
+                    onClick={() => set("activities", form.activities.filter((_, j) => j !== i))}
+                    className="text-red-400 hover:text-red-600 text-xs font-bold"
+                  >
+                    ✕
+                  </button>
                 </span>
               ))}
             </div>
             <div className="flex gap-2">
-              <input value={newActivity} onChange={(e) => setNewActivity(e.target.value)} placeholder="e.g. Trekking" className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (newActivity.trim()) { set("activities", [...form.activities, newActivity.trim()]); setNewActivity(""); } } }} />
-              <button type="button" onClick={() => { if (newActivity.trim()) { set("activities", [...form.activities, newActivity.trim()]); setNewActivity(""); } }} className="bg-[#0f2922] text-white text-xs px-3 rounded-lg">Add</button>
+              <input
+                value={newActivity}
+                onChange={(e) => setNewActivity(e.target.value)}
+                placeholder="e.g. Trekking, Stargazing..."
+                className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    if (newActivity.trim()) {
+                      set("activities", [...form.activities, newActivity.trim()]);
+                      setNewActivity("");
+                    }
+                  }
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  if (newActivity.trim()) {
+                    set("activities", [...form.activities, newActivity.trim()]);
+                    setNewActivity("");
+                  }
+                }}
+                className="bg-[#0f2922] text-white text-xs px-3 rounded-lg hover:bg-[#1a3f35] transition"
+              >
+                Add
+              </button>
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition">Cancel</button>
-            <button type="submit" className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold py-2.5 rounded-lg transition">Save Destination</button>
+          <div className="flex gap-3 pt-3 border-t border-[#edf2f7]">
+            <button
+              type="button"
+              disabled={isSaving}
+              onClick={onClose}
+              className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              {isSaving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                "Save Destination"
+              )}
+            </button>
           </div>
         </form>
       </div>
@@ -198,167 +353,527 @@ function DestinationModal({
   );
 }
 
+/**
+ * Confirmation modal for Archive and Unarchive actions
+ */
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmLabel,
+  confirmVariant = "danger",
+  isSubmitting,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  confirmVariant?: "danger" | "success";
+  isSubmitting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSubmitting ? undefined : onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+              confirmVariant === "danger" ? "bg-amber-100 text-amber-600" : "bg-green-100 text-[#0f2922]"
+            }`}
+          >
+            {confirmVariant === "danger" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              {title}
+            </h3>
+          </div>
+        </div>
+
+        <p className="text-[#4a5568] text-sm leading-relaxed">{message}</p>
+
+        <div className="flex gap-3 pt-3">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={onConfirm}
+            className={`flex-1 text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 ${
+              confirmVariant === "danger"
+                ? "bg-[#e8622a] hover:bg-[#d4541f]"
+                : "bg-[#0f2922] hover:bg-[#1a3f35]"
+            }`}
+          >
+            {isSubmitting ? (
+              <>
+                <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                Processing...
+              </>
+            ) : (
+              confirmLabel
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminDestinations() {
-  const { destinations, setDestinations, showToast } = useApp();
+  const { destinations, refreshDestinations, showToast } = useApp();
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingDest, setEditingDest] = useState<Destination | null>(null);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const filtered = destinations.filter((d) => {
-    const q = search.toLowerCase();
-    return (
-      (categoryFilter === "All" || d.category === categoryFilter) &&
-      d.name.toLowerCase().includes(q)
-    );
-  });
+  // Archive confirmation dialog state
+  const [archiveTarget, setArchiveTarget] = useState<Destination | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
 
-  const handleAdd = (form: DestFormData) => {
-    const newDest: Destination = {
-      id: String(Date.now()),
-      name: form.name,
-      tagline: form.tagline,
-      description: form.description,
-      category: form.category,
-      season: form.season,
-      bestTime: form.bestTime,
-      elevation: form.elevation || undefined,
-      image: form.image,
-      gallery: form.gallery,
-      highlights: form.highlights,
-      activities: form.activities,
-    };
-    setDestinations((prev) => [newDest, ...prev]);
-    setModalMode(null);
-    showToast(`${newDest.name} added successfully.`, "success");
+  // Unarchive confirmation dialog state
+  const [unarchiveTarget, setUnarchiveTarget] = useState<Destination | null>(null);
+  const [isUnarchiving, setIsUnarchiving] = useState(false);
+
+  // Sort and filter destinations:
+  // Archived destinations ALWAYS appear at the bottom!
+  const sortedAndFiltered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+
+    return destinations
+      .filter((d) => {
+        const matchesCategory = categoryFilter === "All" || d.category === categoryFilter;
+        const matchesSearch =
+          !q ||
+          d.name.toLowerCase().includes(q) ||
+          (d.tagline && d.tagline.toLowerCase().includes(q)) ||
+          (d.description && d.description.toLowerCase().includes(q));
+
+        const isArchived = d.status === "archived";
+        let matchesStatus = true;
+        if (statusFilter === "active") matchesStatus = !isArchived;
+        if (statusFilter === "archived") matchesStatus = isArchived;
+
+        return matchesCategory && matchesSearch && matchesStatus;
+      })
+      .sort((a, b) => {
+        const aArchived = a.status === "archived" ? 1 : 0;
+        const bArchived = b.status === "archived" ? 1 : 0;
+        if (aArchived !== bArchived) {
+          return aArchived - bArchived; // Active (0) first, Archived (1) at the bottom
+        }
+        return (a.sortOrder || 0) - (b.sortOrder || 0);
+      });
+  }, [destinations, search, categoryFilter, statusFilter]);
+
+  const activeCount = useMemo(
+    () => destinations.filter((d) => d.status !== "archived").length,
+    [destinations]
+  );
+  const archivedCount = useMemo(
+    () => destinations.filter((d) => d.status === "archived").length,
+    [destinations]
+  );
+
+  const handleCreate = async (form: DestFormData) => {
+    setIsSaving(true);
+    try {
+      const created = await destinationsApi.create({
+        name: form.name,
+        tagline: form.tagline,
+        description: form.description,
+        category: form.category,
+        season: form.season,
+        bestTime: form.bestTime,
+        elevation: form.elevation || undefined,
+        image: form.image,
+        gallery: form.gallery,
+        highlights: form.highlights,
+        activities: form.activities,
+      });
+
+      await refreshDestinations();
+      setModalMode(null);
+      showToast(`${created.name} added successfully.`, "success");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to create destination";
+      showToast(message, "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleEdit = (form: DestFormData) => {
+  const handleUpdate = async (form: DestFormData) => {
     if (!editingDest) return;
-    setDestinations((prev) =>
-      prev.map((d) =>
-        d.id === editingDest.id
-          ? {
-              ...d,
-              name: form.name,
-              tagline: form.tagline,
-              description: form.description,
-              category: form.category,
-              season: form.season,
-              bestTime: form.bestTime,
-              elevation: form.elevation || undefined,
-              image: form.image,
-              gallery: form.gallery,
-              highlights: form.highlights,
-              activities: form.activities,
-            }
-          : d
-      )
-    );
-    setModalMode(null);
-    setEditingDest(null);
-    showToast(`${form.name} updated.`, "success");
+    setIsSaving(true);
+    try {
+      const updated = await destinationsApi.update(editingDest.id, {
+        name: form.name,
+        tagline: form.tagline,
+        description: form.description,
+        category: form.category,
+        season: form.season,
+        bestTime: form.bestTime,
+        elevation: form.elevation || undefined,
+        image: form.image,
+        gallery: form.gallery,
+        highlights: form.highlights,
+        activities: form.activities,
+      });
+
+      await refreshDestinations();
+      setModalMode(null);
+      setEditingDest(null);
+      showToast(`${updated.name} updated successfully.`, "success");
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to update destination";
+      showToast(message, "error");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    const dest = destinations.find((d) => d.id === id);
-    setDestinations((prev) => prev.filter((d) => d.id !== id));
-    setDeletingId(null);
-    showToast(`${dest?.name ?? "Destination"} deleted.`, "error");
+  const handleConfirmArchive = async () => {
+    if (!archiveTarget) return;
+    setIsArchiving(true);
+    try {
+      await destinationsApi.archive(archiveTarget.id);
+      await refreshDestinations();
+      showToast(`${archiveTarget.name} has been archived.`, "info");
+      setArchiveTarget(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to archive destination";
+      showToast(message, "error");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleConfirmUnarchive = async () => {
+    if (!unarchiveTarget) return;
+    setIsUnarchiving(true);
+    try {
+      await destinationsApi.unarchive(unarchiveTarget.id);
+      await refreshDestinations();
+      showToast(`${unarchiveTarget.name} restored to active.`, "success");
+      setUnarchiveTarget(null);
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : "Failed to restore destination";
+      showToast(message, "error");
+    } finally {
+      setIsUnarchiving(false);
+    }
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 space-y-6">
       {modalMode === "add" && (
         <DestinationModal
           title="Add Destination"
           initial={EMPTY_FORM}
+          isSaving={isSaving}
           onClose={() => setModalMode(null)}
-          onSave={handleAdd}
+          onSave={handleCreate}
         />
       )}
+
       {modalMode === "edit" && editingDest && (
         <DestinationModal
           title={`Edit — ${editingDest.name}`}
           initial={destToForm(editingDest)}
-          onClose={() => { setModalMode(null); setEditingDest(null); }}
-          onSave={handleEdit}
+          isSaving={isSaving}
+          onClose={() => {
+            setModalMode(null);
+            setEditingDest(null);
+          }}
+          onSave={handleUpdate}
         />
       )}
 
-      <div className="flex items-center justify-between">
+      {/* Archive confirmation dialog */}
+      <ConfirmModal
+        isOpen={Boolean(archiveTarget)}
+        title="Archive Destination"
+        message="Are you sure you want to archive this destination? It will no longer be available for new trips/packages, but existing records will be preserved."
+        confirmLabel="Archive Destination"
+        confirmVariant="danger"
+        isSubmitting={isArchiving}
+        onConfirm={handleConfirmArchive}
+        onCancel={() => setArchiveTarget(null)}
+      />
+
+      {/* Unarchive confirmation dialog */}
+      <ConfirmModal
+        isOpen={Boolean(unarchiveTarget)}
+        title="Restore Destination"
+        message="Are you sure you want to restore this destination?"
+        confirmLabel="Restore Destination"
+        confirmVariant="success"
+        isSubmitting={isUnarchiving}
+        onConfirm={handleConfirmUnarchive}
+        onCancel={() => setUnarchiveTarget(null)}
+      />
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Destinations</h2>
-          <p className="text-[#718096] text-sm mt-0.5">{destinations.length} destinations</p>
+          <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            Destinations
+          </h2>
+          <div className="flex items-center gap-3 text-sm text-[#718096] mt-1">
+            <span>{destinations.length} total</span>
+            <span>•</span>
+            <span className="text-emerald-700 font-medium">{activeCount} active</span>
+            {archivedCount > 0 && (
+              <>
+                <span>•</span>
+                <span className="text-amber-700 font-medium">{archivedCount} archived</span>
+              </>
+            )}
+          </div>
         </div>
         <button
           onClick={() => setModalMode("add")}
-          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition"
+          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2.5 rounded-lg transition shadow-sm flex items-center justify-center gap-1.5 shrink-0"
         >
-          + Add Destination
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+          </svg>
+          Add Destination
         </button>
       </div>
 
-      {/* Filters */}
-      <div className="flex gap-3 items-center flex-wrap">
-        <div className="relative">
-          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search destinations..."
-            className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-52 focus:outline-none focus:border-[#0f2922]"
-          />
+      {/* Filter and search bar */}
+      <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-sm flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center flex-1">
+          {/* Search */}
+          <div className="relative min-w-[220px]">
+            <svg
+              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search destinations..."
+              className="w-full pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+
+          {/* Category */}
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#4a5568]"
+          >
+            {["All", "high-altitude", "spiritual", "weekend"].map((s) => (
+              <option key={s} value={s}>
+                {s === "All" ? "All Categories" : s.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </option>
+            ))}
+          </select>
         </div>
-        <select
-          value={categoryFilter}
-          onChange={(e) => setCategoryFilter(e.target.value)}
-          className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
-        >
-          {["All", "high-altitude", "spiritual", "weekend"].map((s) => <option key={s}>{s}</option>)}
-        </select>
+
+        {/* Status quick tabs */}
+        <div className="flex bg-[#f7f8f5] p-1 rounded-lg border border-[#e2e8f0] text-xs font-medium">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-3 py-1.5 rounded-md transition ${
+              statusFilter === "all" ? "bg-white text-[#0f2922] shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            All ({destinations.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("active")}
+            className={`px-3 py-1.5 rounded-md transition ${
+              statusFilter === "active" ? "bg-white text-emerald-800 shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            Active ({activeCount})
+          </button>
+          <button
+            onClick={() => setStatusFilter("archived")}
+            className={`px-3 py-1.5 rounded-md transition ${
+              statusFilter === "archived" ? "bg-white text-amber-800 shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            Archived ({archivedCount})
+          </button>
+        </div>
       </div>
 
-      {/* Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-        {filtered.map((dest) => (
-          <div key={dest.id} className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden hover:shadow-md transition">
-            <div className="relative">
-              <img src={dest.image} alt={dest.name} className="w-full h-40 object-cover" onError={(e) => { (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=200&fit=crop"; }} />
-              <span className="absolute top-3 right-3 text-xs font-medium rounded-full px-2.5 py-1 bg-blue-100 text-blue-700 capitalize">{dest.category}</span>
-            </div>
-            <div className="p-4">
-              <h3 className="font-semibold text-[#0f2922]">{dest.name}</h3>
-              <p className="text-[#718096] text-xs mt-0.5 truncate">{dest.tagline}</p>
-              <p className="text-[#4a5568] text-xs mt-1">{dest.activities.length} activities</p>
-              <div className="flex gap-2 mt-3">
-                <button
-                  onClick={() => { setEditingDest(dest); setModalMode("edit"); }}
-                  className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] text-xs font-medium py-1.5 rounded-lg transition"
-                >
-                  Edit
-                </button>
-                {deletingId === dest.id ? (
-                  <div className="flex gap-1">
-                    <button onClick={() => handleDelete(dest.id)} className="border border-red-300 text-red-600 text-xs font-medium px-2 py-1.5 rounded-lg hover:bg-red-50 transition">Confirm</button>
-                    <button onClick={() => setDeletingId(null)} className="border border-[#e2e8f0] text-[#4a5568] text-xs font-medium px-2 py-1.5 rounded-lg transition">Cancel</button>
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => setDeletingId(dest.id)}
-                    className="border border-[#e2e8f0] text-red-500 hover:border-red-300 text-xs font-medium px-3 py-1.5 rounded-lg transition"
-                  >
-                    Delete
-                  </button>
-                )}
-              </div>
-            </div>
+      {/* Destinations Grid */}
+      {sortedAndFiltered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-[#cbd5e1] p-12 text-center">
+          <div className="w-12 h-12 rounded-full bg-[#f0f9f4] text-[#0f2922] mx-auto flex items-center justify-center mb-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
           </div>
-        ))}
-      </div>
+          <h3 className="font-semibold text-gray-800 mb-1">No destinations found</h3>
+          <p className="text-sm text-gray-500 max-w-sm mx-auto">
+            {search || categoryFilter !== "All" || statusFilter !== "all"
+              ? "Try adjusting your filters or search keywords."
+              : "Get started by adding your first destination."}
+          </p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+          {sortedAndFiltered.map((dest) => {
+            const isArchived = dest.status === "archived";
+
+            return (
+              <div
+                key={dest.id}
+                className={`rounded-xl border shadow-sm overflow-hidden flex flex-col transition ${
+                  isArchived
+                    ? "bg-[#fafbfa] border-dashed border-gray-300 opacity-70 hover:opacity-95"
+                    : "bg-white border-[#e2e8f0] hover:shadow-md"
+                }`}
+              >
+                {/* Image and Badges */}
+                <div className="relative">
+                  <img
+                    src={dest.image}
+                    alt={dest.name}
+                    className={`w-full h-44 object-cover ${isArchived ? "grayscale-[0.4]" : ""}`}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src =
+                        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=200&fit=crop";
+                    }}
+                  />
+
+                  {/* Category Pill */}
+                  <span className="absolute top-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm capitalize">
+                    {dest.category}
+                  </span>
+
+                  {/* Status Pill */}
+                  <div className="absolute top-3 right-3">
+                    {isArchived ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 shadow-sm">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                        Archived
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                        Active
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 flex-1 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-start justify-between gap-2">
+                      <h3
+                        className={`font-semibold text-base ${isArchived ? "text-[#4a5568]" : "text-[#0f2922]"}`}
+                        style={{ fontFamily: "var(--font-serif, serif)" }}
+                      >
+                        {dest.name}
+                      </h3>
+                      {dest.elevation && (
+                        <span className="text-[11px] text-[#718096] bg-gray-100 px-2 py-0.5 rounded shrink-0">
+                          {dest.elevation}
+                        </span>
+                      )}
+                    </div>
+
+                    <p className="text-[#718096] text-xs mt-1 line-clamp-1">{dest.tagline || dest.description}</p>
+
+                    <div className="flex items-center gap-3 text-[#718096] text-xs mt-3">
+                      <span>{dest.activities?.length || 0} activities</span>
+                      <span>•</span>
+                      <span>{dest.highlights?.length || 0} highlights</span>
+                    </div>
+
+                    {isArchived && (
+                      <div className="mt-3 bg-amber-50/80 border border-amber-200/60 rounded-md px-2.5 py-1.5 text-[11px] text-amber-800 flex items-center gap-1.5">
+                        <svg className="w-3.5 h-3.5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>Retained for historical records. Unavailable for new trips.</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-[#edf2f7]">
+                    <button
+                      onClick={() => {
+                        setEditingDest(dest);
+                        setModalMode("edit");
+                      }}
+                      className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] text-xs font-semibold py-2 rounded-lg transition"
+                    >
+                      Edit
+                    </button>
+
+                    {isArchived ? (
+                      <button
+                        onClick={() => setUnarchiveTarget(dest)}
+                        className="flex-1 border border-emerald-300 bg-emerald-50/70 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-1"
+                        title="Restore this destination to active"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        Unarchive
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => setArchiveTarget(dest)}
+                        className="flex-1 border border-amber-200 bg-amber-50/50 hover:bg-amber-100 text-amber-700 text-xs font-semibold py-2 rounded-lg transition flex items-center justify-center gap-1"
+                        title="Archive this destination"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                        </svg>
+                        Archive
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

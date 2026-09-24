@@ -128,7 +128,7 @@ export default function TravelWithUsPage() {
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {recentCompleted.map((inst) => {
               const trip = trips.find((t) => t.id === inst.tripId);
-              const destination = trip ? destinations.find((d) => d.id === trip.destination) : null;
+              const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
               if (!trip) return null;
               const coverImg = inst.completedPhotos?.[0] ?? trip.image;
               return (
