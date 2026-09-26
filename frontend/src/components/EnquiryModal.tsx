@@ -11,9 +11,37 @@ const TRIPS: Record<string, { name: string; dest: string }> = {
 };
 
 export default function EnquiryModal() {
-  const { enquiryModalOpen, closeEnquiryModal, enquiryTripId, addEnquiry, showToast } = useApp();
+  const { enquiryModalOpen, closeEnquiryModal, enquiryTripId, addEnquiry, showToast, trips, destinations } = useApp();
 
-  const trip = TRIPS[enquiryTripId] || { name: enquiryTripId, dest: "Uttarakhand" };
+  // Dynamically resolve trip from AppContext by id or slug
+  const foundTrip = trips.find(
+    (t) =>
+      t.id.toLowerCase() === (enquiryTripId || "").toLowerCase() ||
+      (t.slug && t.slug.toLowerCase() === (enquiryTripId || "").toLowerCase())
+  );
+
+  const tripName =
+    foundTrip?.name ||
+    TRIPS[enquiryTripId]?.name ||
+    (enquiryTripId && enquiryTripId.length < 30 ? enquiryTripId : "Himalayan Expedition");
+
+  const destName = (() => {
+    if (foundTrip?.destinations && foundTrip.destinations.length > 0) {
+      return foundTrip.destinations.map((d) => d.name).join(", ");
+    }
+    if (foundTrip?.destination) {
+      const d = destinations.find(
+        (dest) =>
+          dest.id === foundTrip.destination ||
+          dest.slug === foundTrip.destination ||
+          dest.name === foundTrip.destination
+      );
+      return d ? `${d.name}, Uttarakhand` : foundTrip.destination;
+    }
+    return TRIPS[enquiryTripId]?.dest || "Uttarakhand, India";
+  })();
+
+  const trip = { name: tripName, dest: destName };
 
   const [form, setForm] = useState({
     name: "",

@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, type React
 import { useNavigate, useLocation } from "react-router-dom";
 import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
 import { destinationsApi } from "@/api/destinations";
+import { tripsApi } from "@/api/trips";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
@@ -165,6 +166,7 @@ interface AppContextType {
   refreshDestinations: () => Promise<void>;
   trips: Trip[];
   setTrips: Dispatch<SetStateAction<Trip[]>>;
+  refreshTrips: () => Promise<void>;
   tripInstances: TripInstance[];
   setTripInstances: Dispatch<SetStateAction<TripInstance[]>>;
   reviews: Review[];
@@ -509,9 +511,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshTrips = useCallback(async () => {
+    try {
+      const data = await tripsApi.list({ includeArchived: tokenStorage.hasTokens() });
+      if (data.trips && data.trips.length > 0) {
+        setTrips(data.trips);
+        const instances = data.trips.flatMap((t) => t.departures || []);
+        if (instances.length > 0) {
+          setTripInstances(instances);
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to load trips from backend:", err);
+    }
+  }, []);
+
   useEffect(() => {
     void refreshDestinations();
-  }, [refreshDestinations, adminLoggedIn]);
+    void refreshTrips();
+  }, [refreshDestinations, refreshTrips, adminLoggedIn]);
 
   return (
     <AppContext.Provider value={{
@@ -523,7 +541,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       adminLoggedIn, adminRole, adminUser, adminLogin, adminLogout,
       splashDone, setSplashDone,
       destinations, setDestinations, refreshDestinations,
-      trips, setTrips,
+      trips, setTrips, refreshTrips,
       tripInstances, setTripInstances,
       reviews, setReviews,
       homepageContent, setHomepageContent,

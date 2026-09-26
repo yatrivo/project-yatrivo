@@ -20,7 +20,12 @@ export default function DestinationDetailPage() {
   const { pageParams, openEnquiryModal, destinations, trips, tripInstances, reviews } = useApp();
   const destId = slug || pageParams.destId || "chopta";
   const dest = destinations.find((d) => d.id.toLowerCase() === destId.toLowerCase() || (d.slug && d.slug.toLowerCase() === destId.toLowerCase())) || destinations.find((d) => d.id === "chopta") || destinations[0];
-  const destTrips = trips.filter((t) => t.destination === destId || (dest && (t.destination === dest.id || t.destination === dest.slug)));
+  const destTrips = trips.filter(
+    (t) =>
+      (t.destinations && t.destinations.some((d) => d.id === destId || d.slug === destId || (dest && (d.id === dest.id || d.slug === dest.slug)))) ||
+      t.destination === destId ||
+      (dest && (t.destination === dest.id || t.destination === dest.slug))
+  );
   const destReviews = reviews.filter((r) => (r.destination === destId || (dest && (r.destination === dest.id || r.destination === dest.slug))) && r.status === "published");
 
   // Upcoming trip instances for this destination, sorted by date
@@ -28,9 +33,7 @@ export default function DestinationDetailPage() {
     .filter((inst) => inst.status === "upcoming" && destTrips.some((t) => t.id === inst.tripId))
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const [activeGalleryImg, setActiveGalleryImg] = useState(0);
   const [showAllReviews, setShowAllReviews] = useState(false);
-  const allImages = dest ? [dest.gallery[0] ?? dest.image, ...dest.gallery.slice(1)] : [];
   const displayedReviews = showAllReviews ? destReviews : destReviews.slice(0, 3);
 
   if (!dest) {
@@ -43,9 +46,13 @@ export default function DestinationDetailPage() {
 
   return (
     <div>
-      {/* Hero */}
+      {/* Hero with Single Cover Image */}
       <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
-        <img src={allImages[activeGalleryImg] ?? dest.image} alt={dest.name} className="absolute inset-0 w-full h-full object-cover transition-opacity duration-500" />
+        <img
+          src={dest.image}
+          alt={dest.name}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-8">
           <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -65,21 +72,6 @@ export default function DestinationDetailPage() {
           </div>
         </div>
       </section>
-
-      {/* Gallery Thumbs */}
-      <div className="bg-[#0f2922]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex gap-2 overflow-x-auto">
-          {allImages.map((img, i) => (
-            <button
-              key={i}
-              onClick={() => setActiveGalleryImg(i)}
-              className={`shrink-0 w-16 h-12 rounded-lg overflow-hidden border-2 transition-all ${i === activeGalleryImg ? "border-[#e8622a]" : "border-transparent opacity-60 hover:opacity-90"}`}
-            >
-              <img src={img} alt="" className="w-full h-full object-cover" />
-            </button>
-          ))}
-        </div>
-      </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -161,6 +153,25 @@ export default function DestinationDetailPage() {
                 </div>
               )}
             </section>
+
+            {/* Photo Gallery (Separate from Cover Image) */}
+            {dest.gallery && dest.gallery.length > 0 && (
+              <section id="gallery">
+                <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Photo Gallery</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  {dest.gallery.map((img, i) => (
+                    <div key={i} className="h-56 rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm hover:shadow-md transition group">
+                      <img
+                        src={img}
+                        alt={`${dest.name} Gallery ${i + 1}`}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* Reviews */}
             {destReviews.length > 0 && (

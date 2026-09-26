@@ -56,10 +56,31 @@ export default function PlanMyTripPage() {
     });
   }, [form.travellers]);
 
+  const destOptions = [
+    ...(destinations.length > 0
+      ? Array.from(new Set(destinations.map((d) => d.name)))
+      : DEST_OPTIONS.filter((d) => d !== "Not decided yet")),
+    "Not decided yet",
+  ];
+
   const filteredTrips = trips.filter((t) => {
     if (!form.destination || form.destination === "Not decided yet") return true;
-    const dest = destinations.find((d) => d.name === form.destination);
-    return dest ? (t.destination === dest.id || t.destination === dest.slug) : true;
+    const dest = destinations.find(
+      (d) => d.name.toLowerCase() === form.destination.toLowerCase()
+    );
+    if (dest) {
+      if (t.destination === dest.id || t.destination === dest.slug) return true;
+      if (
+        t.destinations &&
+        t.destinations.some(
+          (d) => d.id === dest.id || d.slug === dest.slug || d.name === dest.name
+        )
+      ) {
+        return true;
+      }
+      return false;
+    }
+    return t.destination === form.destination;
   });
 
   const toggleInterest = (val: string) => {
@@ -191,7 +212,7 @@ export default function PlanMyTripPage() {
                     <h3 className="text-[#0f2922] text-xl mb-2" style={{ fontFamily: "var(--font-serif)" }}>Where do you want to go?</h3>
                     <p className="text-[#4a5568] text-sm mb-5">Select a destination, then optionally pick a specific package.</p>
                     <div className="flex flex-wrap gap-2 mb-6">
-                      {DEST_OPTIONS.map((d) => (
+                      {destOptions.map((d) => (
                         <Pill key={d} label={d} active={form.destination === d} onClick={() => setForm({ ...form, destination: d, tripId: "" })} />
                       ))}
                     </div>

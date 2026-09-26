@@ -130,8 +130,10 @@ export default function App() {
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="media" element={<AdminMedia />} />
           <Route path="content" element={<AdminContent />} />
+          {/* Unlinked/hidden for now:
           <Route path="analytics" element={<AdminAnalytics />} />
           <Route path="notifications" element={<AdminNotifications />} />
+          */}
           <Route path="settings" element={<AdminSettings />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

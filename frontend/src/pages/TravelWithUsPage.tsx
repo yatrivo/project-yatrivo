@@ -128,9 +128,11 @@ export default function TravelWithUsPage() {
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {recentCompleted.map((inst) => {
-              const trip = trips.find((t) => t.id === inst.tripId);
-              const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
+              const trip = trips.find((t) => t.id === inst.tripId || (t.slug && t.slug === inst.tripId));
               if (!trip) return null;
+              const destLabel = trip.destinations && trip.destinations.length > 0
+                ? trip.destinations.map((d) => d.name).join(", ")
+                : (destinations.find((d) => d.id === trip.destination || d.slug === trip.destination)?.name || (trip.destination && trip.destination.length > 30 ? "Uttarakhand" : trip.destination) || "Uttarakhand");
               const coverImg = inst.completedPhotos?.[0] ?? trip.image;
               return (
                 <Link
@@ -139,13 +141,13 @@ export default function TravelWithUsPage() {
                   className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
                 >
                   <div className="relative h-48 overflow-hidden">
-                    <img src={coverImg} alt={destination?.name ?? trip.destination} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <img src={coverImg} alt={destLabel} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                     <div className="absolute top-3 left-3 bg-[#0f2922]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
                   </div>
                   <div className="p-4">
-                    <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-1">{destination?.name ?? trip.destination}</div>
+                    <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-1">{destLabel}</div>
                     <h3 className="text-[#0f2922] font-semibold mb-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
                     <div className="text-[#4a5568] text-xs">{inst.displayDate}</div>
                   </div>

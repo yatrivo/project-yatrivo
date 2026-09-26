@@ -33,7 +33,11 @@ export default function AdminReviews() {
 
   const filtered = reviews.filter((r) => {
     const matchTab = tab === "All" || r.status === tab;
-    const matchDest = destFilter === "All" || r.destination === destFilter;
+    const destObj = destinations.find((d) => d.id === destFilter || d.slug === destFilter);
+    const matchDest =
+      destFilter === "All" ||
+      r.destination === destFilter ||
+      (destObj && (r.destination === destObj.name || r.destination === destObj.id));
     const matchRating = ratingFilter === 0 || r.rating === ratingFilter;
     const q = search.toLowerCase();
     const matchSearch = !q || r.name.toLowerCase().includes(q) || r.tripName.toLowerCase().includes(q) || r.text?.toLowerCase().includes(q);
@@ -147,7 +151,9 @@ export default function AdminReviews() {
                     <p className="truncate">{r.text}</p>
                   </td>
                   <td className="px-4 py-3 text-[#4a5568] text-xs">{r.tripName}</td>
-                  <td className="px-4 py-3 text-[#718096] text-xs capitalize">{r.destination}</td>
+                  <td className="px-4 py-3 text-[#718096] text-xs capitalize">
+                    {destinations.find((d) => d.id === r.destination || d.slug === r.destination)?.name || (r.destination && r.destination.length > 30 ? "Uttarakhand" : r.destination)}
+                  </td>
                   <td className="px-4 py-3 text-[#718096] text-xs">{r.date}</td>
                   <td className="px-4 py-3">
                     <span className={`text-xs font-medium rounded-full px-2.5 py-1 capitalize ${STATUS_BADGE[r.status] ?? "bg-gray-100 text-gray-600"}`}>

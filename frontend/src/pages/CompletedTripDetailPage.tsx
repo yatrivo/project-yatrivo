@@ -22,8 +22,24 @@ export default function CompletedTripDetailPage() {
 
   const currentId = instanceId || pageParams.tripInstanceId;
   const instance = tripInstances.find((i) => i.id === currentId);
-  const trip = instance ? trips.find((t) => t.id === instance.tripId) : null;
-  const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
+  const trip = instance ? trips.find((t) => t.id === instance.tripId || (t.slug && t.slug === instance.tripId)) : null;
+  const destination = trip
+    ? (destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) ||
+       (trip.destinations && trip.destinations.length > 0
+         ? (destinations.find((d) => d.id === trip.destinations![0].id || d.slug === trip.destinations![0].slug) || {
+             id: trip.destinations![0].id,
+             name: trip.destinations![0].name,
+             slug: trip.destinations![0].slug || trip.destinations![0].id,
+             image: trip.destinations![0].image || trip.image,
+             tagline: "Himalayan Destination",
+             description: "",
+             badge: "POPULAR",
+             season: "All Year",
+             altitude: "2,500m",
+             highlights: [],
+           })
+         : destinations[0]))
+    : null;
 
   if (!instance || !trip || !destination) {
     return (

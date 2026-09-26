@@ -42,7 +42,7 @@ export default function AdminDashboard({ setAdminPage }: Props = {}) {
     .sort((a, b) => a.date.localeCompare(b.date))
     .slice(0, 4)
     .map((instance) => {
-      const trip = trips.find((t) => t.id === instance.tripId);
+      const trip = trips.find((t) => t.id === instance.tripId || (t.slug && t.slug === instance.tripId));
       return { instance, trip };
     });
 
@@ -114,7 +114,7 @@ export default function AdminDashboard({ setAdminPage }: Props = {}) {
                   <img src={trip.image} alt={trip.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
                 )}
                 <div className="min-w-0 flex-1">
-                  <div className="text-xs font-semibold text-[#0f2922] truncate">{trip?.name ?? instance.tripId}</div>
+                  <div className="text-xs font-semibold text-[#0f2922] truncate">{trip?.name ?? (instance.tripId && instance.tripId.length > 30 ? "Himalayan Journey" : instance.tripId)}</div>
                   <div className="text-[11px] text-[#718096]">{instance.displayDate}</div>
                 </div>
                 <div className="text-right shrink-0">

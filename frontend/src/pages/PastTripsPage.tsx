@@ -59,9 +59,11 @@ export default function PastTripsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {completedInstances.map((inst) => {
-              const trip = trips.find((t) => t.id === inst.tripId);
-              const destination = trip ? destinations.find((d) => d.id === trip.destination || d.slug === trip.destination) : null;
+              const trip = trips.find((t) => t.id === inst.tripId || (t.slug && t.slug === inst.tripId));
               if (!trip) return null;
+              const destLabel = trip.destinations && trip.destinations.length > 0
+                ? trip.destinations.map((d) => d.name).join(", ")
+                : (destinations.find((d) => d.id === trip.destination || d.slug === trip.destination)?.name || (trip.destination && trip.destination.length > 30 ? "Uttarakhand" : trip.destination) || "Uttarakhand");
               const coverImg = inst.completedPhotos?.[0] ?? trip.image;
               return (
                 <Link
@@ -76,7 +78,7 @@ export default function PastTripsPage() {
                     </div>
                     <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
                     <div className="absolute bottom-0 left-0 p-4">
-                      <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-0.5">{destination?.name ?? trip.destination}</div>
+                      <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-0.5">{destLabel}</div>
                       <div className="text-white font-semibold text-sm leading-snug" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                     </div>
                   </div>

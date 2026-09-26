@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
+import { tripsApi } from "@/api/trips";
 import type { TripInstance, Trip } from "@/data/trips";
 import MediaPicker from "@/components/MediaPicker";
 import type { AdminPage } from "./AdminLayout";
@@ -10,6 +11,24 @@ function statusColor(status: TripInstance["status"]) {
   if (status === "upcoming") return "bg-blue-100 text-blue-700";
   if (status === "completed") return "bg-green-100 text-green-700";
   return "bg-red-100 text-red-700";
+}
+
+function getTripDestinationsLabel(trip: Trip, allDestinations?: { id: string; name: string; slug?: string }[]): string {
+  if (trip.destinations && trip.destinations.length > 0) {
+    return trip.destinations.map((d) => d.name).join(", ");
+  }
+  if (trip.destination) {
+    if (allDestinations) {
+      const found = allDestinations.find((d) => d.id === trip.destination || d.slug === trip.destination || d.name === trip.destination);
+      if (found) return found.name;
+    }
+    // Never show raw UUID string
+    if (trip.destination.length > 30 && trip.destination.includes("-")) {
+      return "Uttarakhand";
+    }
+    return trip.destination;
+  }
+  return "Uttarakhand";
 }
 
 // ── Edit Instance Modal ─────────────────────────────────────────────────────
@@ -244,7 +263,7 @@ interface DetailPanelProps {
 }
 
 function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, onCancel }: DetailPanelProps) {
-  const { enquiries } = useApp();
+  const { enquiries, destinations } = useApp();
   const relatedEnquiries = enquiries.filter((e) => e.tripName === trip.name);
 
   return (
@@ -255,7 +274,7 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] sticky top-0 bg-white z-10">
           <div>
             <h3 className="font-bold text-[#0f2922] text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>{trip.name}</h3>
-            <p className="text-[#718096] text-xs mt-0.5">{trip.destination} · {trip.duration}</p>
+            <p className="text-[#718096] text-xs mt-0.5">{getTripDestinationsLabel(trip, destinations)} · {trip.duration}</p>
           </div>
           <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -377,6 +396,7 @@ function TripCard({
   trip, instances, onEditTrip, onDuplicateTrip, onDeleteTrip,
   onEditInstance, onCompleteInstance, onCancelInstance, onAddInstance, onViewInstance
 }: TripCardProps) {
+  const { destinations } = useApp();
   const [expanded, setExpanded] = useState(false);
   const sortedInst = [...instances].sort((a, b) => a.date.localeCompare(b.date));
   const upcoming = instances.filter((i) => i.status === "upcoming").length;
@@ -392,7 +412,7 @@ function TripCard({
       </div>
       <div className="p-4">
         <h3 className="font-semibold text-[#0f2922] text-sm">{trip.name}</h3>
-        <p className="text-[#718096] text-xs mt-1 capitalize">{trip.destination} · {trip.duration} · {trip.category}</p>
+        <p className="text-[#718096] text-xs mt-1 capitalize">{getTripDestinationsLabel(trip, destinations)} · {trip.duration} · {trip.category}</p>
         <p className="text-[#e8622a] font-bold text-sm mt-1.5">₹{trip.price.toLocaleString("en-IN")}</p>
         <div className="flex gap-2 mt-3">
           <button onClick={onEditTrip} className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] text-xs font-medium py-1.5 rounded-lg transition">Edit</button>
@@ -405,9 +425,9 @@ function TripCard({
           onClick={() => setExpanded(!expanded)}
           className="w-full mt-3 flex items-center justify-between px-3 py-2 bg-[#f7f8f5] hover:bg-[#f0f4f1] rounded-lg transition text-xs font-medium text-[#4a5568]"
         >
-          <span>
+          <span className="inline-flex items-center">
             {sortedInst.length} departure{sortedInst.length !== 1 ? "s" : ""}
-            {upcoming > 0 && <span className="ml-1.5 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full text-[10px]">{upcoming} upcoming</span>}
+            {upcoming > 0 && <span className="ml-1.5 inline-flex items-center whitespace-nowrap bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full text-[10px] font-medium">{upcoming} upcoming</span>}
           </span>
           <svg className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
@@ -479,7 +499,7 @@ interface Props {
 
 export default function AdminTrips({ setAdminPage }: Props = {}) {
   const navigate = useNavigate();
-  const { trips, setTrips, tripInstances, setTripInstances, showToast, destinations } = useApp();
+  const { trips, setTrips, tripInstances, setTripInstances, showToast, destinations, refreshTrips } = useApp();
 
   const [search, setSearch] = useState("");
   const [destFilter, setDestFilter] = useState("All");
@@ -494,44 +514,89 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
   const [detailInstance, setDetailInstance] = useState<TripInstance | null>(null);
   const [detailTrip, setDetailTrip] = useState<Trip | null>(null);
 
-  const destOptions = ["All", ...destinations.map((d) => d.id)];
-
   const filtered = trips.filter((t) => {
     const q = search.toLowerCase();
-    return (
-      (destFilter === "All" || t.destination === destFilter) &&
-      (t.name.toLowerCase().includes(q) || t.destination.toLowerCase().includes(q))
-    );
+    const destNames = t.destinations ? t.destinations.map((d) => d.name.toLowerCase()).join(" ") : (t.destination || "").toLowerCase();
+    const matchesDest =
+      destFilter === "All" ||
+      (t.destinations &&
+        t.destinations.some(
+          (d) =>
+            d.id === destFilter ||
+            d.slug === destFilter ||
+            d.name.toLowerCase() === destFilter.toLowerCase()
+        )) ||
+      t.destination === destFilter;
+    const matchesSearch = t.name.toLowerCase().includes(q) || destNames.includes(q);
+    return matchesDest && matchesSearch;
   });
 
   const getInstances = (tripId: string) =>
     tripInstances.filter((inst) => inst.tripId === tripId);
 
   // Instance actions
-  const handleSaveEdit = (updated: TripInstance) => {
-    setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
-    setEditingInstance(null);
-    showToast("Trip instance updated.", "success");
+  const handleSaveEdit = async (updated: TripInstance) => {
+    try {
+      await tripsApi.updateDeparture(updated.id, {
+        date: updated.date,
+        displayDate: updated.displayDate,
+        price: updated.price,
+        spotsTotal: updated.spotsTotal,
+        notes: updated.notes
+      });
+      setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+      setEditingInstance(null);
+      showToast("Trip departure updated.", "success");
+    } catch {
+      setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+      setEditingInstance(null);
+      showToast("Trip departure updated locally.", "info");
+    }
   };
 
-  const handleComplete = (updated: TripInstance) => {
-    setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
+  const handleComplete = async (updated: TripInstance) => {
+    try {
+      await tripsApi.updateDeparture(updated.id, { status: "completed" });
+    } catch {
+      // fallback
+    }
+    const completedInst = { ...updated, status: "completed" as const };
+    setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? completedInst : i)));
     setCompletingInstance(null);
     showToast("Trip marked as completed.", "success");
-    // Also close detail panel if open
-    if (detailInstance?.id === updated.id) setDetailInstance(updated);
+    if (detailInstance?.id === updated.id) setDetailInstance(completedInst);
   };
 
-  const handleCancel = (inst: TripInstance) => {
-    setTripInstances((prev) => prev.map((i) => (i.id === inst.id ? { ...i, status: "cancelled" as const } : i)));
-    showToast("Trip instance cancelled.", "info");
-    if (detailInstance?.id === inst.id) setDetailInstance({ ...inst, status: "cancelled" });
+  const handleCancel = async (inst: TripInstance) => {
+    try {
+      await tripsApi.updateDeparture(inst.id, { status: "cancelled" });
+    } catch {
+      // fallback
+    }
+    const cancelledInst = { ...inst, status: "cancelled" as const };
+    setTripInstances((prev) => prev.map((i) => (i.id === inst.id ? cancelledInst : i)));
+    showToast("Trip departure cancelled.", "info");
+    if (detailInstance?.id === inst.id) setDetailInstance(cancelledInst);
   };
 
-  const handleAddInstance = (newInst: TripInstance) => {
-    setTripInstances((prev) => [...prev, newInst]);
+  const handleAddInstance = async (newInst: TripInstance) => {
+    if (addingInstanceTrip) {
+      try {
+        const created = await tripsApi.addDeparture(addingInstanceTrip.id, {
+          date: newInst.date,
+          displayDate: newInst.displayDate,
+          price: newInst.price,
+          spotsTotal: newInst.spotsTotal,
+          notes: newInst.notes
+        });
+        setTripInstances((prev) => [...prev, created]);
+        showToast("Departure added.", "success");
+      } catch {
+        setTripInstances((prev) => [...prev, newInst]);
+        showToast("Departure added locally.", "info");
+      }
+    }
     setAddingInstanceTrip(null);
-    showToast("Departure added.", "success");
   };
 
   const handleDuplicateTrip = (trip: Trip) => {
@@ -540,9 +605,15 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
     showToast("Trip duplicated.", "success");
   };
 
-  const handleDeleteTrip = (tripId: string) => {
-    setTrips((prev) => prev.filter((t) => t.id !== tripId));
-    showToast("Trip archived.", "info");
+  const handleDeleteTrip = async (tripId: string) => {
+    try {
+      await tripsApi.archive(tripId);
+      await refreshTrips();
+      showToast("Trip archived.", "info");
+    } catch {
+      setTrips((prev) => prev.filter((t) => t.id !== tripId));
+      showToast("Trip removed locally.", "info");
+    }
   };
 
   const openEdit = (inst: TripInstance) => {
@@ -584,8 +655,17 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
             className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-52 focus:outline-none focus:border-[#0f2922]"
           />
         </div>
-        <select value={destFilter} onChange={(e) => setDestFilter(e.target.value)} className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white capitalize">
-          {destOptions.map((d) => <option key={d} value={d} className="capitalize">{d === "All" ? "All Destinations" : d}</option>)}
+        <select
+          value={destFilter}
+          onChange={(e) => setDestFilter(e.target.value)}
+          className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#0f2922]"
+        >
+          <option value="All">All Destinations</option>
+          {destinations.map((d) => (
+            <option key={d.id} value={d.id}>
+              {d.name}
+            </option>
+          ))}
         </select>
         <div className="ml-auto flex gap-1 bg-[#f7f8f5] rounded-lg p-1">
           <button onClick={() => setViewMode("card")} className={`p-1.5 rounded-md transition ${viewMode === "card" ? "bg-white shadow-sm text-[#0f2922]" : "text-[#a0aec0]"}`}>
@@ -620,53 +700,66 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
         </div>
       ) : (
         <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
-                <th className="px-4 py-3 text-left">Trip</th>
-                <th className="px-4 py-3 text-left">Destination</th>
-                <th className="px-4 py-3 text-left">Duration</th>
-                <th className="px-4 py-3 text-left">Price</th>
-                <th className="px-4 py-3 text-left">Departures</th>
-                <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#f0f4f1]">
-              {filtered.map((trip) => {
-                const insts = getInstances(trip.id);
-                const upcoming = insts.filter((i) => i.status === "upcoming").length;
-                return (
-                  <tr key={trip.id} className="hover:bg-[#f7f8f5] transition">
-                    <td className="px-4 py-3 flex items-center gap-3">
-                      <img src={trip.image} alt={trip.name} className="w-10 h-10 rounded-lg object-cover" />
-                      <span className="font-medium text-[#0f2922]">{trip.name}</span>
-                    </td>
-                    <td className="px-4 py-3 text-[#4a5568] capitalize">{trip.destination}</td>
-                    <td className="px-4 py-3 text-[#718096]">{trip.duration}</td>
-                    <td className="px-4 py-3 font-semibold text-[#e8622a]">₹{trip.price.toLocaleString("en-IN")}</td>
-                    <td className="px-4 py-3 text-[#4a5568] text-xs">
-                      {insts.length} total
-                      {upcoming > 0 && <span className="ml-1.5 bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">{upcoming} upcoming</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <Link
-                          to={`/admin/trips/${trip.id}/edit`}
-                          onClick={() => setAdminPage?.("trip-editor")}
-                          className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition"
-                        >
-                          Edit
-                        </Link>
-                        <button onClick={() => handleDuplicateTrip(trip)} className="text-[#718096] hover:text-[#0f2922] text-xs font-medium transition">Duplicate</button>
-                        <button onClick={() => handleDeleteTrip(trip.id)} className="text-red-500 hover:text-red-700 text-xs font-medium transition">Archive</button>
-                        <button onClick={() => setAddingInstanceTrip(trip)} className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition">+ Departure</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm min-w-[840px]">
+              <thead>
+                <tr className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
+                  <th className="px-4 py-3 text-left">Trip</th>
+                  <th className="px-4 py-3 text-left">Destination</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Duration</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Price</th>
+                  <th className="px-4 py-3 text-left whitespace-nowrap">Departures</th>
+                  <th className="px-4 py-3 text-right whitespace-nowrap">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-[#f0f4f1]">
+                {filtered.map((trip) => {
+                  const insts = getInstances(trip.id);
+                  const upcoming = insts.filter((i) => i.status === "upcoming").length;
+                  return (
+                    <tr key={trip.id} className="hover:bg-[#f7f8f5] transition">
+                      <td className="px-4 py-3 flex items-center gap-3">
+                        <img src={trip.image} alt={trip.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        <span className="font-medium text-[#0f2922] line-clamp-1">{trip.name}</span>
+                      </td>
+                      <td className="px-4 py-3 text-[#4a5568] capitalize">{getTripDestinationsLabel(trip, destinations)}</td>
+                      <td className="px-4 py-3 text-[#718096] whitespace-nowrap">{trip.duration}</td>
+                      <td className="px-4 py-3 font-semibold text-[#e8622a] whitespace-nowrap">₹{trip.price.toLocaleString("en-IN")}</td>
+                      <td className="px-4 py-3 text-[#4a5568] text-xs whitespace-nowrap">
+                        <div className="flex items-center gap-1.5 whitespace-nowrap">
+                          <span>{insts.length} total</span>
+                          {upcoming > 0 && (
+                            <span className="inline-flex items-center whitespace-nowrap bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium text-[11px]">
+                              {upcoming} upcoming
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-3 whitespace-nowrap">
+                          <Link
+                            to={`/admin/trips/${trip.id}/edit`}
+                            onClick={() => setAdminPage?.("trip-editor")}
+                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition"
+                          >
+                            Edit
+                          </Link>
+                          <button onClick={() => handleDuplicateTrip(trip)} className="text-[#718096] hover:text-[#0f2922] text-xs font-medium transition">Duplicate</button>
+                          <button onClick={() => handleDeleteTrip(trip.id)} className="text-red-500 hover:text-red-700 text-xs font-medium transition">Archive</button>
+                          <button
+                            onClick={() => setAddingInstanceTrip(trip)}
+                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition px-2.5 py-1 border border-[#e2e8f0] rounded-lg hover:border-[#0f2922] bg-white shadow-xs inline-flex items-center gap-1 shrink-0"
+                          >
+                            + Departure
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 

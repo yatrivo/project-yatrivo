@@ -31,9 +31,12 @@ export default function TripsPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = trips.filter((t) =>
-    filter === "all" ? true : t.destination === filter
-  );
+  const filtered = trips.filter((t) => {
+    if (filter === "all") return true;
+    if (t.destination === filter) return true;
+    if (t.destinations && t.destinations.some((d) => d.id === filter || d.slug === filter)) return true;
+    return false;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "price-asc") return a.price - b.price;
@@ -135,6 +138,15 @@ export default function TripsPage() {
                 <h3 className="text-[#0f2922] text-xl mb-2 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
                   <Link to={`/trips/${trip.id}`}>{trip.name}</Link>
                 </h3>
+                {trip.destinations && trip.destinations.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-2.5">
+                    {trip.destinations.map((d) => (
+                      <span key={d.id} className="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-medium bg-[#f0f4f2] text-[#0f2922]">
+                        📍 {d.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <p className="text-[#4a5568] text-sm leading-relaxed flex-1">{trip.highlights[0]}</p>
                 <div className="mt-4 pt-4 border-t border-[#e2e8f0] flex items-center justify-between">
                   <div>

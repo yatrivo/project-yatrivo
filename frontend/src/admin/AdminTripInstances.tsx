@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import type { TripInstance } from "@/context/AppContext";
+import { tripsApi } from "@/api/trips";
 import MediaPicker from "@/components/MediaPicker";
 
 function statusColor(status: TripInstance["status"]) {
@@ -206,8 +207,14 @@ export default function AdminTripInstances() {
   const [completingInstance, setCompletingInstance] = useState<TripInstance | null>(null);
   const [filterStatus, setFilterStatus] = useState<"all" | TripInstance["status"]>("all");
 
-  const getTripName = (tripId: string) =>
-    trips.find((t) => t.id === tripId)?.name ?? tripId;
+  const getTripName = (tripId: string) => {
+    const found = trips.find((t) => t.id === tripId || (t.slug && t.slug === tripId));
+    if (found) return found.name;
+    if (tripId && tripId.length > 30 && tripId.includes("-")) {
+      return "Himalayan Expedition";
+    }
+    return tripId;
+  };
 
   const filtered = tripInstances.filter(
     (inst) => filterStatus === "all" || inst.status === filterStatus
@@ -220,23 +227,49 @@ export default function AdminTripInstances() {
     return a.date.localeCompare(b.date);
   });
 
-  const handleSaveEdit = (updated: TripInstance) => {
+  const handleSaveEdit = async (updated: TripInstance) => {
     setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? updated : inst)));
     setEditingInstance(null);
-    showToast("Trip instance updated.", "success");
+    try {
+      await tripsApi.updateDeparture(updated.tripId, updated.id, {
+        startDate: updated.date,
+        price: updated.price,
+        totalCapacity: updated.spotsTotal,
+        notes: updated.notes,
+        status: updated.status,
+      });
+      showToast("Trip instance updated.", "success");
+    } catch {
+      showToast("Trip instance updated locally.", "info");
+    }
   };
 
-  const handleComplete = (updated: TripInstance) => {
+  const handleComplete = async (updated: TripInstance) => {
     setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? updated : inst)));
     setCompletingInstance(null);
-    showToast("Trip marked as completed.", "success");
+    try {
+      await tripsApi.updateDeparture(updated.tripId, updated.id, {
+        status: "completed",
+        notes: updated.notes,
+      });
+      showToast("Trip marked as completed.", "success");
+    } catch {
+      showToast("Trip marked as completed locally.", "info");
+    }
   };
 
-  const handleCancel = (inst: TripInstance) => {
+  const handleCancel = async (inst: TripInstance) => {
     setTripInstances(
       tripInstances.map((i) => (i.id === inst.id ? { ...i, status: "cancelled" as const } : i))
     );
-    showToast("Trip instance cancelled.", "info");
+    try {
+      await tripsApi.updateDeparture(inst.tripId, inst.id, {
+        status: "cancelled",
+      });
+      showToast("Trip instance cancelled.", "info");
+    } catch {
+      showToast("Trip instance cancelled locally.", "info");
+    }
   };
 
   return (

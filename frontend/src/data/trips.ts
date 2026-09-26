@@ -140,11 +140,25 @@ export const INITIAL_TRIP_INSTANCES: TripInstance[] = [
   },
 ];
 
-export interface Trip {
+export interface TripDestination {
   id: string;
   name: string;
+  slug: string;
+  image?: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+}
+
+export interface Trip {
+  id: string;
+  slug?: string;
+  name: string;
   destination: string;
-  image: string;
+  destinationId?: string;
+  destinations?: TripDestination[];
+  image: string; // Single cover image
+  coverMediaId?: string | null;
+  gallery?: string[]; // Separate gallery images
   price: number;
   duration: string;
   category: CategoryValue;
@@ -154,14 +168,30 @@ export interface Trip {
   exclusions: string[];
   cancellationPolicy: string;
   badge: string;
+  startingPoint?: string;
+  shortDescription?: string;
+  overview?: string;
+  departures?: TripInstance[];
+  upcomingDeparturesCount?: number;
+  status?: "active" | "archived" | "draft" | "published";
 }
 
 export const INITIAL_TRIPS: Trip[] = [
   {
     id: "chopta-trek",
+    slug: "chopta-trek",
     name: "Chopta Tungnath Adventure",
     destination: "chopta",
+    destinations: [
+      { id: "chopta", name: "Chopta Valley", slug: "chopta", isPrimary: true, image: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&h=400&fit=crop&auto=format" },
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 9999,
     duration: "4 Days / 3 Nights",
     category: "trekking",
@@ -191,9 +221,17 @@ export const INITIAL_TRIPS: Trip[] = [
   },
   {
     id: "auli-ski",
+    slug: "auli-ski",
     name: "Auli Snow & Ski Collective",
     destination: "auli",
+    destinations: [
+      { id: "auli", name: "Auli Slopes", slug: "auli", isPrimary: true, image: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1551632811-561732d1e306?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 12499,
     duration: "5 Days / 4 Nights",
     category: "adventure",
@@ -223,9 +261,17 @@ export const INITIAL_TRIPS: Trip[] = [
   },
   {
     id: "rishikesh-rafting",
+    slug: "rishikesh-rafting",
     name: "Rishikesh Escape & Rapids",
     destination: "rishikesh",
+    destinations: [
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: true, image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 7499,
     duration: "3 Days / 2 Nights",
     category: "weekend",
@@ -255,9 +301,18 @@ export const INITIAL_TRIPS: Trip[] = [
   },
   {
     id: "kedarnath-yatra",
+    slug: "kedarnath-yatra",
     name: "Kedarnath Pilgrimage Trek",
     destination: "kedarnath",
+    destinations: [
+      { id: "kedarnath", name: "Kedarnath", slug: "kedarnath", isPrimary: true, image: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=400&fit=crop&auto=format" },
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 14999,
     duration: "6 Days / 5 Nights",
     category: "spiritual",
@@ -287,9 +342,18 @@ export const INITIAL_TRIPS: Trip[] = [
   },
   {
     id: "kanatal-camp",
+    slug: "kanatal-camp",
     name: "Kanatal Stargazing Camp",
     destination: "kanatal",
+    destinations: [
+      { id: "kanatal", name: "Kanatal", slug: "kanatal", isPrimary: true, image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop&auto=format" },
+      { id: "mussoorie", name: "Mussoorie", slug: "mussoorie", isPrimary: false, image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1543946207-39bd91e70ca7?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 5999,
     duration: "3 Days / 2 Nights",
     category: "nature",
@@ -319,9 +383,17 @@ export const INITIAL_TRIPS: Trip[] = [
   },
   {
     id: "chakrata-nature",
+    slug: "chakrata-nature",
     name: "Chakrata Cascade & Woods",
     destination: "chakrata",
+    destinations: [
+      { id: "chakrata", name: "Chakrata", slug: "chakrata", isPrimary: true, image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&h=400&fit=crop&auto=format" }
+    ],
     image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&h=400&fit=crop&auto=format",
+    gallery: [
+      "https://images.unsplash.com/photo-1448375240586-882707db888b?w=900&h=600&fit=crop&auto=format",
+      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=900&h=600&fit=crop&auto=format"
+    ],
     price: 8499,
     duration: "4 Days / 3 Nights",
     category: "nature",
