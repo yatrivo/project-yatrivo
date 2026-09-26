@@ -36,6 +36,7 @@ export interface DestinationRecord {
   cover_media_id: string | null;
   cover_image_url: string | null;
   gallery_image_urls: string[] | null;
+  experience_tags: string[] | null;
   created_by_user_id: string | null;
   updated_by_user_id: string | null;
   created_at: string | Date;
@@ -81,6 +82,7 @@ export interface DestinationDto {
   coverMediaId?: string | null;
   gallery: string[];
   galleryMedia?: DestinationGalleryMediaItem[];
+  experienceTags: string[];
   highlights: string[];
   activities: string[];
   seoTitle?: string | null;
@@ -103,6 +105,7 @@ export interface CreateDestinationInput {
   coverMediaId?: string;
   gallery?: string[];
   galleryMediaIds?: string[];
+  experienceTags?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;
@@ -123,6 +126,7 @@ export interface UpdateDestinationInput {
   coverMediaId?: string | null;
   gallery?: string[];
   galleryMediaIds?: string[];
+  experienceTags?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;
@@ -133,8 +137,10 @@ export interface UpdateDestinationInput {
 export interface DestinationFilters {
   status?: DestinationStatus | "all";
   category?: string;
+  tag?: string;
   search?: string;
   includeArchived?: boolean;
   limit?: number;
   offset?: number;
 }
+

@@ -126,10 +126,10 @@ export default function CompletedTripDetailPage() {
             <div>
               <div className="text-[#0f2922] font-medium text-sm mb-3">Trip Highlights</div>
               <ul className="space-y-2">
-                {trip.highlights.map((h) => (
-                  <li key={h} className="flex items-start gap-3 text-sm text-[#4a5568]">
+                {trip.highlights.map((h, i) => (
+                  <li key={i} className="flex items-start gap-3 text-sm text-[#4a5568]">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2.5" className="shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {h}
+                    {typeof h === "string" ? h : (h as any)?.value ? `${(h as any).label}: ${(h as any).value}` : ""}
                   </li>
                 ))}
               </ul>

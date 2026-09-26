@@ -90,7 +90,14 @@ export default function PastTripsPage() {
                     {inst.notes ? (
                       <p className="text-[#4a5568] text-sm leading-relaxed italic mb-3">"{inst.notes}"</p>
                     ) : (
-                      <p className="text-[#4a5568] text-sm leading-relaxed mb-3">{trip.highlights[0]}</p>
+                      <p className="text-[#4a5568] text-sm leading-relaxed mb-3">
+                        {trip.shortDescription ||
+                          (typeof trip.highlights?.[0] === "string"
+                            ? trip.highlights[0]
+                            : (trip.highlights?.[0] as any)?.value
+                            ? `${(trip.highlights[0] as any).label}: ${(trip.highlights[0] as any).value}`
+                            : trip.overview?.slice(0, 110) || "")}
+                      </p>
                     )}
                     <div className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</div>
                   </div>

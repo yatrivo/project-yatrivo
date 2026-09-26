@@ -108,7 +108,8 @@ export default function App() {
           <Route path="/contact" element={<Navigate to="/faq" replace />} />
           <Route path="/terms" element={<TermsPage />} />
           <Route path="/privacy" element={<PrivacyPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
+          {/* User profile page hidden for now */}
+          <Route path="/profile" element={<Navigate to="/" replace />} />
         </Route>
 
         {/* Admin Login Route */}
@@ -123,8 +124,10 @@ export default function App() {
           <Route path="trips" element={<AdminTrips />} />
           <Route path="trips/new" element={<AdminTripEditor />} />
           <Route path="trips/:id/edit" element={<AdminTripEditor />} />
+          <Route path="trips/:slug" element={<TripDetailPage adminMode={true} />} />
           <Route path="trip-instances" element={<AdminTripInstances />} />
           <Route path="destinations" element={<AdminDestinations />} />
+          <Route path="destinations/:slug" element={<DestinationDetailPage adminMode={true} />} />
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="reviews" element={<AdminReviews />} />

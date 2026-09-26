@@ -8,12 +8,14 @@ import type { CategoryValue } from "@/data/categories";
 import type { AdminPage } from "./AdminLayout";
 import MediaPicker from "@/components/MediaPicker";
 
-type Section = "basic" | "itinerary" | "inclusions" | "pricing" | "gallery" | "seo";
+type Section = "basic" | "highlights" | "itinerary" | "inclusions" | "faqs" | "pricing" | "gallery" | "seo";
 
 const SECTIONS: { id: Section; label: string }[] = [
   { id: "basic", label: "Basic Info & Destinations" },
+  { id: "highlights", label: "Highlight Cards" },
   { id: "itinerary", label: "Itinerary" },
   { id: "inclusions", label: "Inclusions / Exclusions" },
+  { id: "faqs", label: "FAQs" },
   { id: "pricing", label: "Pricing" },
   { id: "gallery", label: "Gallery" },
   { id: "seo", label: "SEO" },
@@ -21,6 +23,8 @@ const SECTIONS: { id: Section; label: string }[] = [
 
 interface Day { title: string; description: string; }
 interface Addon { name: string; price: string; }
+interface HighlightCardForm { icon: string; label: string; value: string; }
+interface FaqForm { question: string; answer: string; }
 
 interface Props {
   setAdminPage?: (p: AdminPage) => void;
@@ -67,9 +71,19 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
   const [difficulty, setDifficulty] = useState<"Easy" | "Moderate" | "Challenging" | "Strenuous">(existingTrip?.difficulty ?? "Moderate");
   const [badge, setBadge] = useState(existingTrip?.badge ?? "");
   const [startingPoint, setStartingPoint] = useState(existingTrip?.startingPoint ?? "Dehradun");
-  const [shortDesc, setShortDesc] = useState(existingTrip?.shortDescription ?? existingTrip?.highlights?.[0] ?? "");
+  const [shortDesc, setShortDesc] = useState(
+    existingTrip?.shortDescription ??
+    (typeof existingTrip?.highlights?.[0] === "string" ? existingTrip.highlights[0] : "") ??
+    ""
+  );
   const [overview, setOverview] = useState(existingTrip?.overview ?? "");
-  const [highlights, setHighlights] = useState<string[]>(existingTrip?.highlights ?? ["", ""]);
+  const [highlights, setHighlights] = useState<string[]>(() => {
+    if (Array.isArray(existingTrip?.highlights)) {
+      const strings = (existingTrip.highlights as any[]).filter((h) => typeof h === "string");
+      if (strings.length > 0) return strings;
+    }
+    return ["", ""];
+  });
 
   // Multi-destination state
   // Pre-populate from existingTrip.destinations if present, or fallback to existingTrip.destination
@@ -119,9 +133,36 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
   // Pricing
   const [price, setPrice] = useState(existingTrip ? String(existingTrip.price) : "9999");
-  const [cancellationPolicy, setCancellationPolicy] = useState(
-    existingTrip?.cancellationPolicy ?? "Full refund if cancelled 15+ days before departure. 50% refund for 7–14 days. No refund under 7 days."
-  );
+
+  // 4 Structured Highlight Cards (Managed directly)
+  const [highlightCards, setHighlightCards] = useState<HighlightCardForm[]>(() => {
+    if (existingTrip?.highlights && Array.isArray(existingTrip.highlights) && existingTrip.highlights.length > 0) {
+      return existingTrip.highlights.map((h: any) =>
+        typeof h === "string"
+          ? { icon: "📍", label: "Highlight", value: h }
+          : { icon: h.icon || "📍", label: h.label || "Highlight", value: h.value || "" }
+      );
+    }
+    return [
+      { icon: "📍", label: "Starting Point", value: existingTrip?.startingPoint || "Dehradun" },
+      { icon: "👥", label: "Group Size", value: "Max 12" },
+      { icon: "🏕️", label: "Stay Style", value: "Timber Cabins" },
+      { icon: "🍽️", label: "Meals", value: "All Included" }
+    ];
+  });
+
+  // Manageable FAQs (Per trip)
+  const [faqs, setFaqs] = useState<FaqForm[]>(() => {
+    if (existingTrip?.faqs && existingTrip.faqs.length > 0) {
+      return existingTrip.faqs;
+    }
+    return [
+      { question: "What fitness level is required?", answer: "A moderate fitness level with basic walking stamina. No prior high-altitude expedition experience is required." },
+      { question: "What should I pack?", answer: "Warm thermal layers, waterproof shell jacket, sturdy trekking shoes, sunglasses, and personal medication. We provide a detailed packing list upon booking." },
+      { question: "Is altitude sickness a risk?", answer: "Routes above 2,500m include gradual acclimatization. Our trek leaders carry pulse oximeters and first-aid kits." },
+      { question: "Are meals included?", answer: "Yes, all wholesome mountain meals (Pahadi local cuisine and organic produce) are provided throughout the itinerary." }
+    ];
+  });
 
   // Gallery (Separate from Cover Image!)
   const [galleryUrls, setGalleryUrls] = useState<string[]>(() => {
@@ -211,7 +252,8 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
     setSaving(true);
     try {
       const cleanGallery = galleryUrls.filter((u) => Boolean(u.trim()));
-      const cleanHighlights = highlights.filter((h) => Boolean(h.trim()));
+      const cleanHighlightCards = highlightCards.filter((c) => Boolean(c.label.trim() && c.value.trim()));
+      const cleanFaqs = faqs.filter((f) => Boolean(f.question.trim() && f.answer.trim()));
       const cleanInclusions = inclusions.filter((i) => Boolean(i.trim()));
       const cleanExclusions = exclusions.filter((e) => Boolean(e.trim()));
 
@@ -225,7 +267,6 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         difficulty: difficulty.toLowerCase(),
         price: priceNum,
         currency: "INR",
-        cancellationPolicy: cancellationPolicy.trim() || undefined,
         badge: badge.trim() || undefined,
         startingPoint: startingPoint.trim() || undefined,
         image: tripImage.trim(),
@@ -233,7 +274,8 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         gallery: cleanGallery,
         destinationIds: selectedDestinationIds,
         primaryDestinationId: primaryDestinationId || selectedDestinationIds[0],
-        highlights: cleanHighlights,
+        highlights: cleanHighlightCards,
+        faqs: cleanFaqs,
         itinerary: days.map((d, index) => ({
           dayNumber: index + 1,
           title: d.title.trim(),
@@ -560,6 +602,96 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
             </div>
           )}
 
+          {activeSection === "highlights" && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                  Highlight Cards (Top 4 Metrics)
+                </h2>
+                <p className="text-[#718096] text-sm mt-1">
+                  Customize the 4 key metrics displayed prominently below the trip overview (e.g. Starting Point, Group Size, Stay Style, Meals).
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {highlightCards.map((card, i) => (
+                  <div key={i} className="bg-white border border-[#e2e8f0] rounded-xl p-4 space-y-3 relative shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#0f2922] uppercase tracking-wider">
+                        Card #{i + 1}
+                      </span>
+                      {highlightCards.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => setHighlightCards(highlightCards.filter((_, idx) => idx !== i))}
+                          className="text-gray-400 hover:text-red-500 text-sm p-1 cursor-pointer"
+                          title="Remove card"
+                        >
+                          ✕
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-4 gap-2">
+                      <div className="col-span-1">
+                        <label className="block text-xs font-medium text-[#4a5568] mb-1">Icon / Emoji</label>
+                        <input
+                          value={card.icon}
+                          onChange={(e) => {
+                            const copy = [...highlightCards];
+                            copy[i].icon = e.target.value;
+                            setHighlightCards(copy);
+                          }}
+                          placeholder="📍"
+                          className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-2 text-center text-lg focus:outline-none focus:border-[#0f2922]"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <label className="block text-xs font-medium text-[#4a5568] mb-1">Label</label>
+                        <input
+                          value={card.label}
+                          onChange={(e) => {
+                            const copy = [...highlightCards];
+                            copy[i].label = e.target.value;
+                            setHighlightCards(copy);
+                          }}
+                          placeholder="e.g. Starting Point"
+                          className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-[#4a5568] mb-1">Value / Detail</label>
+                      <input
+                        value={card.value}
+                        onChange={(e) => {
+                          const copy = [...highlightCards];
+                          copy[i].value = e.target.value;
+                          setHighlightCards(copy);
+                        }}
+                        placeholder="e.g. Dehradun"
+                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm font-medium text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {highlightCards.length < 8 && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setHighlightCards([...highlightCards, { icon: "✨", label: "Feature", value: "Details" }])
+                  }
+                  className="border-2 border-dashed border-[#e2e8f0] hover:border-[#0f2922] text-[#4a5568] hover:text-[#0f2922] w-full py-3 rounded-xl text-sm font-semibold transition cursor-pointer"
+                >
+                  + Add Highlight Card
+                </button>
+              )}
+            </div>
+          )}
+
           {activeSection === "itinerary" && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
@@ -702,10 +834,117 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
             </div>
           )}
 
+          {activeSection === "faqs" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Trip FAQs
+                  </h2>
+                  <p className="text-[#718096] text-sm mt-1">
+                    Manage common questions and answers displayed on this trip's public page.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setFaqs([...faqs, { question: "", answer: "" }])}
+                  className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
+                >
+                  + Add Question
+                </button>
+              </div>
+
+              <div className="space-y-3">
+                {faqs.map((faq, i) => (
+                  <div key={i} className="bg-white border border-[#e2e8f0] rounded-xl p-4 space-y-3 shadow-sm">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-[#0f2922] uppercase tracking-wider">
+                        Question #{i + 1}
+                      </span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (i === 0) return;
+                            const copy = [...faqs];
+                            [copy[i - 1], copy[i]] = [copy[i], copy[i - 1]];
+                            setFaqs(copy);
+                          }}
+                          disabled={i === 0}
+                          className="p-1 text-gray-400 hover:text-[#0f2922] disabled:opacity-30 cursor-pointer"
+                          title="Move up"
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (i === faqs.length - 1) return;
+                            const copy = [...faqs];
+                            [copy[i + 1], copy[i]] = [copy[i], copy[i + 1]];
+                            setFaqs(copy);
+                          }}
+                          disabled={i === faqs.length - 1}
+                          className="p-1 text-gray-400 hover:text-[#0f2922] disabled:opacity-30 cursor-pointer"
+                          title="Move down"
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFaqs(faqs.filter((_, idx) => idx !== i))}
+                          className="p-1 text-red-400 hover:text-red-600 cursor-pointer"
+                          title="Remove question"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-[#4a5568] mb-1">Question</label>
+                      <input
+                        value={faq.question}
+                        onChange={(e) => {
+                          const copy = [...faqs];
+                          copy[i].question = e.target.value;
+                          setFaqs(copy);
+                        }}
+                        placeholder="e.g. What fitness level is required?"
+                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-[#4a5568] mb-1">Answer</label>
+                      <textarea
+                        value={faq.answer}
+                        onChange={(e) => {
+                          const copy = [...faqs];
+                          copy[i].answer = e.target.value;
+                          setFaqs(copy);
+                        }}
+                        rows={2}
+                        placeholder="Clear, helpful response for travelers..."
+                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {faqs.length === 0 && (
+                <div className="bg-[#f7f8f5] rounded-xl p-8 text-center text-sm text-[#718096]">
+                  No FAQs added yet. Click "+ Add Question" to create your first FAQ.
+                </div>
+              )}
+            </div>
+          )}
+
           {activeSection === "pricing" && (
             <div className="space-y-4">
               <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                Pricing & Policies
+                Pricing
               </h2>
               <div>
                 <label className="block text-sm font-medium text-[#4a5568] mb-1">Starting Price (₹ per person) *</label>
@@ -716,14 +955,19 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                   className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
                 />
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4a5568] mb-1">Cancellation Policy</label>
-                <textarea
-                  value={cancellationPolicy}
-                  onChange={(e) => setCancellationPolicy(e.target.value)}
-                  rows={3}
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
-                />
+
+              <div className="bg-[#f0f9f4] border border-[#a3bfb5]/40 rounded-xl p-4 flex items-start gap-3 mt-4">
+                <span className="text-xl">ℹ️</span>
+                <div className="text-xs text-[#0f2922] space-y-1">
+                  <p className="font-semibold">Global Cancellation & Refund Policy</p>
+                  <p className="text-[#4a5568]">
+                    Cancellation policies are managed globally under{" "}
+                    <Link to="/admin/settings" className="text-[#e8622a] font-semibold underline">
+                      Settings → Cancellation Policy
+                    </Link>{" "}
+                    to maintain consistent terms for all trips.
+                  </p>
+                </div>
               </div>
             </div>
           )}

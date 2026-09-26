@@ -21,7 +21,7 @@ export default function Navbar() {
 
   const isHeroPage =
     pathname === "/" ||
-    pathname.startsWith("/trips") ||
+    (pathname.startsWith("/trips/") && pathname !== "/trips") ||
     pathname === "/plan" ||
     pathname === "/plan-trip" ||
     pathname === "/about" ||
@@ -36,6 +36,7 @@ export default function Navbar() {
 
   const isNonHeroPage =
     pathname === "/destinations" ||
+    pathname === "/trips" ||
     pathname === "/terms" ||
     pathname === "/privacy" ||
     pathname === "/profile";
@@ -127,20 +128,8 @@ export default function Navbar() {
             })}
           </nav>
 
-          {/* CTA & Profile */}
+          {/* CTA */}
           <div className="flex items-center gap-2 sm:gap-3">
-            <Link
-              to="/profile"
-              className={`p-2 rounded-full transition-colors flex items-center justify-center ${
-                transparent && !isNonHeroPage ? "text-white/80 hover:text-white" : "text-[#0f2922]/70 hover:text-[#0f2922]"
-              }`}
-              title="My Profile"
-              aria-label="User Profile"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-              </svg>
-            </Link>
 
             <Link
               to="/plan"
@@ -186,15 +175,7 @@ export default function Navbar() {
                   </Link>
                 );
               })}
-              <Link
-                to="/profile"
-                onClick={() => setMenuOpen(false)}
-                className={`text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
-                  pathname === "/profile" ? "bg-[#f7f8f5] text-[#0f2922] font-semibold" : "text-[#4a5568] hover:bg-[#f7f8f5]"
-                }`}
-              >
-                Profile & Saved Trips
-              </Link>
+              {/* Profile & Saved Trips hidden for now */}
               <div className="mt-2 pt-2 border-t border-[#e2e8f0]">
                 <Link
                   to="/plan"

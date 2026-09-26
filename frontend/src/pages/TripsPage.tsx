@@ -136,7 +136,7 @@ export default function TripsPage() {
                   <span>{trip.duration}</span>
                 </div>
                 <h3 className="text-[#0f2922] text-xl mb-2 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
-                  <Link to={`/trips/${trip.id}`}>{trip.name}</Link>
+                  <Link to={`/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
                 </h3>
                 {trip.destinations && trip.destinations.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-2.5">
@@ -147,15 +147,22 @@ export default function TripsPage() {
                     ))}
                   </div>
                 )}
-                <p className="text-[#4a5568] text-sm leading-relaxed flex-1">{trip.highlights[0]}</p>
+                <p className="text-[#4a5568] text-sm leading-relaxed flex-1 line-clamp-2">
+                  {trip.shortDescription ||
+                    (typeof trip.highlights?.[0] === "string"
+                      ? trip.highlights[0]
+                      : (trip.highlights?.[0] as any)?.value
+                      ? `${(trip.highlights[0] as any).label}: ${(trip.highlights[0] as any).value}`
+                      : trip.overview?.slice(0, 110) || "")}
+                </p>
                 <div className="mt-4 pt-4 border-t border-[#e2e8f0] flex items-center justify-between">
                   <div>
                     <div className="text-[10px] text-[#4a5568] uppercase tracking-wider mb-0.5">STARTING PRICE</div>
                     <div className="text-[#0f2922] text-xl font-semibold" style={{ fontFamily: "var(--font-serif)" }}>₹{trip.price.toLocaleString("en-IN")}</div>
                   </div>
                   <Link
-                    to={`/trips/${trip.id}`}
-                    className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors"
+                    to={`/trips/${trip.slug || trip.id}`}
+                    className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm font-medium px-5 py-2 rounded-full transition-colors cursor-pointer"
                   >
                     ENQUIRE
                   </Link>

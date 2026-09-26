@@ -149,6 +149,17 @@ export interface TripDestination {
   sortOrder?: number;
 }
 
+export interface TripHighlightCard {
+  icon: string;
+  label: string;
+  value: string;
+}
+
+export interface TripFaqItem {
+  question: string;
+  answer: string;
+}
+
 export interface Trip {
   id: string;
   slug?: string;
@@ -163,7 +174,8 @@ export interface Trip {
   duration: string;
   category: CategoryValue;
   difficulty: "Easy" | "Moderate" | "Challenging" | "Strenuous";
-  highlights: string[];
+  highlights: (TripHighlightCard | string)[];
+  faqs?: TripFaqItem[];
   inclusions: string[];
   exclusions: string[];
   cancellationPolicy: string;

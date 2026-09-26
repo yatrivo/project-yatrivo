@@ -6,6 +6,7 @@ import { destinationsRouter } from "../modules/destinations/destinations.routes"
 import { healthRouter } from "../modules/health/health.routes";
 import { mediaRouter } from "../modules/media/media.routes";
 import { tripsRouter } from "../modules/trips/trips.routes";
+import { settingsRouter } from "../modules/settings/settings.routes";
 
 export const apiRouter = Router();
 
@@ -21,6 +22,7 @@ apiRouter.use(healthRouter);
 apiRouter.use(authRouter);
 apiRouter.use(destinationsRouter);
 apiRouter.use(tripsRouter);
+apiRouter.use(settingsRouter);
 apiRouter.use("/media", mediaRouter);
 
 // Test routes to verify and demonstrate role authorization middleware

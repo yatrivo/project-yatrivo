@@ -1,6 +1,8 @@
 import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestinations";
+import { destinationsApi } from "@/api/destinations";
 import Footer from "@/components/Footer";
 
 function StarRating({ rating }: { rating: number }) {
@@ -15,9 +17,15 @@ function StarRating({ rating }: { rating: number }) {
   );
 }
 
-export default function DestinationDetailPage() {
+interface DestinationDetailPageProps {
+  adminMode?: boolean;
+}
+
+export default function DestinationDetailPage({ adminMode }: DestinationDetailPageProps) {
   const { slug } = useParams<{ slug: string }>();
-  const { pageParams, openEnquiryModal, destinations, trips, tripInstances, reviews } = useApp();
+  const location = useLocation();
+  const isAdmin = Boolean(adminMode || location.pathname.startsWith("/admin/"));
+  const { pageParams, openEnquiryModal, destinations, refreshDestinations, showToast, trips, tripInstances, reviews } = useApp();
   const destId = slug || pageParams.destId || "chopta";
   const dest = destinations.find((d) => d.id.toLowerCase() === destId.toLowerCase() || (d.slug && d.slug.toLowerCase() === destId.toLowerCase())) || destinations.find((d) => d.id === "chopta") || destinations[0];
   const destTrips = trips.filter(
@@ -34,7 +42,40 @@ export default function DestinationDetailPage() {
     .sort((a, b) => a.date.localeCompare(b.date));
 
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const displayedReviews = showAllReviews ? destReviews : destReviews.slice(0, 3);
+
+  const handleSave = async (form: DestFormData) => {
+    if (!dest) return;
+    setIsSaving(true);
+    try {
+      await destinationsApi.update(dest.id, {
+        name: form.name,
+        tagline: form.tagline,
+        description: form.description,
+        category: form.category,
+        season: form.season,
+        bestTime: form.bestTime,
+        elevation: form.elevation || undefined,
+        image: form.image,
+        coverMediaId: form.coverMediaId,
+        gallery: form.gallery,
+        galleryMediaIds: form.galleryMediaIds,
+        highlights: form.highlights,
+        activities: form.activities,
+        experienceTags: form.experienceTags,
+      });
+      await refreshDestinations();
+      setIsEditing(false);
+      showToast(`${form.name} updated successfully.`, "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update destination";
+      showToast(msg, "error");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   if (!dest) {
     return (
@@ -46,6 +87,36 @@ export default function DestinationDetailPage() {
 
   return (
     <div>
+      {/* Admin Mode Bar */}
+      {isAdmin && (
+        <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">
+          <div className="flex items-center gap-3">
+            <Link
+              to="/admin/destinations"
+              className="inline-flex items-center gap-1.5 text-xs text-[#a3bfb5] hover:text-white transition font-medium"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+              Back to Destinations
+            </Link>
+            <span className="text-white/20">|</span>
+            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-semibold px-2 py-0.5 rounded">
+              Admin Preview Mode
+            </span>
+          </div>
+          <button
+            onClick={() => setIsEditing(true)}
+            className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+            Edit Destination
+          </button>
+        </div>
+      )}
+
       {/* Hero with Single Cover Image */}
       <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
         <img
@@ -60,15 +131,26 @@ export default function DestinationDetailPage() {
               <p className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">Uttarakhand, India</p>
               <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-2" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
               <p className="text-white/80 text-base">{dest.tagline} · Best: {dest.season}</p>
+              {dest.experienceTags && dest.experienceTags.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  {dest.experienceTags.map((tag) => (
+                    <span key={tag} className="text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-medium">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
-            <div className="flex items-center gap-3 shrink-0">
-              <button
-                onClick={() => document.getElementById("packages")?.scrollIntoView({ behavior: "smooth" })}
-                className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors"
-              >
-                Explore Packages
-              </button>
-            </div>
+            {!isAdmin && (
+              <div className="flex items-center gap-3 shrink-0">
+                <button
+                  onClick={() => document.getElementById("packages")?.scrollIntoView({ behavior: "smooth" })}
+                  className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer"
+                >
+                  Explore Packages
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </section>
@@ -134,10 +216,10 @@ export default function DestinationDetailPage() {
                             <div className="bg-[#e8622a] h-1 rounded-full transition-all" style={{ width: `${100 - spotsPercent}%` }} />
                           </div>
                           <Link
-                            to={`/trips/${inst.tripId}`}
+                            to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}
                             className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm py-2.5 rounded-full font-medium transition-colors block text-center"
                           >
-                            VIEW TRIP
+                            {isAdmin ? "MANAGE TRIP" : "VIEW TRIP"}
                           </Link>
                         </div>
                       </div>
@@ -147,8 +229,8 @@ export default function DestinationDetailPage() {
               ) : (
                 <div className="bg-[#f7f8f5] rounded-2xl p-8 text-center">
                   <p className="text-[#4a5568] text-sm mb-4">No upcoming trips scheduled. Check back soon.</p>
-                  <Link to="/trips" className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
-                    Browse All Trips
+                  <Link to={isAdmin ? "/admin/trips" : "/trips"} className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
+                    {isAdmin ? "View All Trips" : "Browse All Trips"}
                   </Link>
                 </div>
               )}
@@ -202,7 +284,7 @@ export default function DestinationDetailPage() {
                 {destReviews.length > 3 && !showAllReviews && (
                   <button
                     onClick={() => setShowAllReviews(true)}
-                    className="mt-4 text-sm text-[#0f2922] border border-[#0f2922] px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all"
+                    className="mt-4 text-sm text-[#0f2922] border border-[#0f2922] px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
                   >
                     View All {destReviews.length} Reviews
                   </button>
@@ -214,8 +296,12 @@ export default function DestinationDetailPage() {
           {/* Sidebar */}
           <div className="space-y-5">
             <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white sticky top-24">
-              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-3">PLAN YOUR VISIT</div>
-              <h3 className="text-white text-xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>Interested in {dest.name}?</h3>
+              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-3">
+                {isAdmin ? "DESTINATION DETAILS" : "PLAN YOUR VISIT"}
+              </div>
+              <h3 className="text-white text-xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+                {isAdmin ? `${dest.name} Overview` : `Interested in ${dest.name}?`}
+              </h3>
               <div className="space-y-3 text-sm mb-6">
                 {[
                   { label: "Best Season", val: dest.season },
@@ -229,21 +315,46 @@ export default function DestinationDetailPage() {
                   </div>
                 ))}
               </div>
-              <button
-                onClick={() => destTrips[0] ? openEnquiryModal(destTrips[0].id) : navigate("plan")}
-                className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3"
-              >
-                Enquire About {dest.name}
-              </button>
-              <Link to="/plan" className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
-                Plan a Custom Trip
-              </Link>
+              {isAdmin ? (
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3 cursor-pointer inline-flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Edit Destination
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={() => destTrips[0] ? openEnquiryModal(destTrips[0].id) : navigate("plan")}
+                    className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3 cursor-pointer"
+                  >
+                    Enquire About {dest.name}
+                  </button>
+                  <Link to="/plan" className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
+                    Plan a Custom Trip
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <Footer />
+      {/* Edit Modal for Admin Mode */}
+      {isAdmin && isEditing && (
+        <DestinationModal
+          title={`Edit — ${dest.name}`}
+          initial={destToForm(dest)}
+          isSaving={isSaving}
+          onClose={() => setIsEditing(false)}
+          onSave={handleSave}
+        />
+      )}
+
+      {!isAdmin && <Footer />}
     </div>
   );
 }

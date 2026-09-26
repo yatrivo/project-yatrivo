@@ -1,14 +1,16 @@
 import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import type { Destination } from "@/data/destinations";
+import { Destination, UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import { destinationsApi } from "@/api/destinations";
 import MediaPicker from "@/components/MediaPicker";
 
-interface DestFormData {
+export interface DestFormData {
   name: string;
   tagline: string;
   description: string;
   category: "high-altitude" | "spiritual" | "weekend";
+  experienceTags: string[];
   season: string;
   bestTime: string;
   elevation: string;
@@ -20,11 +22,12 @@ interface DestFormData {
   activities: string[];
 }
 
-const EMPTY_FORM: DestFormData = {
+export const EMPTY_FORM: DestFormData = {
   name: "",
   tagline: "",
   description: "",
   category: "weekend",
+  experienceTags: [],
   season: "",
   bestTime: "",
   elevation: "",
@@ -36,12 +39,13 @@ const EMPTY_FORM: DestFormData = {
   activities: [],
 };
 
-function destToForm(d: Destination): DestFormData {
+export function destToForm(d: Destination): DestFormData {
   return {
     name: d.name,
     tagline: d.tagline || "",
     description: d.description || "",
     category: (d.category as DestFormData["category"]) || "weekend",
+    experienceTags: d.experienceTags ? [...d.experienceTags] : [],
     season: d.season || "",
     bestTime: d.bestTime || "",
     elevation: d.elevation ?? "",
@@ -54,7 +58,7 @@ function destToForm(d: Destination): DestFormData {
   };
 }
 
-function DestinationModal({
+export function DestinationModal({
   initial,
   title,
   onClose,
@@ -142,18 +146,6 @@ function DestinationModal({
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#4a5568] mb-1">Category</label>
-              <select
-                value={form.category}
-                onChange={(e) => set("category", e.target.value as DestFormData["category"])}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
-              >
-                <option value="high-altitude">High Altitude</option>
-                <option value="spiritual">Spiritual</option>
-                <option value="weekend">Weekend</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-sm font-medium text-[#4a5568] mb-1">Elevation</label>
               <input
                 value={form.elevation}
@@ -179,6 +171,41 @@ function DestinationModal({
                 placeholder="e.g. November"
                 className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
               />
+            </div>
+
+            {/* Uttarakhand Travel-Interest Tags */}
+            <div className="col-span-2">
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">
+                Travel Interest / Experience Tags
+              </label>
+              <p className="text-xs text-[#718096] mb-2">
+                Select Uttarakhand travel interests that describe this destination.
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => {
+                  const isSelected = form.experienceTags?.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => {
+                        const current = form.experienceTags || [];
+                        const next = isSelected
+                          ? current.filter((t) => t !== tag)
+                          : [...current, tag];
+                        set("experienceTags", next);
+                      }}
+                      className={`text-xs px-2.5 py-1 rounded-full border transition cursor-pointer ${
+                        isSelected
+                          ? "bg-[#0f2922] text-white border-[#0f2922] font-medium shadow-xs"
+                          : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] bg-[#f7f8f5]"
+                      }`}
+                    >
+                      {isSelected ? `✓ ${tag}` : `+ ${tag}`}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
 
@@ -471,9 +498,10 @@ function ConfirmModal({
 }
 
 export default function AdminDestinations() {
+  const navigate = useNavigate();
   const { destinations, refreshDestinations, showToast } = useApp();
   const [search, setSearch] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("All");
+  const [tagFilter, setTagFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingDest, setEditingDest] = useState<Destination | null>(null);
@@ -494,7 +522,7 @@ export default function AdminDestinations() {
 
     return destinations
       .filter((d) => {
-        const matchesCategory = categoryFilter === "All" || d.category === categoryFilter;
+        const matchesTag = tagFilter === "All" || d.experienceTags?.includes(tagFilter);
         const matchesSearch =
           !q ||
           d.name.toLowerCase().includes(q) ||
@@ -506,7 +534,7 @@ export default function AdminDestinations() {
         if (statusFilter === "active") matchesStatus = !isArchived;
         if (statusFilter === "archived") matchesStatus = isArchived;
 
-        return matchesCategory && matchesSearch && matchesStatus;
+        return matchesTag && matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
         const aArchived = a.status === "archived" ? 1 : 0;
@@ -516,7 +544,7 @@ export default function AdminDestinations() {
         }
         return (a.sortOrder || 0) - (b.sortOrder || 0);
       });
-  }, [destinations, search, categoryFilter, statusFilter]);
+  }, [destinations, search, tagFilter, statusFilter]);
 
   const activeCount = useMemo(
     () => destinations.filter((d) => d.status !== "archived").length,
@@ -534,7 +562,7 @@ export default function AdminDestinations() {
         name: form.name,
         tagline: form.tagline,
         description: form.description,
-        category: form.category,
+        category: form.category || "weekend",
         season: form.season,
         bestTime: form.bestTime,
         elevation: form.elevation || undefined,
@@ -544,6 +572,7 @@ export default function AdminDestinations() {
         galleryMediaIds: form.galleryMediaIds && form.galleryMediaIds.length > 0 ? form.galleryMediaIds : undefined,
         highlights: form.highlights,
         activities: form.activities,
+        experienceTags: form.experienceTags,
       });
 
       await refreshDestinations();
@@ -565,7 +594,7 @@ export default function AdminDestinations() {
         name: form.name,
         tagline: form.tagline,
         description: form.description,
-        category: form.category,
+        category: form.category || "weekend",
         season: form.season,
         bestTime: form.bestTime,
         elevation: form.elevation || undefined,
@@ -575,6 +604,7 @@ export default function AdminDestinations() {
         galleryMediaIds: form.galleryMediaIds,
         highlights: form.highlights,
         activities: form.activities,
+        experienceTags: form.experienceTags,
       });
 
       await refreshDestinations();
@@ -720,15 +750,16 @@ export default function AdminDestinations() {
             />
           </div>
 
-          {/* Category */}
+          {/* Travel Interest / Experience Tag Filter */}
           <select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
+            value={tagFilter}
+            onChange={(e) => setTagFilter(e.target.value)}
             className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#4a5568]"
           >
-            {["All", "high-altitude", "spiritual", "weekend"].map((s) => (
-              <option key={s} value={s}>
-                {s === "All" ? "All Categories" : s.replace("-", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+            <option value="All">All Experiences</option>
+            {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => (
+              <option key={tag} value={tag}>
+                {tag}
               </option>
             ))}
           </select>
@@ -774,7 +805,7 @@ export default function AdminDestinations() {
           </div>
           <h3 className="font-semibold text-gray-800 mb-1">No destinations found</h3>
           <p className="text-sm text-gray-500 max-w-sm mx-auto">
-            {search || categoryFilter !== "All" || statusFilter !== "all"
+            {search || tagFilter !== "All" || statusFilter !== "all"
               ? "Try adjusting your filters or search keywords."
               : "Get started by adding your first destination."}
           </p>
@@ -787,7 +818,8 @@ export default function AdminDestinations() {
             return (
               <div
                 key={dest.id}
-                className={`rounded-xl border shadow-sm overflow-hidden flex flex-col transition ${
+                onClick={() => navigate(`/admin/destinations/${dest.slug || dest.id}`)}
+                className={`rounded-xl border shadow-sm overflow-hidden flex flex-col transition cursor-pointer group ${
                   isArchived
                     ? "bg-[#fafbfa] border-dashed border-gray-300 opacity-70 hover:opacity-95"
                     : "bg-white border-[#e2e8f0] hover:shadow-md"
@@ -798,17 +830,19 @@ export default function AdminDestinations() {
                   <img
                     src={dest.image}
                     alt={dest.name}
-                    className={`w-full h-44 object-cover ${isArchived ? "grayscale-[0.4]" : ""}`}
+                    className={`w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300 ${isArchived ? "grayscale-[0.4]" : ""}`}
                     onError={(e) => {
                       (e.target as HTMLImageElement).src =
                         "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=200&fit=crop";
                     }}
                   />
 
-                  {/* Category Pill */}
-                  <span className="absolute top-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm capitalize">
-                    {dest.category}
-                  </span>
+                  {/* Primary Experience Tag Pill */}
+                  {dest.experienceTags && dest.experienceTags.length > 0 && (
+                    <span className="absolute top-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm">
+                      {dest.experienceTags[0]}
+                    </span>
+                  )}
 
                   {/* Status Pill */}
                   <div className="absolute top-3 right-3">
@@ -833,7 +867,7 @@ export default function AdminDestinations() {
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <h3
-                        className={`font-semibold text-base ${isArchived ? "text-[#4a5568]" : "text-[#0f2922]"}`}
+                        className={`font-semibold text-base group-hover:text-[#e8622a] transition-colors ${isArchived ? "text-[#4a5568]" : "text-[#0f2922]"}`}
                         style={{ fontFamily: "var(--font-serif, serif)" }}
                       >
                         {dest.name}
@@ -853,6 +887,21 @@ export default function AdminDestinations() {
                       <span>{dest.highlights?.length || 0} highlights</span>
                     </div>
 
+                    {dest.experienceTags && dest.experienceTags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2.5">
+                        {dest.experienceTags.slice(0, 3).map((tag) => (
+                          <span key={tag} className="text-[10px] bg-[#f0f9f4] text-[#0f2922] px-2 py-0.5 rounded font-medium border border-[#c3dfd3]">
+                            {tag}
+                          </span>
+                        ))}
+                        {dest.experienceTags.length > 3 && (
+                          <span className="text-[10px] text-[#718096] px-1 py-0.5">
+                            +{dest.experienceTags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    )}
+
                     {isArchived && (
                       <div className="mt-3 bg-amber-50/80 border border-amber-200/60 rounded-md px-2.5 py-1.5 text-[11px] text-amber-800 flex items-center gap-1.5">
                         <svg className="w-3.5 h-3.5 shrink-0 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -864,13 +913,13 @@ export default function AdminDestinations() {
                   </div>
 
                   {/* Actions */}
-                  <div className="flex gap-2 mt-4 pt-3 border-t border-[#edf2f7]">
+                  <div className="flex gap-2 mt-4 pt-3 border-t border-[#edf2f7]" onClick={(e) => e.stopPropagation()}>
                     <button
                       onClick={() => {
                         setEditingDest(dest);
                         setModalMode("edit");
                       }}
-                      className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] text-xs font-semibold py-2 rounded-lg transition"
+                      className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] text-xs font-semibold py-2 rounded-lg transition cursor-pointer"
                     >
                       Edit
                     </button>

@@ -6,6 +6,21 @@ export interface DestinationGalleryMediaItem {
   sortOrder: number;
 }
 
+export const UTTARAKHAND_EXPERIENCE_TAGS = [
+  "Trekking & Hiking",
+  "Adventure",
+  "Nature & Wildlife",
+  "Lakes & Waterfalls",
+  "Spiritual & Pilgrimage",
+  "Culture & Heritage",
+  "Village & Rural Life",
+  "Snow & Winter",
+  "Camping & Outdoors",
+  "Wellness & Retreats",
+] as const;
+
+export type UttarakhandExperienceTag = typeof UTTARAKHAND_EXPERIENCE_TAGS[number];
+
 export interface Destination {
   id: string;
   slug?: string;
@@ -16,7 +31,8 @@ export interface Destination {
   coverMediaId?: string | null;
   gallery: string[];
   galleryMedia?: DestinationGalleryMediaItem[];
-  category: "high-altitude" | "spiritual" | "weekend";
+  category?: "high-altitude" | "spiritual" | "weekend" | "other" | string;
+  experienceTags?: string[];
   season: string;
   highlights: string[];
   activities: string[];

@@ -11,6 +11,17 @@ export type TripDifficulty = "easy" | "moderate" | "challenging" | "strenuous";
 
 export type TripStatus = "active" | "archived" | "draft" | "published";
 
+export interface TripHighlightItem {
+  icon: string;
+  label: string;
+  value: string;
+}
+
+export interface TripFaqItem {
+  question: string;
+  answer: string;
+}
+
 export interface TripRecord {
   id: string;
   slug: string;
@@ -41,6 +52,8 @@ export interface TripRecord {
   cover_media_id: string | null;
   cover_image_url: string | null;
   gallery_image_urls: string[] | null;
+  highlights: TripHighlightItem[] | null;
+  faqs: TripFaqItem[] | null;
   created_by_user_id: string | null;
   updated_by_user_id: string | null;
   created_at: string | Date;
@@ -115,7 +128,8 @@ export interface TripDto {
   destinationId?: string; // backward compat primary destination id
   departures?: TripDepartureDto[];
   upcomingDeparturesCount?: number;
-  highlights: string[];
+  highlights: TripHighlightItem[];
+  faqs: TripFaqItem[];
   itinerary: TripItineraryDayDto[];
   inclusions: string[];
   exclusions: string[];
@@ -161,7 +175,8 @@ export interface CreateTripInput {
   galleryMediaIds?: string[];
   destinationIds: string[]; // M:N destinations
   primaryDestinationId?: string;
-  highlights?: string[];
+  highlights?: (TripHighlightItem | string)[];
+  faqs?: TripFaqItem[];
   itinerary?: { dayNumber?: number; title: string; description: string; meals?: string; stay?: string }[];
   inclusions?: string[];
   exclusions?: string[];

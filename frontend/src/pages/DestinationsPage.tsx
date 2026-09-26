@@ -1,9 +1,9 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import Footer from "@/components/Footer";
 
-type Filter = "all" | "high-altitude" | "spiritual" | "weekend";
 type SortKey = "recommended" | "name" | "popularity";
 
 const seasons = [
@@ -15,7 +15,7 @@ const seasons = [
 
 export default function DestinationsPage() {
   const { navigate, destinations } = useApp();
-  const [filter, setFilter] = useState<Filter>("all");
+  const [filter, setFilter] = useState<string>("all");
   const [sort, setSort] = useState<SortKey>("recommended");
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -30,9 +30,10 @@ export default function DestinationsPage() {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
-  const filtered = destinations.filter((d) =>
-    filter === "all" ? true : d.category === filter
-  );
+  const filtered = destinations.filter((d) => {
+    if (filter === "all") return true;
+    return d.experienceTags?.includes(filter) || d.category === filter;
+  });
 
   const sorted = [...filtered].sort((a, b) => {
     if (sort === "name") return a.name.localeCompare(b.name);
@@ -58,29 +59,34 @@ export default function DestinationsPage() {
 
       {/* Filters */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-8">
-        <div className="flex flex-wrap items-center gap-3 justify-between">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2">
-            {[
-              { label: "All Regions", val: "all" as Filter },
-              { label: "High Altitude Treks", val: "high-altitude" as Filter },
-              { label: "Spiritual", val: "spiritual" as Filter },
-              { label: "Weekend Hideouts", val: "weekend" as Filter },
-            ].map((f) => (
+            <button
+              onClick={() => setFilter("all")}
+              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                filter === "all"
+                  ? "bg-[#0f2922] text-white border-[#0f2922]"
+                  : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] bg-white"
+              }`}
+            >
+              All Experiences
+            </button>
+            {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => (
               <button
-                key={f.val}
-                onClick={() => setFilter(f.val)}
-                className={`px-4 py-1.5 rounded-full text-sm transition-all border ${
-                  filter === f.val
+                key={tag}
+                onClick={() => setFilter(tag)}
+                className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border ${
+                  filter === tag
                     ? "bg-[#0f2922] text-white border-[#0f2922]"
-                    : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922]"
+                    : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] bg-white"
                 }`}
               >
-                {f.label}
+                {tag}
               </button>
             ))}
           </div>
           {/* Sort dropdown */}
-          <div className="relative" ref={sortRef}>
+          <div className="relative shrink-0" ref={sortRef}>
             <button
               onClick={() => setSortOpen((o) => !o)}
               className="flex items-center gap-1.5 text-sm text-[#4a5568] hover:text-[#0f2922] transition-colors"
@@ -110,19 +116,37 @@ export default function DestinationsPage() {
           {sorted.map((d) => (
             <Link
               key={d.id}
-              to={`/destinations/${d.id}`}
-              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group block cursor-pointer"
+              to={`/destinations/${d.slug || d.id}`}
+              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between cursor-pointer"
             >
-              <div className="h-52 overflow-hidden">
-                <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-              </div>
-              <div className="p-5">
-                <div className="flex items-start justify-between gap-2 mb-1">
-                  <h3 className="text-[#0f2922] text-xl" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</h3>
-                  <span className="text-[#e8622a] text-xs font-medium shrink-0 mt-1">{d.season}</span>
+              <div>
+                <div className="h-52 overflow-hidden">
+                  <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 </div>
-                <p className="text-[#4a5568] text-sm">{d.tagline}</p>
+                <div className="p-5">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <h3 className="text-[#0f2922] text-xl" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</h3>
+                    <span className="text-[#e8622a] text-xs font-medium shrink-0 mt-1">{d.season}</span>
+                  </div>
+                  <p className="text-[#4a5568] text-sm leading-relaxed">{d.tagline}</p>
+                </div>
               </div>
+              {d.experienceTags && d.experienceTags.length > 0 && (
+                <div className="px-5 pb-5 pt-0">
+                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[#f0f4f1]">
+                    {d.experienceTags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="text-[11px] bg-[#f7f8f5] text-[#4a5568] px-2 py-0.5 rounded-md font-medium">
+                        {tag}
+                      </span>
+                    ))}
+                    {d.experienceTags.length > 3 && (
+                      <span className="text-[11px] text-[#a0aec0] px-1 py-0.5 font-medium">
+                        +{d.experienceTags.length - 3}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
             </Link>
           ))}
         </div>

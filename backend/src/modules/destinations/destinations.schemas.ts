@@ -35,6 +35,7 @@ export const createDestinationSchema = z
     coverMediaId: z.string().uuid("Invalid cover media ID").optional(),
     gallery: z.array(z.string().trim()).default([]),
     galleryMediaIds: z.array(z.string().uuid("Invalid gallery media ID")).optional(),
+    experienceTags: z.array(z.string().trim()).default([]),
     highlights: z.array(z.string().trim()).default([]),
     activities: z.array(z.string().trim()).default([]),
     sortOrder: z.coerce.number().int().default(0),
@@ -66,6 +67,7 @@ export const updateDestinationSchema = z.object({
   coverMediaId: z.string().uuid("Invalid cover media ID").optional().nullable(),
   gallery: z.array(z.string().trim()).optional(),
   galleryMediaIds: z.array(z.string().uuid("Invalid gallery media ID")).optional(),
+  experienceTags: z.array(z.string().trim()).optional(),
   highlights: z.array(z.string().trim()).optional(),
   activities: z.array(z.string().trim()).optional(),
   sortOrder: z.coerce.number().int().optional(),
@@ -76,6 +78,7 @@ export const updateDestinationSchema = z.object({
 export const destinationQuerySchema = z.object({
   status: z.enum(["active", "archived", "all", "draft", "published"]).optional(),
   category: z.string().optional(),
+  tag: z.string().optional(),
   search: z.string().trim().optional(),
   includeArchived: booleanPreprocess.optional(),
   limit: z.coerce.number().int().min(1).max(100).default(50),

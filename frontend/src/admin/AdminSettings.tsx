@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useApp } from "@/context/AppContext";
+import { settingsApi, type CancellationPolicyData, type CancellationRule } from "@/api/settings";
 
 type SubNav = "general" | "contact" | "social" | "cancellation";
 
@@ -21,7 +22,7 @@ export default function AdminSettings() {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
           </svg>
         </div>
-        <h3 className="text-lg font-semibold text-[#0f2922] mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>Access Restricted</h3>
+        <h3 className="text-lg font-semibold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Access Restricted</h3>
         <p className="text-[#718096] text-sm">Settings are restricted to Super Admin only.</p>
       </div>
     );
@@ -47,7 +48,64 @@ export default function AdminSettings() {
   const [facebook, setFacebook] = useState("https://facebook.com/yatrivo");
   const [twitter, setTwitter] = useState("https://twitter.com/yatrivo");
 
-  const handleSave = () => showToast("Settings saved successfully!", "success");
+  // Global Cancellation Policy
+  const [rules, setRules] = useState<CancellationRule[]>([
+    { days: "30+ days before departure", refund: "100%", note: "Full refund (less nominal processing fee)" },
+    { days: "15–29 days before departure", refund: "50%", note: "50% refund or 100% trip credit voucher" },
+    { days: "Under 15 days before departure", refund: "0%", note: "Non-refundable due to reserved cabin & permit logistics" },
+  ]);
+  const [savingPolicy, setSavingPolicy] = useState(false);
+
+  useEffect(() => {
+    async function loadPolicy() {
+      try {
+        const p = await settingsApi.getCancellationPolicy();
+        if (p && p.rules && p.rules.length > 0) {
+          setRules(p.rules);
+        }
+      } catch (err) {
+        console.warn("Could not load cancellation policy from backend:", err);
+      }
+    }
+    void loadPolicy();
+  }, []);
+
+  const handleSave = async () => {
+    if (subNav === "cancellation") {
+      setSavingPolicy(true);
+      try {
+        await settingsApi.updateCancellationPolicy({
+          title: "Global Cancellation & Refund Policy",
+          description: "",
+          rules,
+        });
+        showToast("Cancellation policy updated globally!", "success");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to update cancellation policy";
+        showToast(msg, "error");
+      } finally {
+        setSavingPolicy(false);
+      }
+    } else {
+      showToast("Settings saved successfully!", "success");
+    }
+  };
+
+  const updateRule = (index: number, field: keyof CancellationRule, val: string) => {
+    setRules((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: val };
+      return copy;
+    });
+  };
+
+  const addRule = () => {
+    setRules((prev) => [...prev, { days: "New rule", refund: "0%", note: "" }]);
+  };
+
+  const removeRule = (index: number) => {
+    setRules((prev) => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <div className="flex h-full">
@@ -120,39 +178,87 @@ export default function AdminSettings() {
           )}
 
           {subNav === "cancellation" && (
-            <>
-              <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Cancellation Policy</h2>
-              <table className="w-full text-sm border border-[#e2e8f0] rounded-xl overflow-hidden">
-                <thead className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium">
-                  <tr>
-                    <th className="px-4 py-3 text-left">Days Before Travel</th>
-                    <th className="px-4 py-3 text-left">Refund %</th>
-                    <th className="px-4 py-3 text-left">Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {[
-                    { days: "30+ days before", refund: "100%", note: "Full refund" },
-                    { days: "15–29 days before", refund: "50%", note: "Partial refund" },
-                    { days: "< 15 days before", refund: "0%", note: "No refund" },
-                  ].map((row, i) => (
-                    <tr key={i} className="border-t border-[#e2e8f0]">
-                      <td className="px-4 py-3">
-                        <input defaultValue={row.days} className="w-full border border-[#e2e8f0] rounded-lg px-2 py-1 text-sm focus:outline-none" />
-                      </td>
-                      <td className="px-4 py-3">
-                        <input defaultValue={row.refund} className="w-full border border-[#e2e8f0] rounded-lg px-2 py-1 text-sm focus:outline-none" />
-                      </td>
-                      <td className="px-4 py-3 text-[#718096]">{row.note}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </>
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Global Cancellation Policy</h2>
+                <p className="text-sm text-[#718096] mt-1">Configure the refund timeline rules displayed globally across all trip detail pages and bookings.</p>
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-sm font-semibold text-[#0f2922]">Refund Timeline Rules</label>
+                  <button
+                    type="button"
+                    onClick={addRule}
+                    className="text-xs text-[#e8622a] hover:text-[#d4541f] font-semibold flex items-center gap-1"
+                  >
+                    + Add Rule
+                  </button>
+                </div>
+                <div className="border border-[#e2e8f0] rounded-xl overflow-hidden shadow-sm">
+                  <table className="w-full text-sm">
+                    <thead className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
+                      <tr>
+                        <th className="px-4 py-3 text-left">Days Before Travel</th>
+                        <th className="px-4 py-3 text-left w-28">Refund %</th>
+                        <th className="px-4 py-3 text-left">Note / Terms</th>
+                        <th className="px-3 py-3 w-10 text-center"></th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#f0f4f1]">
+                      {rules.map((row, i) => (
+                        <tr key={i} className="hover:bg-[#fafbfa]">
+                          <td className="px-3 py-2.5">
+                            <input
+                              value={row.days}
+                              onChange={(e) => updateRule(i, "days", e.target.value)}
+                              className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922]"
+                              placeholder="e.g. 30+ days before"
+                            />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <input
+                              value={row.refund}
+                              onChange={(e) => updateRule(i, "refund", e.target.value)}
+                              className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#e8622a] focus:outline-none focus:border-[#0f2922]"
+                              placeholder="e.g. 100%"
+                            />
+                          </td>
+                          <td className="px-3 py-2.5">
+                            <input
+                              value={row.note}
+                              onChange={(e) => updateRule(i, "note", e.target.value)}
+                              className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#718096] focus:outline-none focus:border-[#0f2922]"
+                              placeholder="e.g. Full refund less processing fee"
+                            />
+                          </td>
+                          <td className="px-2 py-2.5 text-center">
+                            {rules.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => removeRule(i)}
+                                className="text-gray-400 hover:text-red-500 transition text-sm p-1"
+                                title="Remove rule"
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
           )}
 
-          <button onClick={handleSave} className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition">
-            Save Changes
+          <button
+            onClick={handleSave}
+            disabled={savingPolicy}
+            className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition shadow-sm cursor-pointer"
+          >
+            {savingPolicy ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </div>

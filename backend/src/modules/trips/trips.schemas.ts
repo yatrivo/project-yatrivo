@@ -24,6 +24,17 @@ const booleanPreprocess = z.preprocess((val) => {
   return Boolean(val);
 }, z.boolean());
 
+export const tripHighlightItemSchema = z.object({
+  icon: z.string().trim().default("📍"),
+  label: z.string().trim().min(1, "Highlight label is required"),
+  value: z.string().trim().min(1, "Highlight value is required")
+});
+
+export const tripFaqItemSchema = z.object({
+  question: z.string().trim().min(1, "FAQ question is required"),
+  answer: z.string().trim().min(1, "FAQ answer is required")
+});
+
 export const createTripSchema = z.object({
   name: z.string().trim().min(1, "Trip name is required"),
   slug: z
@@ -49,7 +60,11 @@ export const createTripSchema = z.object({
   galleryMediaIds: z.array(z.string().uuid("Invalid gallery media ID")).optional(),
   destinationIds: z.array(z.string().trim()).min(1, "At least one destination must be selected"),
   primaryDestinationId: z.string().trim().optional(),
-  highlights: z.array(z.string().trim()).default([]),
+  highlights: z.union([
+    z.array(tripHighlightItemSchema),
+    z.array(z.string().trim())
+  ]).optional(),
+  faqs: z.array(tripFaqItemSchema).optional(),
   itinerary: z
     .array(
       z.object({
@@ -94,7 +109,11 @@ export const updateTripSchema = z.object({
   galleryMediaIds: z.array(z.string().uuid()).optional(),
   destinationIds: z.array(z.string().trim()).min(1).optional(),
   primaryDestinationId: z.string().trim().optional(),
-  highlights: z.array(z.string().trim()).optional(),
+  highlights: z.union([
+    z.array(tripHighlightItemSchema),
+    z.array(z.string().trim())
+  ]).optional(),
+  faqs: z.array(tripFaqItemSchema).optional(),
   itinerary: z
     .array(
       z.object({

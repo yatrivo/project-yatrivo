@@ -69,6 +69,7 @@ export function toDestinationDto(
     coverMediaId: record.cover_media_id,
     gallery,
     galleryMedia,
+    experienceTags: record.experience_tags || [],
     highlights,
     activities,
     seoTitle: record.seo_title,
@@ -219,6 +220,12 @@ export const destinationsRepository = {
       params.push(toDbCategory(filters.category as DestinationCategory));
     }
 
+    // Tag filtering
+    if (filters.tag && filters.tag !== "All" && filters.tag !== "all") {
+      conditions.push(`$${paramIndex++} = ANY(d.experience_tags)`);
+      params.push(filters.tag);
+    }
+
     // Search filtering
     if (filters.search) {
       conditions.push(
@@ -251,6 +258,7 @@ export const destinationsRepository = {
               d.season_label, d.best_time_label, d.elevation_label, d.status,
               d.sort_order, d.seo_title, d.seo_description, d.og_media_id,
               d.cover_media_id, d.cover_image_url, d.gallery_image_urls,
+              d.experience_tags,
               d.created_by_user_id, d.updated_by_user_id, d.created_at,
               d.updated_at, d.archived_at,
               COALESCE(cma.public_url, cma.external_url, d.cover_image_url) AS resolved_cover_url
@@ -434,8 +442,9 @@ export const destinationsRepository = {
          name, slug, tagline, description, category, season_label,
          best_time_label, elevation_label, status, sort_order,
          cover_media_id, cover_image_url, gallery_image_urls,
+         experience_tags,
          seo_title, seo_description, created_by_user_id, updated_by_user_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10, $11, $12, $13, $14, $15, $15)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10, $11, $12, $13, $14, $15, $16, $16)
        RETURNING *`,
       [
         data.name,
@@ -450,6 +459,7 @@ export const destinationsRepository = {
         coverInfo.coverMediaId,
         coverInfo.coverImageUrl,
         data.gallery || [],
+        data.experienceTags || [],
         data.seoTitle || null,
         data.seoDescription || null,
         actorUserId || null
@@ -570,6 +580,10 @@ export const destinationsRepository = {
     if (data.seoDescription !== undefined) {
       updateFields.push(`seo_description = $${idx++}`);
       updateParams.push(data.seoDescription || null);
+    }
+    if (data.experienceTags !== undefined) {
+      updateFields.push(`experience_tags = $${idx++}`);
+      updateParams.push(data.experienceTags);
     }
 
     updateFields.push(`updated_at = NOW()`);

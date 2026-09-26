@@ -316,7 +316,7 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
                 {trip.highlights.map((h, i) => (
                   <li key={i} className="flex items-start gap-2 text-sm text-[#4a5568]">
                     <span className="text-[#e8622a] mt-0.5 shrink-0">•</span>
-                    {h}
+                    {typeof h === "string" ? h : (h as any)?.value ? `${(h as any).label}: ${(h as any).value}` : ""}
                   </li>
                 ))}
               </ul>
@@ -377,113 +377,83 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
   );
 }
 
-// ── Trip Card with inline instances ────────────────────────────────────────
+// ── Trip Card ────────────────────────────────────────────────────────────────
 
 interface TripCardProps {
   trip: Trip;
   instances: TripInstance[];
   onEditTrip: () => void;
-  onDuplicateTrip: () => void;
   onDeleteTrip: () => void;
-  onEditInstance: (inst: TripInstance) => void;
-  onCompleteInstance: (inst: TripInstance) => void;
-  onCancelInstance: (inst: TripInstance) => void;
-  onAddInstance: (trip: Trip) => void;
-  onViewInstance: (inst: TripInstance, trip: Trip) => void;
 }
 
-function TripCard({
-  trip, instances, onEditTrip, onDuplicateTrip, onDeleteTrip,
-  onEditInstance, onCompleteInstance, onCancelInstance, onAddInstance, onViewInstance
-}: TripCardProps) {
+function TripCard({ trip, instances, onEditTrip, onDeleteTrip }: TripCardProps) {
   const { destinations } = useApp();
-  const [expanded, setExpanded] = useState(false);
-  const sortedInst = [...instances].sort((a, b) => a.date.localeCompare(b.date));
+  const navigate = useNavigate();
   const upcoming = instances.filter((i) => i.status === "upcoming").length;
+  const tripUrl = `/admin/trips/${trip.slug || trip.id}`;
 
   return (
-    <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden">
-      {/* Trip header */}
-      <div className="relative">
-        <img src={trip.image} alt={trip.name} className="w-full h-40 object-cover" />
-        <span className={`absolute top-3 right-3 text-xs font-medium rounded-full px-2.5 py-1 ${trip.badge ? "bg-[#e8622a] text-white" : "bg-green-100 text-green-700"}`}>
-          {trip.badge || "Active"}
-        </span>
-      </div>
-      <div className="p-4">
-        <h3 className="font-semibold text-[#0f2922] text-sm">{trip.name}</h3>
-        <p className="text-[#718096] text-xs mt-1 capitalize">{getTripDestinationsLabel(trip, destinations)} · {trip.duration} · {trip.category}</p>
-        <p className="text-[#e8622a] font-bold text-sm mt-1.5">₹{trip.price.toLocaleString("en-IN")}</p>
-        <div className="flex gap-2 mt-3">
-          <button onClick={onEditTrip} className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] text-xs font-medium py-1.5 rounded-lg transition">Edit</button>
-          <button onClick={onDuplicateTrip} className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] text-xs font-medium py-1.5 rounded-lg transition">Duplicate</button>
-          <button onClick={onDeleteTrip} className="border border-[#e2e8f0] text-red-500 hover:border-red-300 text-xs font-medium px-2.5 py-1.5 rounded-lg transition">Archive</button>
+    <div
+      onClick={() => navigate(tripUrl)}
+      className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+    >
+      <div>
+        {/* Cover Image & Badges */}
+        <div className="relative h-44 overflow-hidden">
+          <img
+            src={trip.image}
+            alt={trip.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src =
+                "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format";
+            }}
+          />
+          <span className={`absolute top-3 right-3 text-xs font-semibold rounded-full px-2.5 py-1 ${trip.badge ? "bg-[#e8622a] text-white shadow-sm" : "bg-black/60 text-white backdrop-blur-sm"}`}>
+            {trip.badge || "Active"}
+          </span>
+          <span className="absolute bottom-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm capitalize">
+            {trip.category}
+          </span>
         </div>
 
-        {/* Instances toggle */}
-        <button
-          onClick={() => setExpanded(!expanded)}
-          className="w-full mt-3 flex items-center justify-between px-3 py-2 bg-[#f7f8f5] hover:bg-[#f0f4f1] rounded-lg transition text-xs font-medium text-[#4a5568]"
-        >
-          <span className="inline-flex items-center">
-            {sortedInst.length} departure{sortedInst.length !== 1 ? "s" : ""}
-            {upcoming > 0 && <span className="ml-1.5 inline-flex items-center whitespace-nowrap bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full text-[10px] font-medium">{upcoming} upcoming</span>}
-          </span>
-          <svg className={`w-4 h-4 transition-transform ${expanded ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
-        </button>
+        {/* Content */}
+        <div className="p-4">
+          <h3 className="font-semibold text-[#0f2922] text-base group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            {trip.name}
+          </h3>
+          <p className="text-[#718096] text-xs mt-1 capitalize">
+            {getTripDestinationsLabel(trip, destinations)} · {trip.duration} · {trip.difficulty}
+          </p>
 
-        {/* Instances list */}
-        {expanded && (
-          <div className="mt-2 space-y-1.5">
-            {sortedInst.length === 0 && (
-              <p className="text-[#a0aec0] text-xs text-center py-3">No departures scheduled.</p>
-            )}
-            {sortedInst.map((inst) => (
-              <div
-                key={inst.id}
-                className="border border-[#e2e8f0] rounded-lg px-3 py-2.5 hover:border-[#0f2922] cursor-pointer transition"
-                onClick={() => onViewInstance(inst, trip)}
-              >
-                <div className="flex items-center justify-between mb-1.5">
-                  <span className="text-xs font-medium text-[#0f2922]">{inst.displayDate}</span>
-                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${statusColor(inst.status)}`}>
-                    {inst.status}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3 text-xs text-[#718096]">
-                    <span>₹{inst.price.toLocaleString("en-IN")}</span>
-                    <span>{inst.spotsLeft}/{inst.spotsTotal} spots</span>
-                  </div>
-                  <div className="flex gap-1" onClick={(e) => e.stopPropagation()}>
-                    <button onClick={() => onEditInstance(inst)} className="text-[#4a5568] hover:text-[#0f2922] transition text-[10px] border border-[#e2e8f0] hover:border-[#0f2922] px-1.5 py-0.5 rounded">Edit</button>
-                    {inst.status === "upcoming" && (
-                      <>
-                        <button onClick={() => onCompleteInstance(inst)} className="text-green-600 hover:text-green-800 transition text-[10px] border border-green-200 hover:border-green-600 px-1.5 py-0.5 rounded">Complete</button>
-                        <button onClick={() => onCancelInstance(inst)} className="text-red-500 hover:text-red-700 transition text-[10px] border border-red-200 hover:border-red-400 px-1.5 py-0.5 rounded">Cancel</button>
-                      </>
-                    )}
-                  </div>
-                </div>
-                {/* Spot fill bar */}
-                <div className="w-full bg-[#e2e8f0] rounded-full h-1 mt-2">
-                  <div className="bg-[#e8622a] rounded-full h-1" style={{ width: `${Math.max(0, 100 - (inst.spotsLeft / inst.spotsTotal) * 100)}%` }} />
-                </div>
-              </div>
-            ))}
-            <button
-              onClick={() => onAddInstance(trip)}
-              className="w-full flex items-center justify-center gap-1.5 border border-dashed border-[#c3d1cb] hover:border-[#0f2922] text-[#718096] hover:text-[#0f2922] text-xs font-medium py-2 rounded-lg transition mt-1"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Add Departure
-            </button>
+          <div className="flex items-center justify-between mt-3">
+            <span className="text-[#e8622a] font-bold text-base">
+              ₹{trip.price.toLocaleString("en-IN")}
+            </span>
+            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
+              upcoming > 0 ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-100 text-gray-600"
+            }`}>
+              <span className={`w-1.5 h-1.5 rounded-full ${upcoming > 0 ? "bg-blue-600" : "bg-gray-400"}`} />
+              {upcoming > 0 ? `${upcoming} upcoming departure${upcoming !== 1 ? "s" : ""}` : "No upcoming departures"}
+            </span>
           </div>
-        )}
+        </div>
+      </div>
+
+      {/* Footer Actions */}
+      <div className="px-4 pb-4 pt-1 flex gap-2" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onEditTrip}
+          className="flex-1 border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] text-xs font-semibold py-2 rounded-lg transition cursor-pointer"
+        >
+          Edit Trip
+        </button>
+        <button
+          onClick={onDeleteTrip}
+          className="border border-[#e2e8f0] text-red-500 hover:border-red-300 hover:bg-red-50 text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
+        >
+          Archive
+        </button>
       </div>
     </div>
   );
@@ -599,11 +569,6 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
     setAddingInstanceTrip(null);
   };
 
-  const handleDuplicateTrip = (trip: Trip) => {
-    const copy: Trip = { ...trip, id: `${trip.id}-copy-${Date.now()}`, name: `${trip.name} (Copy)`, badge: "" };
-    setTrips((prev) => [...prev, copy]);
-    showToast("Trip duplicated.", "success");
-  };
 
   const handleDeleteTrip = async (tripId: string) => {
     try {
@@ -688,13 +653,7 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                 setAdminPage?.("trip-editor");
                 navigate(`/admin/trips/${trip.id}/edit`);
               }}
-              onDuplicateTrip={() => handleDuplicateTrip(trip)}
               onDeleteTrip={() => handleDeleteTrip(trip.id)}
-              onEditInstance={openEdit}
-              onCompleteInstance={openComplete}
-              onCancelInstance={handleCancel}
-              onAddInstance={(t) => setAddingInstanceTrip(t)}
-              onViewInstance={(inst, t) => { setDetailInstance(inst); setDetailTrip(t); }}
             />
           ))}
         </div>
@@ -716,11 +675,16 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                 {filtered.map((trip) => {
                   const insts = getInstances(trip.id);
                   const upcoming = insts.filter((i) => i.status === "upcoming").length;
+                  const tripUrl = `/admin/trips/${trip.slug || trip.id}`;
                   return (
-                    <tr key={trip.id} className="hover:bg-[#f7f8f5] transition">
+                    <tr
+                      key={trip.id}
+                      onClick={() => navigate(tripUrl)}
+                      className="hover:bg-[#f7f8f5] transition cursor-pointer"
+                    >
                       <td className="px-4 py-3 flex items-center gap-3">
                         <img src={trip.image} alt={trip.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
-                        <span className="font-medium text-[#0f2922] line-clamp-1">{trip.name}</span>
+                        <span className="font-medium text-[#0f2922] hover:text-[#e8622a] transition-colors line-clamp-1">{trip.name}</span>
                       </td>
                       <td className="px-4 py-3 text-[#4a5568] capitalize">{getTripDestinationsLabel(trip, destinations)}</td>
                       <td className="px-4 py-3 text-[#718096] whitespace-nowrap">{trip.duration}</td>
@@ -735,7 +699,7 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                           )}
                         </div>
                       </td>
-                      <td className="px-4 py-3 whitespace-nowrap">
+                      <td className="px-4 py-3 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center justify-end gap-3 whitespace-nowrap">
                           <Link
                             to={`/admin/trips/${trip.id}/edit`}
@@ -744,7 +708,6 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                           >
                             Edit
                           </Link>
-                          <button onClick={() => handleDuplicateTrip(trip)} className="text-[#718096] hover:text-[#0f2922] text-xs font-medium transition">Duplicate</button>
                           <button onClick={() => handleDeleteTrip(trip.id)} className="text-red-500 hover:text-red-700 text-xs font-medium transition">Archive</button>
                           <button
                             onClick={() => setAddingInstanceTrip(trip)}

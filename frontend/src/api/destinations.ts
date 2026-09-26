@@ -7,6 +7,7 @@ export interface DestinationListParams {
   status?: "active" | "archived" | "draft" | "all";
   includeArchived?: boolean;
   category?: string;
+  tag?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -25,6 +26,7 @@ export interface CreateDestinationPayload {
   coverMediaId?: string | null;
   gallery?: string[];
   galleryMediaIds?: string[];
+  experienceTags?: string[];
   highlights?: string[];
   activities?: string[];
   sortOrder?: number;

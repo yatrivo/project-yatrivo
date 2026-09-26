@@ -10,6 +10,8 @@ import type {
   TripDto,
   TripFilters,
   TripGalleryMediaItem,
+  TripHighlightItem,
+  TripFaqItem,
   TripItineraryDayDto,
   TripRecord,
   TripStatus,
@@ -39,7 +41,7 @@ export function toTripDto(
   record: TripRecord,
   destinations: TripDestinationDto[] = [],
   departures: TripDepartureDto[] = [],
-  highlights: string[] = [],
+  legacyHighlights: string[] = [],
   itinerary: TripItineraryDayDto[] = [],
   inclusions: string[] = [],
   exclusions: string[] = [],
@@ -54,6 +56,36 @@ export function toTripDto(
 
   const primaryDest = destinations.find((d) => d.isPrimary) || destinations[0];
   const upcomingDepartures = departures.filter((d) => d.status === "upcoming");
+
+  let structuredHighlights: TripHighlightItem[] = [];
+  if (Array.isArray(record.highlights) && record.highlights.length > 0) {
+    structuredHighlights = record.highlights.map((h: any) =>
+      typeof h === "string"
+        ? { icon: "📍", label: "Highlight", value: h }
+        : { icon: h.icon || "📍", label: h.label || "Highlight", value: h.value || "" }
+    );
+  } else if (legacyHighlights && legacyHighlights.length > 0) {
+    structuredHighlights = legacyHighlights.map((text) => ({
+      icon: "📍",
+      label: "Highlight",
+      value: text
+    }));
+  } else {
+    structuredHighlights = [
+      { icon: "📍", label: "Starting Point", value: record.starting_point || "Dehradun" },
+      { icon: "👥", label: "Group Size", value: "Max 12" },
+      { icon: "🏕️", label: "Stay Style", value: "Timber Cabins" },
+      { icon: "🍽️", label: "Meals", value: "All Included" }
+    ];
+  }
+
+  let faqs: TripFaqItem[] = [];
+  if (Array.isArray(record.faqs) && record.faqs.length > 0) {
+    faqs = record.faqs.map((f: any) => ({
+      question: f.question || "",
+      answer: f.answer || ""
+    }));
+  }
 
   return {
     id: record.id,
@@ -84,7 +116,8 @@ export function toTripDto(
     destinationId: primaryDest ? primaryDest.id : undefined,
     departures,
     upcomingDeparturesCount: upcomingDepartures.length,
-    highlights,
+    highlights: structuredHighlights,
+    faqs,
     itinerary,
     inclusions,
     exclusions,
@@ -577,6 +610,20 @@ export const tripsRepository = {
 
     const pricePaise = Math.round(input.price * 100);
 
+    const normalizedHighlights = input.highlights
+      ? input.highlights.map((h) =>
+          typeof h === "string"
+            ? { icon: "📍", label: "Highlight", value: h }
+            : { icon: h.icon || "📍", label: h.label || "Highlight", value: h.value || "" }
+        )
+      : [
+          { icon: "📍", label: "Starting Point", value: input.startingPoint || "Dehradun" },
+          { icon: "👥", label: "Group Size", value: "Max 12" },
+          { icon: "🏕️", label: "Stay Style", value: "Timber Cabins" },
+          { icon: "🍽️", label: "Meals", value: "All Included" }
+        ];
+    const normalizedFaqs = input.faqs || [];
+
     const insertRes = await query<TripRecord>(
       `INSERT INTO trips (
         slug, name, short_description, overview,
@@ -586,6 +633,7 @@ export const tripsRepository = {
         status, sort_order, is_featured,
         seo_title, seo_description,
         cover_media_id, cover_image_url, gallery_image_urls,
+        highlights, faqs,
         created_by_user_id, updated_by_user_id
       ) VALUES (
         $1, $2, $3, $4,
@@ -595,7 +643,8 @@ export const tripsRepository = {
         'active', $15, $16,
         $17, $18,
         $19, $20, $21,
-        $22, $22
+        $22, $23,
+        $24, $24
       ) RETURNING *`,
       [
         slug,
@@ -619,6 +668,8 @@ export const tripsRepository = {
         coverMediaId,
         coverImageUrl,
         input.gallery || [],
+        JSON.stringify(normalizedHighlights),
+        JSON.stringify(normalizedFaqs),
         userId || null
       ]
     );
@@ -795,6 +846,21 @@ export const tripsRepository = {
       updates.push(`cover_media_id = $${params.length}`);
       params.push(coverImageUrl);
       updates.push(`cover_image_url = $${params.length}`);
+    }
+
+    if (input.highlights !== undefined) {
+      const normalizedHighlights = input.highlights.map((h) =>
+        typeof h === "string"
+          ? { icon: "📍", label: "Highlight", value: h }
+          : { icon: h.icon || "📍", label: h.label || "Highlight", value: h.value || "" }
+      );
+      params.push(JSON.stringify(normalizedHighlights));
+      updates.push(`highlights = $${params.length}`);
+    }
+
+    if (input.faqs !== undefined) {
+      params.push(JSON.stringify(input.faqs));
+      updates.push(`faqs = $${params.length}`);
     }
 
     if (userId) {
