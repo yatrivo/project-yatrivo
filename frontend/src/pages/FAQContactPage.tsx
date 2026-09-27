@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import { YATRIVO_CONTACT } from "@/constants/contact";
 
 export default function FAQContactPage() {
   const { navigate, faqItems } = useApp();
@@ -92,7 +93,7 @@ export default function FAQContactPage() {
                 </div>
               </div>
               <a
-                href="https://wa.me/919876543210"
+                href={YATRIVO_CONTACT.getWhatsAppUrl("Hi Yatrivo! I have a question about your trips and departures.")}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white py-3.5 rounded-full text-sm font-semibold transition-colors"
@@ -111,7 +112,7 @@ export default function FAQContactPage() {
               </p>
               <div className="flex items-center gap-2">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
-                <a href="tel:+919876543210" className="text-[#0f2922] font-semibold text-sm hover:text-[#e8622a] transition-colors">+91 98765 43210</a>
+                <a href={`tel:${YATRIVO_CONTACT.phone.replace(/\s+/g, "")}`} className="text-[#0f2922] font-semibold text-sm hover:text-[#e8622a] transition-colors">{YATRIVO_CONTACT.phone}</a>
               </div>
             </div>
           </div>

@@ -137,7 +137,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const isAdmin = Boolean(adminMode || location.pathname.startsWith("/admin/"));
-  const { pageParams, openEnquiryModal, trips, destinations, tripInstances, showToast } = useApp();
+  const { pageParams, openEnquiryModal, trips, destinations, tripInstances, showToast, refreshTrips } = useApp();
 
   const currentSlug = slug || pageParams.tripId || "chopta-trek";
   const initialTrip = trips.find(
@@ -156,7 +156,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   const [isAddingDeparture, setIsAddingDeparture] = useState(false);
   const [editingDeparture, setEditingDeparture] = useState<TripInstance | null>(null);
   const [isSavingDeparture, setIsSavingDeparture] = useState(false);
-  const [departureTab, setDepartureTab] = useState<"upcoming" | "past">("upcoming");
+  const [departureTab, setDepartureTab] = useState<"upcoming" | "completed" | "cancelled">("upcoming");
 
   // Fetch full trip from API to ensure fresh multidestination and departure data
   const refreshTripData = async () => {
@@ -218,8 +218,12 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
     .filter((d) => d.status === "upcoming")
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const pastDepartures = allDepartures
-    .filter((d) => d.status === "completed" || d.status === "cancelled")
+  const completedDepartures = allDepartures
+    .filter((d) => d.status === "completed")
+    .sort((a, b) => b.date.localeCompare(a.date));
+
+  const cancelledDepartures = allDepartures
+    .filter((d) => d.status === "cancelled")
     .sort((a, b) => b.date.localeCompare(a.date));
 
   // Max travellers derived from departures or trip setting
@@ -277,6 +281,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         notes: data.notes,
       });
       await refreshTripData();
+      void refreshTrips();
       setIsAddingDeparture(false);
       showToast("Departure added successfully.", "success");
     } catch (err: unknown) {
@@ -299,6 +304,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         notes: data.notes,
       });
       await refreshTripData();
+      void refreshTrips();
       setEditingDeparture(null);
       showToast("Departure updated successfully.", "success");
     } catch (err: unknown) {
@@ -313,6 +319,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
     try {
       await tripsApi.updateDeparture(inst.id, { status: "completed" });
       await refreshTripData();
+      void refreshTrips();
       showToast("Departure marked as completed.", "success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to complete departure";
@@ -321,26 +328,16 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   };
 
   const handleCancelDeparture = async (inst: TripInstance) => {
-    try {
-      await tripsApi.updateDeparture(inst.id, { status: "cancelled" });
-      await refreshTripData();
-      showToast("Departure cancelled.", "info");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to cancel departure";
-      showToast(msg, "error");
-    }
-  };
-
-  const handleDeleteDeparture = async (inst: TripInstance) => {
-    if (!window.confirm(`Are you sure you want to delete the departure on ${inst.displayDate || inst.date}? This action cannot be undone.`)) {
+    if (!window.confirm(`Are you sure you want to cancel the departure on ${inst.displayDate || inst.date}? It will be moved to cancelled departures.`)) {
       return;
     }
     try {
-      await tripsApi.deleteDeparture(inst.id);
+      await tripsApi.updateDeparture(inst.id, { status: "cancelled" });
       await refreshTripData();
-      showToast("Departure deleted successfully.", "success");
+      void refreshTrips();
+      showToast("Departure cancelled and moved to cancelled departures.", "info");
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to delete departure";
+      const msg = err instanceof Error ? err.message : "Failed to cancel departure";
       showToast(msg, "error");
     }
   };
@@ -566,7 +563,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   </button>
                 </div>
 
-                {/* Tabs: Upcoming vs Past */}
+                {/* Tabs: Upcoming vs Completed vs Cancelled */}
                 <div className="flex gap-2 border-b border-[#e2e8f0] mb-4">
                   <button
                     onClick={() => setDepartureTab("upcoming")}
@@ -579,14 +576,24 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                     Upcoming ({upcomingDepartures.length})
                   </button>
                   <button
-                    onClick={() => setDepartureTab("past")}
+                    onClick={() => setDepartureTab("completed")}
                     className={`pb-2.5 px-3 text-sm font-medium border-b-2 transition cursor-pointer ${
-                      departureTab === "past"
+                      departureTab === "completed"
                         ? "border-[#0f2922] text-[#0f2922]"
                         : "border-transparent text-[#718096] hover:text-[#0f2922]"
                     }`}
                   >
-                    Past & Completed ({pastDepartures.length})
+                    Completed ({completedDepartures.length})
+                  </button>
+                  <button
+                    onClick={() => setDepartureTab("cancelled")}
+                    className={`pb-2.5 px-3 text-sm font-medium border-b-2 transition cursor-pointer ${
+                      departureTab === "cancelled"
+                        ? "border-[#0f2922] text-[#0f2922]"
+                        : "border-transparent text-[#718096] hover:text-[#0f2922]"
+                    }`}
+                  >
+                    Cancelled ({cancelledDepartures.length})
                   </button>
                 </div>
 
@@ -620,7 +627,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                               {d.notes && (
                                 <>
                                   <span>•</span>
-                                  <span className="italic">{d.notes}</span>
+                                  <span className="italic text-[#4a5568]">✦ {d.notes}</span>
                                 </>
                               )}
                             </div>
@@ -628,51 +635,40 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                           <div className="flex items-center gap-2 shrink-0">
                             <button
                               onClick={() => setEditingDeparture(d)}
-                              className="border border-[#e2e8f0] text-[#0f2922] hover:bg-[#f7f8f5] text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                              className="text-[#4a5568] hover:text-[#0f2922] transition text-xs border border-[#e2e8f0] hover:border-[#0f2922] px-2.5 py-1 rounded-lg cursor-pointer"
                             >
                               Edit
                             </button>
                             <button
                               onClick={() => handleCompleteDeparture(d)}
-                              className="bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                              className="text-green-600 hover:text-green-800 transition text-xs border border-green-200 hover:border-green-600 px-2.5 py-1 rounded-lg cursor-pointer"
                             >
                               Complete
                             </button>
                             <button
                               onClick={() => handleCancelDeparture(d)}
-                              className="border border-red-200 text-red-600 hover:bg-red-50 text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
+                              className="text-red-500 hover:text-red-700 transition text-xs border border-red-200 hover:border-red-500 px-2.5 py-1 rounded-lg cursor-pointer"
                             >
                               Cancel
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDeparture(d)}
-                              className="border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
-                              title="Delete departure"
-                            >
-                              Delete
                             </button>
                           </div>
                         </div>
                       ))}
                     </div>
                   )
-                ) : (
-                  pastDepartures.length === 0 ? (
+                ) : departureTab === "completed" ? (
+                  completedDepartures.length === 0 ? (
                     <div className="bg-[#f7f8f5] rounded-xl p-8 text-center text-[#718096] text-sm">
-                      No past departures recorded for this trip.
+                      No completed departures recorded for this trip.
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {pastDepartures.map((d) => (
+                      {completedDepartures.map((d) => (
                         <div key={d.id} className="bg-[#fafbfa] border border-[#e2e8f0] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 opacity-80 hover:opacity-100 transition">
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-semibold text-[#4a5568] text-sm">{d.displayDate}</span>
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${
-                                d.status === "completed"
-                                  ? "bg-gray-100 text-gray-700 border border-gray-200"
-                                  : "bg-red-50 text-red-700 border border-red-200"
-                              }`}>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize bg-gray-100 text-gray-700 border border-gray-200">
                                 {d.status}
                               </span>
                             </div>
@@ -680,23 +676,41 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                               <span>Price: ₹{d.price.toLocaleString("en-IN")}</span>
                               <span>•</span>
                               <span>Total Spots: {d.spotsTotal}</span>
-                              {d.notes && <span>• {d.notes}</span>}
+                              {d.notes && <span>• ✦ {d.notes}</span>}
                             </div>
                           </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <button
-                              onClick={() => setEditingDeparture(d)}
-                              className="border border-[#e2e8f0] text-[#4a5568] hover:bg-white text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
-                            >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDeleteDeparture(d)}
-                              className="border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
-                              title="Delete departure"
-                            >
-                              Delete
-                            </button>
+                          <div className="text-xs text-[#a0aec0] italic shrink-0">
+                            Completed (Read-only)
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )
+                ) : (
+                  cancelledDepartures.length === 0 ? (
+                    <div className="bg-[#f7f8f5] rounded-xl p-8 text-center text-[#718096] text-sm">
+                      No cancelled departures recorded for this trip.
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      {cancelledDepartures.map((d) => (
+                        <div key={d.id} className="bg-[#fafbfa] border border-[#fecaca]/50 rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 opacity-75 hover:opacity-100 transition">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold text-[#4a5568] text-sm line-through">{d.displayDate}</span>
+                              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize bg-red-50 text-red-700 border border-red-200">
+                                {d.status}
+                              </span>
+                            </div>
+                            <div className="text-xs text-[#718096] mt-1 flex flex-wrap items-center gap-3">
+                              <span>Price: ₹{d.price.toLocaleString("en-IN")}</span>
+                              <span>•</span>
+                              <span>Total Spots: {d.spotsTotal}</span>
+                              {d.notes && <span>• ✦ {d.notes}</span>}
+                            </div>
+                          </div>
+                          <div className="text-xs text-red-400 italic shrink-0">
+                            Cancelled
                           </div>
                         </div>
                       ))}
@@ -1037,13 +1051,19 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                           <div className="text-[11px] text-[#718096]">
                             {d.spotsLeft} {d.spotsLeft === 1 ? "spot" : "spots"} remaining
                           </div>
+                          {d.notes && (
+                            <div className="text-[11px] text-[#4a5568] mt-1.5 italic flex items-center gap-1.5 bg-[#f7f8f5] px-2.5 py-1 rounded-md border border-[#e2e8f0]/60">
+                              <span className="text-[#e8622a] text-xs">✦</span>
+                              <span className="line-clamp-1">{d.notes}</span>
+                            </div>
+                          )}
                         </div>
                         <div className="text-right">
                           <div className="text-sm font-bold text-[#e8622a]">
                             ₹{d.price.toLocaleString("en-IN")}
                           </div>
                           <button
-                            onClick={() => openEnquiryModal(tripId)}
+                            onClick={() => openEnquiryModal(tripId, d.id)}
                             className="text-[11px] text-[#0f2922] hover:text-[#e8622a] font-medium underline cursor-pointer"
                           >
                             Book this date

@@ -33,7 +33,12 @@ const envSchema = z.object({
   AWS_ENDPOINT_URL_S3: z.string().url().optional().or(z.literal("")),
   AWS_ACCESS_KEY_ID: z.string().optional().or(z.literal("")),
   AWS_SECRET_ACCESS_KEY: z.string().optional().or(z.literal("")),
-  AWS_REGION: z.string().default("ap-southeast-1")
+  AWS_REGION: z.string().default("ap-southeast-1"),
+  ADMIN_WHATSAPP_NUMBER: z.string().default("919876543210"),
+  WHATSAPP_PROVIDER: z.string().optional().or(z.literal("")),
+  WHATSAPP_API_BASE_URL: z.string().url().optional().or(z.literal("")),
+  WHATSAPP_API_TOKEN: z.string().optional().or(z.literal("")),
+  WHATSAPP_TEMPLATE_NEW_ENQUIRY: z.string().optional().or(z.literal(""))
 });
 
 export const env = envSchema.parse(process.env);
@@ -50,5 +55,10 @@ export const isStorageConfigured = Boolean(
   env.AWS_ENDPOINT_URL_S3 &&
   env.AWS_ACCESS_KEY_ID &&
   env.AWS_SECRET_ACCESS_KEY
+);
+export const isWhatsAppProviderConfigured = Boolean(
+  env.WHATSAPP_PROVIDER &&
+  env.WHATSAPP_API_BASE_URL &&
+  env.WHATSAPP_API_TOKEN
 );
 

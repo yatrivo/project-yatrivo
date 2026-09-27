@@ -201,7 +201,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
 }
 
 export default function AdminTripInstances() {
-  const { trips, tripInstances, setTripInstances, showToast } = useApp();
+  const { trips, tripInstances, setTripInstances, showToast, refreshTrips } = useApp();
 
   const [editingInstance, setEditingInstance] = useState<TripInstance | null>(null);
   const [completingInstance, setCompletingInstance] = useState<TripInstance | null>(null);
@@ -231,44 +231,54 @@ export default function AdminTripInstances() {
     setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? updated : inst)));
     setEditingInstance(null);
     try {
-      await tripsApi.updateDeparture(updated.tripId, updated.id, {
-        startDate: updated.date,
+      await tripsApi.updateDeparture(updated.id, {
+        date: updated.date,
+        displayDate: updated.displayDate,
         price: updated.price,
-        totalCapacity: updated.spotsTotal,
+        spotsTotal: updated.spotsTotal,
         notes: updated.notes,
         status: updated.status,
       });
-      showToast("Trip instance updated.", "success");
-    } catch {
-      showToast("Trip instance updated locally.", "info");
+      await refreshTrips();
+      showToast("Trip departure updated.", "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update departure";
+      showToast(msg, "error");
     }
   };
 
   const handleComplete = async (updated: TripInstance) => {
-    setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? updated : inst)));
+    setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? { ...inst, status: "completed" as const } : inst)));
     setCompletingInstance(null);
     try {
-      await tripsApi.updateDeparture(updated.tripId, updated.id, {
+      await tripsApi.updateDeparture(updated.id, {
         status: "completed",
         notes: updated.notes,
       });
+      await refreshTrips();
       showToast("Trip marked as completed.", "success");
-    } catch {
-      showToast("Trip marked as completed locally.", "info");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to complete departure";
+      showToast(msg, "error");
     }
   };
 
   const handleCancel = async (inst: TripInstance) => {
+    if (!window.confirm(`Are you sure you want to cancel the departure on ${inst.displayDate || inst.date}? It will be moved to cancelled departures.`)) {
+      return;
+    }
     setTripInstances(
       tripInstances.map((i) => (i.id === inst.id ? { ...i, status: "cancelled" as const } : i))
     );
     try {
-      await tripsApi.updateDeparture(inst.tripId, inst.id, {
+      await tripsApi.updateDeparture(inst.id, {
         status: "cancelled",
       });
-      showToast("Trip instance cancelled.", "info");
-    } catch {
-      showToast("Trip instance cancelled locally.", "info");
+      await refreshTrips();
+      showToast("Trip departure cancelled.", "info");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to cancel departure";
+      showToast(msg, "error");
     }
   };
 
@@ -322,14 +332,13 @@ export default function AdminTripInstances() {
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#4a5568] uppercase tracking-wider">Price</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#4a5568] uppercase tracking-wider">Spots</th>
                 <th className="text-left px-4 py-3 text-xs font-semibold text-[#4a5568] uppercase tracking-wider">Status</th>
-                <th className="text-left px-4 py-3 text-xs font-semibold text-[#4a5568] uppercase tracking-wider">Photos</th>
                 <th className="text-right px-4 py-3 text-xs font-semibold text-[#4a5568] uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f4f8]">
               {sorted.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="text-center py-12 text-[#a0aec0] text-sm">No trip instances found.</td>
+                  <td colSpan={6} className="text-center py-12 text-[#a0aec0] text-sm">No trip instances found.</td>
                 </tr>
               )}
               {sorted.map((inst) => {
@@ -363,39 +372,30 @@ export default function AdminTripInstances() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {inst.completedPhotos && inst.completedPhotos.length > 0 ? (
-                        <div className="flex gap-1">
-                          {inst.completedPhotos.slice(0, 3).map((url, i) => (
-                            <img key={i} src={url} alt="" className="w-8 h-8 rounded object-cover border border-[#e2e8f0]" />
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="text-[#a0aec0] text-xs">—</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
                       <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => setEditingInstance(inst)}
-                          className="text-[#4a5568] hover:text-[#0f2922] transition text-xs border border-[#e2e8f0] hover:border-[#0f2922] px-2.5 py-1 rounded-lg"
-                        >
-                          Edit
-                        </button>
-                        {inst.status === "upcoming" && (
+                        {inst.status === "upcoming" ? (
                           <>
                             <button
+                              onClick={() => setEditingInstance(inst)}
+                              className="text-[#4a5568] hover:text-[#0f2922] transition text-xs border border-[#e2e8f0] hover:border-[#0f2922] px-2.5 py-1 rounded-lg cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                            <button
                               onClick={() => setCompletingInstance(inst)}
-                              className="text-green-600 hover:text-green-800 transition text-xs border border-green-200 hover:border-green-600 px-2.5 py-1 rounded-lg"
+                              className="text-green-600 hover:text-green-800 transition text-xs border border-green-200 hover:border-green-600 px-2.5 py-1 rounded-lg cursor-pointer"
                             >
                               Complete
                             </button>
                             <button
                               onClick={() => handleCancel(inst)}
-                              className="text-red-500 hover:text-red-700 transition text-xs border border-red-200 hover:border-red-500 px-2.5 py-1 rounded-lg"
+                              className="text-red-500 hover:text-red-700 transition text-xs border border-red-200 hover:border-red-500 px-2.5 py-1 rounded-lg cursor-pointer"
                             >
                               Cancel
                             </button>
                           </>
+                        ) : (
+                          <span className="text-[#a0aec0] text-xs">—</span>
                         )}
                       </div>
                     </td>

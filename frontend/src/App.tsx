@@ -23,6 +23,7 @@ import TravelWithUsPage from "@/pages/TravelWithUsPage";
 import PastTripsPage from "@/pages/PastTripsPage";
 import CompletedTripDetailPage from "@/pages/CompletedTripDetailPage";
 import ProfilePage from "@/pages/ProfilePage";
+import CustomerBookingDetailsPage from "@/pages/CustomerBookingDetailsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
 
 // Admin components
@@ -36,6 +37,7 @@ import AdminTripEditor from "@/admin/AdminTripEditor";
 import AdminTripInstances from "@/admin/AdminTripInstances";
 import AdminDestinations from "@/admin/AdminDestinations";
 import AdminBookings from "@/admin/AdminBookings";
+import AdminBookingDetail from "@/admin/AdminBookingDetail";
 import AdminUsers from "@/admin/AdminUsers";
 import AdminReviews from "@/admin/AdminReviews";
 import AdminMedia from "@/admin/AdminMedia";
@@ -112,6 +114,9 @@ export default function App() {
           <Route path="/profile" element={<Navigate to="/" replace />} />
         </Route>
 
+        {/* Public Secure Booking Details Form */}
+        <Route path="/booking-details/:token" element={<CustomerBookingDetailsPage />} />
+
         {/* Admin Login Route */}
         <Route path="/admin/login" element={<AdminLogin />} />
 
@@ -129,6 +134,7 @@ export default function App() {
           <Route path="destinations" element={<AdminDestinations />} />
           <Route path="destinations/:slug" element={<DestinationDetailPage adminMode={true} />} />
           <Route path="bookings" element={<AdminBookings />} />
+          <Route path="bookings/:id" element={<AdminBookingDetail />} />
           <Route path="users" element={<AdminUsers />} />
           <Route path="reviews" element={<AdminReviews />} />
           <Route path="media" element={<AdminMedia />} />

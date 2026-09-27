@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
 import { destinationsApi } from "@/api/destinations";
 import { tripsApi } from "@/api/trips";
+import { enquiriesApi } from "@/api/enquiries";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
@@ -22,12 +23,20 @@ export interface Enquiry {
   travelDate: string;
   travellers: string;
   submittedAt: string;
-  status: "Received" | "Contacted" | "Quoted" | "Confirmed" | "Lost" | "Cancelled";
+  status: "Received" | "Contacted" | "Quoted" | "In Discussion" | "Converted" | "Confirmed" | "Closed" | "Lost" | "Cancelled";
   name: string;
   phone: string;
   email: string;
-  pickupCity: string;
+  pickupCity?: string;
   message: string;
+  tripId?: string;
+  tripInstanceId?: string;
+  budgetLabel?: string;
+  enquiryNumber?: string;
+  source?: string;
+  assignedToUserId?: string | null;
+  assignedToName?: string | null;
+  assignedToEmail?: string | null;
 }
 
 export interface Traveller {
@@ -138,11 +147,13 @@ interface AppContextType {
   // Enquiries
   enquiries: Enquiry[];
   addEnquiry: (e: Enquiry) => void;
+  refreshEnquiries: () => Promise<void>;
 
   // Enquiry modal
   enquiryModalOpen: boolean;
   enquiryTripId: string;
-  openEnquiryModal: (tripId: string) => void;
+  enquiryDepartureId?: string;
+  openEnquiryModal: (tripId: string, departureId?: string) => void;
   closeEnquiryModal: () => void;
 
   // Toast
@@ -301,6 +312,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   ]);
   const [enquiryModalOpen, setEnquiryModalOpen] = useState(false);
   const [enquiryTripId, setEnquiryTripId] = useState("");
+  const [enquiryDepartureId, setEnquiryDepartureId] = useState<string | undefined>(undefined);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [adminLoggedIn, setAdminLoggedIn] = useState<boolean>(hasSavedToken);
   const [adminUser, setAdminUser] = useState<AdminUser | null>(() => tokenStorage.getUser());
@@ -384,13 +396,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setBookings((prev) => [b, ...prev]);
   }, []);
 
-  const openEnquiryModal = useCallback((tripId: string) => {
+  const openEnquiryModal = useCallback((tripId: string, departureId?: string) => {
     setEnquiryTripId(tripId);
+    setEnquiryDepartureId(departureId);
     setEnquiryModalOpen(true);
   }, []);
 
   const closeEnquiryModal = useCallback(() => {
     setEnquiryModalOpen(false);
+    setEnquiryDepartureId(undefined);
   }, []);
 
   const showToast = useCallback((message: string, type: Toast["type"] = "success") => {
@@ -530,17 +544,63 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshEnquiries = useCallback(async () => {
+    try {
+      const data = await enquiriesApi.list();
+      if (data.enquiries && Array.isArray(data.enquiries)) {
+        const mapped: Enquiry[] = data.enquiries.map((e) => {
+          let statusLabel: Enquiry["status"] = "Received";
+          const s = e.status.toLowerCase();
+          if (s === "contacted") statusLabel = "Contacted";
+          else if (s === "quoted") statusLabel = "Quoted";
+          else if (s === "in_discussion") statusLabel = "In Discussion";
+          else if (s === "converted") statusLabel = "Converted";
+          else if (s === "confirmed") statusLabel = "Confirmed";
+          else if (s === "closed") statusLabel = "Closed";
+          else if (s === "lost") statusLabel = "Lost";
+          else if (s === "cancelled") statusLabel = "Cancelled";
+
+          return {
+            id: e.id,
+            enquiryNumber: e.enquiryNumber,
+            tripName: e.tripName || "Custom Himalayan Expedition",
+            destination: e.destinationLabel || "Uttarakhand",
+            travelDate: e.requestedTravelDate || "Flexible",
+            travellers: String(e.requestedTravellerCount || 1),
+            submittedAt: e.submittedAt,
+            status: statusLabel,
+            name: e.customerName,
+            phone: e.customerPhone,
+            email: e.customerEmail || "",
+            message: e.message || "",
+            tripId: e.tripId || undefined,
+            tripInstanceId: e.tripInstanceId || undefined,
+            budgetLabel: e.budgetLabel || undefined,
+            source: e.source,
+            assignedToUserId: e.assignedToUserId,
+            assignedToName: e.assignedToName,
+            assignedToEmail: e.assignedToEmail
+          };
+        });
+        setEnquiries(mapped);
+      }
+    } catch (err) {
+      console.warn("Failed to load enquiries from backend:", err);
+    }
+  }, []);
+
   useEffect(() => {
     void refreshDestinations();
     void refreshTrips();
-  }, [refreshDestinations, refreshTrips, adminLoggedIn]);
+    void refreshEnquiries();
+  }, [refreshDestinations, refreshTrips, refreshEnquiries, adminLoggedIn]);
 
   return (
     <AppContext.Provider value={{
       page, pageParams, navigate,
       savedItems, toggleSave, isSaved,
-      enquiries, addEnquiry,
-      enquiryModalOpen, enquiryTripId, openEnquiryModal, closeEnquiryModal,
+      enquiries, addEnquiry, refreshEnquiries,
+      enquiryModalOpen, enquiryTripId, enquiryDepartureId, openEnquiryModal, closeEnquiryModal,
       toasts, showToast,
       adminLoggedIn, adminRole, adminUser, adminLogin, adminLogout,
       splashDone, setSplashDone,
