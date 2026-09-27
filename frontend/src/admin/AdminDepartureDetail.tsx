@@ -122,7 +122,11 @@ export default function AdminDepartureDetail() {
   // Preview replacement computation
   const previewTraveller = useMemo(() => {
     if (!dep) return null;
-    return dep.enrolledTravellers.find((t) => t.bookingId === previewBookingId) || dep.enrolledTravellers[0] || null;
+    return (
+      dep.enrolledTravellers.find((t) => t.id === previewBookingId || t.bookingId === previewBookingId) ||
+      dep.enrolledTravellers[0] ||
+      null
+    );
   }, [dep, previewBookingId]);
 
   const renderedPreviewMessage = useMemo(() => {
@@ -132,7 +136,7 @@ export default function AdminDepartureDetail() {
     const link = `${siteUrl}/review?token=${dummyToken}`;
 
     return template
-      .replace(/\{\{customer_name\}\}/g, previewTraveller.primaryContactName)
+      .replace(/\{\{customer_name\}\}/g, previewTraveller.passengerName || previewTraveller.primaryContactName)
       .replace(/\{\{destination\}\}/g, dep.destinationName)
       .replace(/\{\{trip_name\}\}/g, dep.tripName)
       .replace(/\{\{package_name\}\}/g, dep.durationLabel || `${dep.durationDays || 3} Days Trip`)
@@ -151,17 +155,17 @@ export default function AdminDepartureDetail() {
     if (selectedBookingIds.size === eligible.length) {
       setSelectedBookingIds(new Set());
     } else {
-      setSelectedBookingIds(new Set(eligible.map((t) => t.bookingId)));
+      setSelectedBookingIds(new Set(eligible.map((t) => t.id)));
     }
   };
 
-  const handleToggleBooking = (bookingId: string) => {
+  const handleToggleBooking = (travellerId: string) => {
     setSelectedBookingIds((prev) => {
       const next = new Set(prev);
-      if (next.has(bookingId)) {
-        next.delete(bookingId);
+      if (next.has(travellerId)) {
+        next.delete(travellerId);
       } else {
-        next.add(bookingId);
+        next.add(travellerId);
       }
       return next;
     });
@@ -524,16 +528,27 @@ export default function AdminDepartureDetail() {
                     : null;
 
                   return (
-                    <tr key={traveller.bookingId} className="hover:bg-[#fafafa] transition">
+                    <tr key={traveller.id} className="hover:bg-[#fafafa] transition">
                       <td className="px-4 py-3.5">
-                        <div className="font-semibold text-[#0f2922] text-sm">
-                          {traveller.primaryContactName}
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-[#0f2922] text-sm">
+                            {traveller.passengerName || traveller.primaryContactName}
+                          </span>
+                          <span
+                            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                              traveller.isPrimaryContact
+                                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                : "bg-gray-100 text-gray-600"
+                            }`}
+                          >
+                            {traveller.isPrimaryContact ? "Primary Booker" : "Passenger"}
+                          </span>
                         </div>
                       </td>
                       <td className="px-4 py-3.5">
-                        <div className="text-xs font-medium text-[#0f2922]">{traveller.primaryContactPhone}</div>
-                        {traveller.primaryContactEmail && (
-                          <div className="text-[11px] text-[#718096]">{traveller.primaryContactEmail}</div>
+                        <div className="text-xs font-medium text-[#0f2922]">{traveller.passengerPhone || traveller.primaryContactPhone}</div>
+                        {(traveller.passengerEmail || traveller.primaryContactEmail) && (
+                          <div className="text-[11px] text-[#718096]">{traveller.passengerEmail || traveller.primaryContactEmail}</div>
                         )}
                       </td>
                       <td className="px-4 py-3.5 text-center">
@@ -591,8 +606,8 @@ export default function AdminDepartureDetail() {
                           ) : (
                             <button
                               onClick={() => {
-                                setSelectedBookingIds(new Set([traveller.bookingId]));
-                                setPreviewBookingId(traveller.bookingId);
+                                setSelectedBookingIds(new Set([traveller.id]));
+                                setPreviewBookingId(traveller.id);
                                 setCreatedRequests(null);
                                 setShowAskModal(true);
                               }}
@@ -788,13 +803,13 @@ export default function AdminDepartureDetail() {
 
                 <div className="border border-[#e2e8f0] rounded-xl overflow-hidden divide-y divide-[#f0f4f8] max-h-48 overflow-y-auto">
                   {dep.enrolledTravellers.map((traveller) => {
-                    const isSelected = selectedBookingIds.has(traveller.bookingId);
+                    const isSelected = selectedBookingIds.has(traveller.id);
                     return (
                       <div
-                        key={traveller.bookingId}
+                        key={traveller.id}
                         onClick={() => {
-                          handleToggleBooking(traveller.bookingId);
-                          setPreviewBookingId(traveller.bookingId);
+                          handleToggleBooking(traveller.id);
+                          setPreviewBookingId(traveller.id);
                         }}
                         className={`px-4 py-2.5 flex items-center justify-between text-xs cursor-pointer transition ${
                           isSelected ? "bg-[#0f2922]/5" : "hover:bg-gray-50"
@@ -808,9 +823,20 @@ export default function AdminDepartureDetail() {
                             className="w-4 h-4 text-[#0f2922] rounded border-gray-300 focus:ring-[#0f2922]"
                           />
                           <div>
-                            <span className="font-bold text-[#0f2922]">{traveller.primaryContactName}</span>
+                            <span className="font-bold text-[#0f2922]">
+                              {traveller.passengerName || traveller.primaryContactName}
+                            </span>
+                            <span
+                              className={`text-[9px] font-semibold px-1.5 py-0.5 rounded ml-2 ${
+                                traveller.isPrimaryContact
+                                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                  : "bg-gray-100 text-gray-600"
+                              }`}
+                            >
+                              {traveller.isPrimaryContact ? "Primary Booker" : "Passenger"}
+                            </span>
                             <span className="text-[#718096] ml-2 font-mono">({traveller.bookingNumber})</span>
-                            <span className="text-[#a0aec0] ml-2">📱 {traveller.primaryContactPhone}</span>
+                            <span className="text-[#a0aec0] ml-2">📱 {traveller.passengerPhone || traveller.primaryContactPhone}</span>
                           </div>
                         </div>
 
@@ -908,8 +934,8 @@ export default function AdminDepartureDetail() {
                         className="text-xs border border-[#e2e8f0] rounded-lg px-2 py-1 bg-white focus:outline-none"
                       >
                         {dep.enrolledTravellers.map((t) => (
-                          <option key={t.bookingId} value={t.bookingId}>
-                            Preview for: {t.primaryContactName}
+                          <option key={t.id} value={t.id}>
+                            Preview for: {t.passengerName || t.primaryContactName} ({t.isPrimaryContact ? "Booker" : "Passenger"})
                           </option>
                         ))}
                       </select>
@@ -958,7 +984,7 @@ export default function AdminDepartureDetail() {
                       const waUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(req.personalizedMessage)}`;
 
                       return (
-                        <div key={req.bookingId} className="py-2.5 flex items-center justify-between gap-3 text-xs">
+                        <div key={req.reviewToken || `${req.bookingId}_${req.customerName}`} className="py-2.5 flex items-center justify-between gap-3 text-xs">
                           <div>
                             <span className="font-bold text-[#0f2922]">{req.customerName}</span>
                             <span className="text-[#718096] ml-2">📱 {req.customerPhone}</span>

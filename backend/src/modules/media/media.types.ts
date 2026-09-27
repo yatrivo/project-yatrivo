@@ -27,6 +27,7 @@ export interface MediaAssetDto {
   destinationName: string | null;
   destinationSlug: string | null;
   category: string;
+  categories?: string[];
   label: string | null;
   altText: string | null;
   storageBucket: string | null;

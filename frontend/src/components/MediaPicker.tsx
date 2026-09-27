@@ -663,14 +663,6 @@ export default function MediaPicker({
                                 </svg>
                               </div>
                             )}
-
-                            {/* Destination badge if associated */}
-                            {img.destinationName && (
-                              <div className="absolute top-2 left-2 bg-[#0f2922]/80 backdrop-blur-2xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                                <span>🏔️</span>
-                                <span>{img.destinationName}</span>
-                              </div>
-                            )}
                           </div>
 
                           {/* Metadata Card Footer */}
@@ -679,11 +671,13 @@ export default function MediaPicker({
                               <p className="font-semibold text-[#0f2922] truncate text-[11px]" title={img.label || img.url}>
                                 {img.label || "Untitled Asset"}
                               </p>
-                              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-[#718096]">
-                                <span className="capitalize bg-[#f7f8f5] px-1.5 py-0.2 rounded border border-[#e2e8f0]">
-                                  {img.category.replace("_", " ")}
-                                </span>
-                                {formattedDate && <span>• {formattedDate}</span>}
+                              <div className="flex items-center gap-1 mt-1 text-[10px] text-[#718096] flex-wrap">
+                                {(img.categories && img.categories.length > 0 ? img.categories : [img.category]).map((c) => (
+                                  <span key={c} className="capitalize bg-[#f7f8f5] px-1.5 py-0.5 rounded border border-[#e2e8f0] text-[9px] font-medium text-[#0f2922]">
+                                    {c}
+                                  </span>
+                                ))}
+                                {formattedDate && <span className="text-[10px] text-[#a0aec0]">• {formattedDate}</span>}
                               </div>
                             </div>
 

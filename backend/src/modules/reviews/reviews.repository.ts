@@ -221,15 +221,18 @@ export const reviewsRepository = {
       ? "completed"
       : "upcoming";
 
-    // 2. Fetch enrolled bookings with their review requests and submitted reviews
+    // 2. Fetch all individual enrolled passengers with their review requests and submitted reviews
     const travellersRes = await query<{
+      traveller_id: string | null;
       booking_id: string;
       booking_number: string;
       enquiry_number: string | null;
-      primary_contact_name: string;
-      primary_contact_phone: string;
-      primary_contact_email: string | null;
-      traveller_count: number;
+      passenger_name: string;
+      passenger_phone: string;
+      passenger_email: string | null;
+      sort_order: number;
+      is_primary_contact: boolean;
+      total_booking_pax: number;
       booking_status: string;
       review_request_id: string | null;
       review_token: string | null;
@@ -237,17 +240,81 @@ export const reviewsRepository = {
       review_id: string | null;
       review_rating: number | null;
     }>(
-      `SELECT b.id as booking_id, b.booking_number, e.enquiry_number,
-              b.primary_contact_name, b.primary_contact_phone, b.primary_contact_email,
-              b.traveller_count, b.status::text as booking_status,
-              rr.id as review_request_id, rr.token as review_token, rr.status as request_status,
-              r.id as review_id, r.rating as review_rating
-       FROM bookings b
-       LEFT JOIN enquiries e ON e.id = b.enquiry_id
-       LEFT JOIN review_requests rr ON rr.booking_id = b.id AND rr.trip_instance_id = $1
-       LEFT JOIN reviews r ON (r.booking_id = b.id OR r.review_request_id = rr.id) AND r.trip_instance_id = $1
-       WHERE b.trip_instance_id = $1 AND b.status != 'cancelled'
-       ORDER BY b.created_at ASC`,
+      `WITH booking_passengers AS (
+        -- Passengers from booking_travellers
+        SELECT
+          bt.id as traveller_id,
+          b.id as booking_id,
+          b.booking_number,
+          e.enquiry_number,
+          bt.full_name as passenger_name,
+          COALESCE(NULLIF(TRIM(bt.phone), ''), b.primary_contact_phone) as passenger_phone,
+          COALESCE(NULLIF(TRIM(bt.email), ''), b.primary_contact_email) as passenger_email,
+          bt.sort_order,
+          CASE WHEN bt.sort_order = 1 OR bt.full_name = b.primary_contact_name THEN true ELSE false END as is_primary_contact,
+          b.traveller_count as total_booking_pax,
+          b.status::text as booking_status,
+          b.created_at as booking_created_at
+        FROM bookings b
+        JOIN booking_travellers bt ON bt.booking_id = b.id
+        LEFT JOIN enquiries e ON e.id = b.enquiry_id
+        WHERE b.trip_instance_id = $1 AND b.status != 'cancelled'
+
+        UNION ALL
+
+        -- Fallback for bookings with NO booking_travellers rows
+        SELECT
+          NULL::uuid as traveller_id,
+          b.id as booking_id,
+          b.booking_number,
+          e.enquiry_number,
+          b.primary_contact_name as passenger_name,
+          b.primary_contact_phone as passenger_phone,
+          b.primary_contact_email as passenger_email,
+          1 as sort_order,
+          true as is_primary_contact,
+          b.traveller_count as total_booking_pax,
+          b.status::text as booking_status,
+          b.created_at as booking_created_at
+        FROM bookings b
+        LEFT JOIN enquiries e ON e.id = b.enquiry_id
+        WHERE b.trip_instance_id = $1 
+          AND b.status != 'cancelled'
+          AND NOT EXISTS (SELECT 1 FROM booking_travellers bt WHERE bt.booking_id = b.id)
+      )
+      SELECT
+        bp.*,
+        latest_rr.id as review_request_id,
+        latest_rr.token as review_token,
+        latest_rr.status as request_status,
+        latest_r.id as review_id,
+        latest_r.rating as review_rating
+      FROM booking_passengers bp
+      LEFT JOIN LATERAL (
+        SELECT rr.id, rr.token, rr.status
+        FROM review_requests rr
+        WHERE rr.booking_id = bp.booking_id
+          AND rr.trip_instance_id = $1
+          AND (
+            (bp.traveller_id IS NOT NULL AND rr.booking_traveller_id = bp.traveller_id)
+            OR (rr.booking_traveller_id IS NULL AND (bp.is_primary_contact = true OR rr.customer_name = bp.passenger_name))
+          )
+        ORDER BY rr.created_at DESC
+        LIMIT 1
+      ) latest_rr ON true
+      LEFT JOIN LATERAL (
+        SELECT r.id, r.rating
+        FROM reviews r
+        WHERE (r.booking_id = bp.booking_id OR (latest_rr.id IS NOT NULL AND r.review_request_id = latest_rr.id))
+          AND r.trip_instance_id = $1
+          AND (
+            (bp.traveller_id IS NOT NULL AND r.booking_traveller_id = bp.traveller_id)
+            OR (r.booking_traveller_id IS NULL AND (bp.is_primary_contact = true OR r.reviewer_name = bp.passenger_name))
+          )
+        ORDER BY r.submitted_at DESC
+        LIMIT 1
+      ) latest_r ON true
+      ORDER BY bp.booking_created_at ASC, bp.sort_order ASC`,
       [instanceId]
     );
 
@@ -259,14 +326,22 @@ export const reviewsRepository = {
         reqStatus = "sent";
       }
 
+      const id = row.traveller_id || `book_${row.booking_id}`;
+
       return {
+        id,
+        travellerId: row.traveller_id,
         bookingId: row.booking_id,
         bookingNumber: row.booking_number,
         enquiryNumber: row.enquiry_number,
-        primaryContactName: row.primary_contact_name,
-        primaryContactPhone: row.primary_contact_phone,
-        primaryContactEmail: row.primary_contact_email,
-        passengerCount: row.traveller_count,
+        passengerName: row.passenger_name,
+        primaryContactName: row.passenger_name,
+        passengerPhone: row.passenger_phone,
+        primaryContactPhone: row.passenger_phone,
+        passengerEmail: row.passenger_email,
+        primaryContactEmail: row.passenger_email,
+        isPrimaryContact: Boolean(row.is_primary_contact),
+        passengerCount: row.total_booking_pax,
         bookingStatus: row.booking_status,
         reviewRequestStatus: reqStatus,
         reviewRequestId: row.review_request_id,
@@ -347,6 +422,7 @@ export const reviewsRepository = {
 
   async createReviewRequest(data: {
     bookingId: string;
+    bookingTravellerId?: string | null;
     tripId: string;
     tripInstanceId: string;
     customerName: string;
@@ -360,10 +436,10 @@ export const reviewsRepository = {
 
     const res = await query<ReviewRequestRecord>(
       `INSERT INTO review_requests (
-        token_hash, token, booking_id, trip_id, trip_instance_id,
+        token_hash, token, booking_id, booking_traveller_id, trip_id, trip_instance_id,
         customer_name, customer_phone, customer_email, custom_message,
         status, sent_at, created_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', now(), $10)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', now(), $11)
       ON CONFLICT (token_hash) DO UPDATE
         SET token = EXCLUDED.token, custom_message = EXCLUDED.custom_message, sent_at = now()
       RETURNING *`,
@@ -371,6 +447,7 @@ export const reviewsRepository = {
         tokenHash,
         rawToken,
         data.bookingId,
+        data.bookingTravellerId || null,
         data.tripId,
         data.tripInstanceId,
         data.customerName,
@@ -386,6 +463,7 @@ export const reviewsRepository = {
       id: r.id,
       token: rawToken,
       bookingId: r.booking_id,
+      bookingTravellerId: r.booking_traveller_id || null,
       tripId: r.trip_id,
       tripInstanceId: r.trip_instance_id,
       customerName: r.customer_name || "",
@@ -417,6 +495,7 @@ export const reviewsRepository = {
       token: string;
       token_hash: string;
       booking_id: string;
+      booking_traveller_id: string | null;
       trip_id: string;
       trip_instance_id: string;
       customer_name: string;
@@ -456,6 +535,7 @@ export const reviewsRepository = {
         id: r.id,
         token: r.token || token,
         bookingId: r.booking_id,
+        bookingTravellerId: r.booking_traveller_id || null,
         bookingNumber: r.booking_number,
         tripId: r.trip_id,
         tripInstanceId: r.trip_instance_id,
@@ -486,6 +566,7 @@ export const reviewsRepository = {
     let tripId: string;
     let tripInstanceId: string | null = null;
     let bookingId: string | null = null;
+    let bookingTravellerId: string | null = null;
     let destinationId: string | null = null;
     let reviewRequestId: string | null = null;
     let reviewerName = input.reviewerName?.trim() || "Verified Traveller";
@@ -494,6 +575,7 @@ export const reviewsRepository = {
       tripId = reqContext.tripId;
       tripInstanceId = reqContext.tripInstanceId;
       bookingId = reqContext.request.bookingId;
+      bookingTravellerId = reqContext.request.bookingTravellerId || null;
       reviewRequestId = reqContext.request.id;
       reviewerName = reqContext.customerName || reviewerName;
 
@@ -524,14 +606,15 @@ export const reviewsRepository = {
     // Insert review into reviews table with status 'pending'
     const res = await query<ReviewRecord>(
       `INSERT INTO reviews (
-        review_request_id, booking_id, trip_id, trip_instance_id, destination_id,
+        review_request_id, booking_id, booking_traveller_id, trip_id, trip_instance_id, destination_id,
         reviewer_name, reviewer_avatar_initials, rating, body,
         status, photo_urls, submitted_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'pending', $10, now())
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, now())
       RETURNING *`,
       [
         reviewRequestId,
         bookingId,
+        bookingTravellerId,
         tripId,
         tripInstanceId,
         destinationId,

@@ -28,12 +28,18 @@ export interface ReviewItem {
 }
 
 export interface EnrolledTraveller {
+  id: string;
+  travellerId?: string | null;
   bookingId: string;
   bookingNumber: string;
   enquiryNumber?: string | null;
+  passengerName: string;
   primaryContactName: string;
+  passengerPhone: string;
   primaryContactPhone: string;
+  passengerEmail?: string | null;
   primaryContactEmail?: string | null;
+  isPrimaryContact: boolean;
   passengerCount: number;
   bookingStatus: string;
   reviewRequestStatus: "not_requested" | "sent" | "submitted";

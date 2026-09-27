@@ -512,19 +512,6 @@ export default function AdminMedia() {
                             "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&fit=crop";
                         }}
                       />
-
-                      {/* Destination Badge */}
-                      {img.destinationName && (
-                        <div className="absolute top-2 left-2 bg-[#0f2922]/85 backdrop-blur-2xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
-                          <span>🏔️</span>
-                          <span>{img.destinationName}</span>
-                        </div>
-                      )}
-
-                      {/* Category Badge */}
-                      <div className="absolute bottom-2 left-2 bg-black/60 backdrop-blur-2xs text-white text-[9px] font-medium px-1.5 py-0.2 rounded capitalize">
-                        {img.category.replace("_", " ")}
-                      </div>
                     </div>
 
                     {/* Card Body */}
@@ -598,11 +585,15 @@ export default function AdminMedia() {
                       {selectedAsset.destinationName || "General / Unassigned"}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#718096]">Category:</span>
-                    <span className="capitalize font-medium text-[#0f2922]">
-                      {selectedAsset.category.replace("_", " ")}
-                    </span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[#718096]">Sections:</span>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {(selectedAsset.categories && selectedAsset.categories.length > 0 ? selectedAsset.categories : [selectedAsset.category]).map((c) => (
+                        <span key={c} className="capitalize font-medium text-[10px] px-1.5 py-0.5 rounded bg-white border border-[#e2e8f0] text-[#0f2922]">
+                          {c}
+                        </span>
+                      ))}
+                    </div>
                   </div>
                   {selectedAsset.createdAt && (
                     <div className="flex justify-between pt-1 border-t border-[#e2e8f0]">

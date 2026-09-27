@@ -67,6 +67,7 @@ export interface ReviewRequestRecord {
   token_hash: string;
   token: string | null;
   booking_id: string | null;
+  booking_traveller_id?: string | null;
   trip_id: string | null;
   trip_instance_id: string | null;
   customer_name: string | null;
@@ -85,6 +86,7 @@ export interface ReviewRequestDto {
   id: string;
   token: string;
   bookingId: string | null;
+  bookingTravellerId?: string | null;
   bookingNumber?: string | null;
   tripId: string | null;
   tripInstanceId: string | null;
@@ -98,12 +100,18 @@ export interface ReviewRequestDto {
 }
 
 export interface EnrolledTravellerDto {
+  id: string;
+  travellerId?: string | null;
   bookingId: string;
   bookingNumber: string;
   enquiryNumber?: string | null;
+  passengerName: string;
   primaryContactName: string;
+  passengerPhone: string;
   primaryContactPhone: string;
+  passengerEmail?: string | null;
   primaryContactEmail?: string | null;
+  isPrimaryContact: boolean;
   passengerCount: number;
   bookingStatus: string;
   reviewRequestStatus: "not_requested" | "sent" | "submitted";

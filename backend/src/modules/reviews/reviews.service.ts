@@ -92,16 +92,22 @@ export const reviewsService = {
     const createdRequests: ReviewRequestDto[] = [];
     const siteUrl = env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",")[0].trim() : "http://localhost:3000";
 
-    for (const bookingId of bookingIds) {
-      const traveller = departure.enrolledTravellers.find((t) => t.bookingId === bookingId);
+    for (const targetId of bookingIds) {
+      const traveller = departure.enrolledTravellers.find(
+        (t) => t.id === targetId || t.travellerId === targetId || t.bookingId === targetId
+      );
       if (!traveller) continue;
 
-      // Personalize template with specific traveller context
+      const passengerName = traveller.passengerName || traveller.primaryContactName;
+      const passengerPhone = traveller.passengerPhone || traveller.primaryContactPhone;
+      const passengerEmail = traveller.passengerEmail || traveller.primaryContactEmail;
+
+      // Personalize template with specific passenger context
       const tempToken = `rev_${Math.random().toString(36).substring(2, 12)}`;
       const reviewUrl = `${siteUrl}/review?token=${tempToken}`;
 
       let personalized = customMessageTemplate
-        .replace(/{{customer_name}}/g, traveller.primaryContactName)
+        .replace(/{{customer_name}}/g, passengerName)
         .replace(/{{destination}}/g, departure.destinationName)
         .replace(/{{trip_name}}/g, departure.tripName)
         .replace(/{{package_name}}/g, departure.tripName)
@@ -113,11 +119,12 @@ export const reviewsService = {
 
       const request = await reviewsRepository.createReviewRequest({
         bookingId: traveller.bookingId,
+        bookingTravellerId: traveller.travellerId || null,
         tripId: departure.tripId,
         tripInstanceId: departure.id,
-        customerName: traveller.primaryContactName,
-        customerPhone: traveller.primaryContactPhone,
-        customerEmail: traveller.primaryContactEmail,
+        customerName: passengerName,
+        customerPhone: passengerPhone,
+        customerEmail: passengerEmail,
         customMessage: personalized,
         userId
       });
@@ -126,7 +133,7 @@ export const reviewsService = {
       const actualReviewUrl = `${siteUrl}/review?token=${request.token}`;
       request.reviewLink = actualReviewUrl;
       request.customMessage = customMessageTemplate
-        .replace(/{{customer_name}}/g, traveller.primaryContactName)
+        .replace(/{{customer_name}}/g, passengerName)
         .replace(/{{destination}}/g, departure.destinationName)
         .replace(/{{trip_name}}/g, departure.tripName)
         .replace(/{{package_name}}/g, departure.tripName)
@@ -142,7 +149,8 @@ export const reviewsService = {
         {
           departureId: instanceId,
           bookingId: traveller.bookingId,
-          customerName: traveller.primaryContactName,
+          travellerId: traveller.travellerId,
+          customerName: passengerName,
           token: request.token
         },
         "Review request created and prepared for WhatsApp delivery"
@@ -152,9 +160,11 @@ export const reviewsService = {
     return {
       requests: createdRequests,
       created: createdRequests.map((r) => ({
+        id: r.bookingTravellerId || r.bookingId,
         bookingId: r.bookingId,
         bookingNumber: r.bookingNumber,
         customerName: r.customerName,
+        passengerName: r.customerName,
         customerPhone: r.customerPhone,
         reviewToken: r.token,
         token: r.token,

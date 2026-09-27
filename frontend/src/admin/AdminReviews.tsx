@@ -227,7 +227,7 @@ export default function AdminReviews() {
                 <tr className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-semibold border-b border-[#e2e8f0]">
                   <th className="px-4 py-3 text-left">Reviewer</th>
                   <th className="px-4 py-3 text-left">Rating</th>
-                  <th className="px-4 py-3 text-left">Review & Photos</th>
+                  <th className="px-4 py-3 text-left">Review</th>
                   <th className="px-4 py-3 text-left">Trip & Departure</th>
                   <th className="px-4 py-3 text-left">Date</th>
                   <th className="px-4 py-3 text-left">Status</th>
@@ -262,22 +262,9 @@ export default function AdminReviews() {
                       <td className="px-4 py-3 text-[#4a5568] max-w-xs">
                         <p className="line-clamp-2 text-xs leading-relaxed">{r.body}</p>
                         {r.photoUrls && r.photoUrls.length > 0 && (
-                          <div className="flex gap-1.5 mt-1.5">
-                            {r.photoUrls.map((photoUrl, pIdx) => (
-                              <button
-                                key={pIdx}
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setActivePhoto(photoUrl);
-                                }}
-                                className="block w-7 h-7 rounded-lg border border-[#e2e8f0] overflow-hidden hover:opacity-80 transition cursor-pointer"
-                                title="View customer photo"
-                              >
-                                <img src={photoUrl} alt="" className="w-full h-full object-cover" />
-                              </button>
-                            ))}
-                          </div>
+                          <span className="inline-flex items-center gap-1 mt-1 text-[10px] text-[#718096] bg-gray-100 px-1.5 py-0.5 rounded font-medium">
+                            📷 {r.photoUrls.length} {r.photoUrls.length === 1 ? "photo" : "photos"}
+                          </span>
                         )}
                       </td>
                       <td className="px-4 py-3 text-xs">
