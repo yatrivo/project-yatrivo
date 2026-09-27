@@ -839,23 +839,23 @@ export default function AdminDestinations() {
 
                   {/* Primary Experience Tag Pill */}
                   {dest.experienceTags && dest.experienceTags.length > 0 && (
-                    <span className="absolute top-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm">
+                    <span className="absolute top-2.5 left-2.5 text-[10px] font-medium tracking-wide rounded-full px-2 py-0.5 bg-black/40 backdrop-blur-md text-white/90 border border-white/15">
                       {dest.experienceTags[0]}
                     </span>
                   )}
 
                   {/* Status Pill */}
-                  <div className="absolute top-3 right-3">
+                  <div className="absolute top-2.5 right-2.5">
                     {isArchived ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-amber-100 text-amber-800 border border-amber-300 shadow-sm">
-                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 bg-black/40 backdrop-blur-md text-gray-200 border border-white/15">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                         Archived
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-sm">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="inline-flex items-center gap-1 text-[10px] font-medium rounded-full px-2 py-0.5 bg-black/40 backdrop-blur-md text-emerald-300 border border-emerald-400/25">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400/80" />
                         Active
                       </span>
                     )}
@@ -867,13 +867,13 @@ export default function AdminDestinations() {
                   <div>
                     <div className="flex items-start justify-between gap-2">
                       <h3
-                        className={`font-semibold text-base group-hover:text-[#e8622a] transition-colors ${isArchived ? "text-[#4a5568]" : "text-[#0f2922]"}`}
+                        className={`font-semibold text-base group-hover:text-[#e8622a] transition-colors line-clamp-1 ${isArchived ? "text-[#4a5568]" : "text-[#0f2922]"}`}
                         style={{ fontFamily: "var(--font-serif, serif)" }}
                       >
                         {dest.name}
                       </h3>
                       {dest.elevation && (
-                        <span className="text-[11px] text-[#718096] bg-gray-100 px-2 py-0.5 rounded shrink-0">
+                        <span className="text-[10px] text-[#718096] bg-black/[0.04] border border-black/[0.06] px-1.5 py-0.5 rounded shrink-0">
                           {dest.elevation}
                         </span>
                       )}
@@ -881,26 +881,11 @@ export default function AdminDestinations() {
 
                     <p className="text-[#718096] text-xs mt-1 line-clamp-1">{dest.tagline || dest.description}</p>
 
-                    <div className="flex items-center gap-3 text-[#718096] text-xs mt-3">
+                    <div className="flex items-center gap-3 text-[#718096] text-xs mt-2.5">
                       <span>{dest.activities?.length || 0} activities</span>
                       <span>•</span>
                       <span>{dest.highlights?.length || 0} highlights</span>
                     </div>
-
-                    {dest.experienceTags && dest.experienceTags.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mt-2.5">
-                        {dest.experienceTags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="text-[10px] bg-[#f0f9f4] text-[#0f2922] px-2 py-0.5 rounded font-medium border border-[#c3dfd3]">
-                            {tag}
-                          </span>
-                        ))}
-                        {dest.experienceTags.length > 3 && (
-                          <span className="text-[10px] text-[#718096] px-1 py-0.5">
-                            +{dest.experienceTags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
 
                     {isArchived && (
                       <div className="mt-3 bg-amber-50/80 border border-amber-200/60 rounded-md px-2.5 py-1.5 text-[11px] text-amber-800 flex items-center gap-1.5">

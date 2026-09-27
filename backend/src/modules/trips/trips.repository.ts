@@ -250,12 +250,16 @@ export const tripsRepository = {
     const params: unknown[] = [];
 
     if (!filters.includeArchived) {
-      conditions.push(`t.archived_at IS NULL`);
+      conditions.push(`t.archived_at IS NULL AND t.status != 'archived'`);
     }
 
     if (filters.status && filters.status !== "all") {
-      params.push(filters.status);
-      conditions.push(`t.status = $${params.length}`);
+      if (filters.status === "published" || filters.status === "active") {
+        conditions.push(`t.status IN ('published', 'active')`);
+      } else {
+        params.push(filters.status);
+        conditions.push(`t.status = $${params.length}`);
+      }
     }
 
     if (filters.category && filters.category !== "all" && filters.category !== "All") {
@@ -318,7 +322,7 @@ export const tripsRepository = {
        FROM trips t
        LEFT JOIN media_assets m ON m.id = t.cover_media_id
        ${whereClause}
-       ORDER BY t.sort_order ASC, t.created_at DESC
+       ORDER BY (CASE WHEN t.status = 'archived' THEN 1 ELSE 0 END) ASC, t.sort_order ASC, t.created_at DESC
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
       dataParams
     );
@@ -640,11 +644,11 @@ export const tripsRepository = {
         $5, $6, $7,
         $8, $9, $10, $11,
         $12, $13, $14,
-        'active', $15, $16,
-        $17, $18,
-        $19, $20, $21,
-        $22, $23,
-        $24, $24
+        $15, $16, $17,
+        $18, $19,
+        $20, $21, $22,
+        $23, $24,
+        $25, $25
       ) RETURNING *`,
       [
         slug,
@@ -661,6 +665,7 @@ export const tripsRepository = {
         input.cancellationPolicy || null,
         input.badge || null,
         input.startingPoint || null,
+        input.status || "published",
         input.sortOrder || 0,
         input.isFeatured || false,
         input.seoTitle || null,
@@ -835,6 +840,15 @@ export const tripsRepository = {
       params.push(input.seoDescription || null);
       updates.push(`seo_description = $${params.length}`);
     }
+    if (input.status !== undefined) {
+      params.push(input.status);
+      updates.push(`status = $${params.length}`);
+      if (input.status === "archived") {
+        updates.push(`archived_at = now()`);
+      } else {
+        updates.push(`archived_at = NULL`);
+      }
+    }
 
     if (input.coverMediaId !== undefined || input.image !== undefined) {
       const { coverMediaId, coverImageUrl } = await resolveCoverMedia(
@@ -976,7 +990,7 @@ export const tripsRepository = {
 
     await query(
       `UPDATE trips 
-       SET status = 'active', archived_at = null, updated_at = now(), updated_by_user_id = $2
+       SET status = 'published', archived_at = null, updated_at = now(), updated_by_user_id = $2
        WHERE id = $1`,
       [existing.id, userId || null]
     );
@@ -1107,5 +1121,28 @@ export const tripsRepository = {
       status,
       notes: r.notes
     };
+  },
+
+  async deleteDeparture(instanceId: string): Promise<boolean> {
+    const cur = await query<{ id: string; trip_id: string }>(
+      `SELECT id, trip_id FROM trip_instances WHERE id = $1`,
+      [instanceId]
+    );
+    if (cur.rows.length === 0) return false;
+
+    // Check if there are active bookings
+    const bookings = await query<{ count: string }>(
+      `SELECT COUNT(*) FROM bookings WHERE trip_instance_id = $1 AND status != 'cancelled'`,
+      [instanceId]
+    );
+    if (parseInt(bookings.rows[0]?.count || "0", 10) > 0) {
+      // Soft cancel if bookings exist
+      await query(`UPDATE trip_instances SET is_cancelled = true, cancelled_at = now() WHERE id = $1`, [instanceId]);
+      return true;
+    }
+
+    // Otherwise delete instance
+    await query(`DELETE FROM trip_instances WHERE id = $1`, [instanceId]);
+    return true;
   }
 };

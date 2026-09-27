@@ -38,6 +38,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
   const existingTrip = id ? trips.find((t) => t.id === id || t.slug === id) : null;
   const [activeSection, setActiveSection] = useState<Section>("basic");
   const [saving, setSaving] = useState(false);
+  const [tripStatus, setTripStatus] = useState<"draft" | "published" | "active" | "archived">(existingTrip?.status || "published");
 
   // Available existing destinations from API
   const [availableDestinations, setAvailableDestinations] = useState<Destination[]>(appDestinations);
@@ -77,6 +78,63 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
     ""
   );
   const [overview, setOverview] = useState(existingTrip?.overview ?? "");
+
+  // Load fresh trip data from API on edit
+  useEffect(() => {
+    let isMounted = true;
+    if (id) {
+      tripsApi.getOne(id).then((fresh) => {
+        if (!isMounted || !fresh) return;
+        setTripName(fresh.name || "");
+        setTripImage(fresh.image || "");
+        setCoverMediaId(fresh.coverMediaId || null);
+        setDuration(fresh.duration || "4 Days / 3 Nights");
+        setCategory((fresh.category as CategoryValue) || "trekking");
+        setDifficulty((fresh.difficulty as any) || "Moderate");
+        setBadge(fresh.badge || "");
+        setStartingPoint(fresh.startingPoint || "Dehradun");
+        setShortDesc(fresh.shortDescription || "");
+        setOverview(fresh.overview || "");
+        setPrice(String(fresh.price || 9999));
+        setSlug(fresh.slug || "");
+        setMetaTitle(fresh.seoTitle || "");
+        setMetaDesc(fresh.seoDescription || "");
+        setTripStatus(fresh.status || "published");
+        if (fresh.destinations && fresh.destinations.length > 0) {
+          setSelectedDestinationIds(fresh.destinations.map((d) => d.id));
+          const prim = fresh.destinations.find((d) => d.isPrimary) || fresh.destinations[0];
+          setPrimaryDestinationId(prim.id);
+        }
+        if (fresh.highlights && fresh.highlights.length > 0) {
+          setHighlightCards(
+            fresh.highlights.map((h: any) =>
+              typeof h === "string"
+                ? { icon: "📍", label: "Highlight", value: h }
+                : { icon: h.icon || "📍", label: h.label || "Highlight", value: h.value || "" }
+            )
+          );
+        }
+        if (fresh.faqs && fresh.faqs.length > 0) {
+          setFaqs(fresh.faqs);
+        }
+        if (fresh.itinerary && fresh.itinerary.length > 0) {
+          setDays(fresh.itinerary.map((d) => ({ title: d.title, description: d.description })));
+        }
+        if (fresh.inclusions && fresh.inclusions.length > 0) {
+          setInclusions(fresh.inclusions);
+        }
+        if (fresh.exclusions && fresh.exclusions.length > 0) {
+          setExclusions(fresh.exclusions);
+        }
+        if (fresh.gallery && fresh.gallery.length > 0) {
+          setGalleryUrls(fresh.gallery);
+        }
+      }).catch((err) => {
+        console.warn("Could not fetch trip for editing:", err);
+      });
+    }
+    return () => { isMounted = false; };
+  }, [id]);
   const [highlights, setHighlights] = useState<string[]>(() => {
     if (Array.isArray(existingTrip?.highlights)) {
       const strings = (existingTrip.highlights as any[]).filter((h) => typeof h === "string");
@@ -222,6 +280,25 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
       return next;
     });
 
+  const isEditing = Boolean(id && existingTrip);
+  const isCurrentlyPublished = tripStatus === "published" || tripStatus === "active";
+  const isCurrentlyDraft = tripStatus === "draft";
+
+  const handleAutoGenerateSeo = () => {
+    const destNames = availableDestinations
+      .filter((d) => selectedDestinationIds.includes(d.id))
+      .map((d) => d.name)
+      .join(" & ");
+    const genTitle = `${tripName} | Yatrivo Curated Himalayan Expeditions`;
+    const genDesc = `Explore ${tripName}${destNames ? ` covering ${destNames}` : ""}. Curated ${duration} expedition with certified mountain guides, handpicked stays, and mindful small groups. Book with Yatrivo.`;
+    const genSlug = tripName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+
+    setMetaTitle(genTitle);
+    setMetaDesc(genDesc);
+    if (!slug) setSlug(genSlug);
+    showToast("SEO details generated from trip info!", "info");
+  };
+
   // Form saving
   const handleSave = async (publish: boolean) => {
     if (!tripName.trim()) {
@@ -247,6 +324,20 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
       showToast("Price must be greater than 0", "error");
       setActiveSection("pricing");
       return;
+    }
+
+    // Determine target status
+    let targetStatus: "draft" | "published" | "active" | "archived" = "published";
+    if (isEditing) {
+      if (isCurrentlyPublished) {
+        targetStatus = "published";
+      } else if (isCurrentlyDraft) {
+        targetStatus = publish ? "published" : "draft";
+      } else if (tripStatus === "archived") {
+        targetStatus = publish ? "published" : "archived";
+      }
+    } else {
+      targetStatus = publish ? "published" : "draft";
     }
 
     setSaving(true);
@@ -285,14 +376,22 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         exclusions: cleanExclusions,
         seoTitle: metaTitle.trim() || undefined,
         seoDescription: metaDesc.trim() || undefined,
+        status: targetStatus
       };
 
-      if (existingTrip) {
-        await tripsApi.update(existingTrip.id, payload);
-        showToast(publish ? "Trip updated and published!" : "Draft updated!", "success");
+      if (isEditing) {
+        await tripsApi.update(existingTrip!.id, payload);
+        showToast(
+          targetStatus === "draft"
+            ? "Draft updated successfully!"
+            : isCurrentlyDraft && targetStatus === "published"
+            ? "Trip published successfully!"
+            : "Trip changes saved!",
+          "success"
+        );
       } else {
         await tripsApi.create(payload);
-        showToast(publish ? "Trip created and published!" : "Draft created!", "success");
+        showToast(publish ? "Trip created and published!" : "Trip saved as draft!", "success");
       }
 
       await refreshTrips();
@@ -1014,39 +1113,118 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
           )}
 
           {activeSection === "seo" && (
-            <div className="space-y-4">
-              <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                SEO & URL
-              </h2>
-              <div>
-                <label className="block text-sm font-medium text-[#4a5568] mb-1">Meta Title</label>
-                <input
-                  value={metaTitle}
-                  onChange={(e) => setMetaTitle(e.target.value)}
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
-                  placeholder="e.g. Chopta Tungnath Trek Package | Yatrivo"
-                />
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    SEO & Search Visibility
+                  </h2>
+                  <p className="text-xs text-[#718096] mt-0.5">
+                    Configure search engine titles, descriptions, and view live Google search previews.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleAutoGenerateSeo}
+                  className="text-xs bg-[#f0f9f4] text-[#0f2922] border border-[#a3bfb5] hover:bg-[#e2f3ea] font-semibold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>✨</span> Auto-fill from Trip Details
+                </button>
               </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4a5568] mb-1">Meta Description</label>
-                <textarea
-                  value={metaDesc}
-                  onChange={(e) => setMetaDesc(e.target.value)}
-                  rows={3}
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none resize-none"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-[#4a5568] mb-1">URL Slug</label>
-                <div className="flex items-center border border-[#e2e8f0] rounded-lg overflow-hidden focus-within:border-[#0f2922]">
-                  <span className="px-3 py-2 text-sm text-[#a0aec0] bg-[#f7f8f5] border-r border-[#e2e8f0]">
-                    yatrivo.com/trips/
+
+              {/* Live Google Search Preview */}
+              <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-sm space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#718096] flex items-center gap-1.5">
+                    <svg className="w-3.5 h-3.5 text-blue-500" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14.5v-9l6 4.5-6 4.5z"/>
+                    </svg>
+                    Google Search Result Preview
                   </span>
+                  <span className="text-[11px] text-[#a0aec0]">What travellers see on Google</span>
+                </div>
+
+                <div className="bg-[#f8f9fa] border border-[#dadce0] rounded-xl p-4 space-y-1.5 text-left">
+                  <div className="flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-[#0f2922] flex items-center justify-center text-white text-[10px] font-bold">
+                      Y
+                    </div>
+                    <div className="text-xs leading-none">
+                      <span className="font-medium text-[#202124] block">Yatrivo</span>
+                      <span className="text-[#5f6368] text-[11px] truncate block max-w-sm">
+                        https://yatrivo.com › trips › {slug || "trip-slug"}
+                      </span>
+                    </div>
+                  </div>
+                  <h3 className="text-[#1a0dab] hover:underline text-base sm:text-lg font-medium cursor-pointer leading-snug line-clamp-1">
+                    {metaTitle || (tripName ? `${tripName} | Yatrivo` : "Curated Himalayan Expedition | Yatrivo")}
+                  </h3>
+                  <p className="text-[#4d5156] text-xs leading-relaxed line-clamp-2">
+                    {metaDesc || shortDesc || overview?.slice(0, 150) || "Experience mindful Himalayan adventures with Yatrivo. Enjoy small groups, handpicked mountain stays, and certified guides."}
+                  </p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-[#4a5568]">Meta Title</label>
+                    <span className={`text-[11px] font-medium ${
+                      metaTitle.length >= 40 && metaTitle.length <= 60
+                        ? "text-emerald-600"
+                        : metaTitle.length > 60
+                        ? "text-red-500 font-semibold"
+                        : "text-[#a0aec0]"
+                    }`}>
+                      {metaTitle.length} / 60 characters
+                    </span>
+                  </div>
                   <input
-                    value={slug}
-                    onChange={(e) => setSlug(e.target.value)}
-                    className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                    value={metaTitle}
+                    onChange={(e) => setMetaTitle(e.target.value)}
+                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                    placeholder="e.g. Chopta Tungnath Trek Package | Yatrivo"
                   />
+                  <p className="text-[11px] text-[#a0aec0] mt-1">Recommended: 50–60 characters. Appears as the main clickable headline in search results.</p>
+                </div>
+
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-sm font-medium text-[#4a5568]">Meta Description</label>
+                    <span className={`text-[11px] font-medium ${
+                      metaDesc.length >= 120 && metaDesc.length <= 160
+                        ? "text-emerald-600"
+                        : metaDesc.length > 160
+                        ? "text-red-500 font-semibold"
+                        : "text-[#a0aec0]"
+                    }`}>
+                      {metaDesc.length} / 160 characters
+                    </span>
+                  </div>
+                  <textarea
+                    value={metaDesc}
+                    onChange={(e) => setMetaDesc(e.target.value)}
+                    rows={3}
+                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+                    placeholder="e.g. Join our mindful 4-day Chopta Tungnath trek in Uttarakhand. Small groups, organic meals, and certified local guides..."
+                  />
+                  <p className="text-[11px] text-[#a0aec0] mt-1">Recommended: 120–160 characters. Summarizes the adventure on search engines and social shares.</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-[#4a5568] mb-1">URL Slug</label>
+                  <div className="flex items-center border border-[#e2e8f0] rounded-lg overflow-hidden focus-within:border-[#0f2922]">
+                    <span className="px-3 py-2 text-sm text-[#718096] bg-[#f7f8f5] border-r border-[#e2e8f0]">
+                      yatrivo.com/trips/
+                    </span>
+                    <input
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value)}
+                      placeholder="chopta-trek"
+                      className="flex-1 px-3 py-2 text-sm focus:outline-none"
+                    />
+                  </div>
+                  <p className="text-[11px] text-[#a0aec0] mt-1">Unique, lowercase, hyphen-separated identifier for the web address.</p>
                 </div>
               </div>
             </div>
@@ -1054,23 +1232,52 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         </div>
 
         {/* Bottom actions */}
-        <div className="sticky bottom-0 bg-white border-t border-[#e2e8f0] px-6 py-4 flex gap-3">
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(false)}
-            className="border border-[#0f2922] text-[#0f2922] hover:bg-[#f7f8f5] disabled:opacity-50 text-sm font-semibold px-6 py-2.5 rounded-lg transition"
+        <div className="sticky bottom-0 bg-white border-t border-[#e2e8f0] px-6 py-4 flex items-center justify-between z-20">
+          <Link
+            to="/admin/trips"
+            onClick={() => setAdminPage?.("trips")}
+            className="text-xs text-[#718096] hover:text-[#0f2922] font-medium transition inline-flex items-center gap-1"
           >
-            {saving ? "Saving..." : "Save Draft"}
-          </button>
-          <button
-            type="button"
-            disabled={saving}
-            onClick={() => handleSave(true)}
-            className="bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition"
-          >
-            {saving ? "Publishing..." : "Publish Trip"}
-          </button>
+            ← Cancel & Return to Trips
+          </Link>
+
+          <div className="flex items-center gap-3">
+            {/* Show Save Draft ONLY if:
+                1. New trip mode (!isEditing), OR
+                2. Editing a trip that is currently a DRAFT!
+                NEVER show Save Draft if editing a PUBLISHED trip! */}
+            {(!isEditing || isCurrentlyDraft) && (
+              <button
+                type="button"
+                disabled={saving}
+                onClick={() => handleSave(false)}
+                className="border border-[#0f2922] text-[#0f2922] hover:bg-[#f7f8f5] disabled:opacity-50 text-sm font-semibold px-5 py-2.5 rounded-lg transition cursor-pointer"
+              >
+                {saving ? "Saving..." : "Save Draft"}
+              </button>
+            )}
+
+            <button
+              type="button"
+              disabled={saving}
+              onClick={() => handleSave(true)}
+              className="bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition shadow-sm cursor-pointer inline-flex items-center gap-2"
+            >
+              {saving ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  Saving...
+                </>
+              ) : isEditing && isCurrentlyPublished ? (
+                "Save Changes"
+              ) : (
+                "Publish Trip"
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

@@ -513,8 +513,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const refreshTrips = useCallback(async () => {
     try {
-      const data = await tripsApi.list({ includeArchived: tokenStorage.hasTokens() });
-      if (data.trips && data.trips.length > 0) {
+      const hasAuth = tokenStorage.hasTokens();
+      const data = await tripsApi.list({
+        includeArchived: hasAuth,
+        status: hasAuth ? "all" : "published"
+      });
+      if (data.trips && Array.isArray(data.trips)) {
         setTrips(data.trips);
         const instances = data.trips.flatMap((t) => t.departures || []);
         if (instances.length > 0) {

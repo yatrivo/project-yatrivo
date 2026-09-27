@@ -37,7 +37,7 @@ export const tripsService = {
     isAdmin = false
   ): Promise<{ trips: TripDto[]; total: number }> {
     if (!isAdmin) {
-      filters.status = "active";
+      filters.status = "published";
       filters.includeArchived = false;
     }
 
@@ -199,5 +199,12 @@ export const tripsService = {
 
     await invalidateTripCaches(updated.tripId);
     return updated;
+  },
+
+  async deleteDeparture(instanceId: string): Promise<void> {
+    const success = await tripsRepository.deleteDeparture(instanceId);
+    if (!success) {
+      throw new AppError(404, "DEPARTURE_NOT_FOUND", `Departure '${instanceId}' not found`);
+    }
   }
 };

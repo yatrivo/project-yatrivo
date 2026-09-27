@@ -109,5 +109,15 @@ export const tripsController = {
       data: departure,
       message: "Departure updated successfully"
     });
+  },
+
+  async deleteDeparture(req: Request, res: Response): Promise<void> {
+    const instanceId = String(req.params.instanceId);
+    await tripsService.deleteDeparture(instanceId);
+
+    res.status(200).json({
+      status: "success",
+      message: "Departure deleted successfully"
+    });
   }
 };

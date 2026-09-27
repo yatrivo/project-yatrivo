@@ -377,25 +377,109 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
   );
 }
 
+// ── Confirm Modal ──────────────────────────────────────────────────────────
+
+function ConfirmModal({
+  isOpen,
+  title,
+  message,
+  confirmLabel,
+  confirmVariant = "danger",
+  isSubmitting,
+  onConfirm,
+  onCancel,
+}: {
+  isOpen: boolean;
+  title: string;
+  message: string;
+  confirmLabel: string;
+  confirmVariant?: "danger" | "success";
+  isSubmitting: boolean;
+  onConfirm: () => void;
+  onCancel: () => void;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSubmitting ? undefined : onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
+              confirmVariant === "danger" ? "bg-amber-100 text-amber-600" : "bg-green-100 text-[#0f2922]"
+            }`}
+          >
+            {confirmVariant === "danger" ? (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+            )}
+          </div>
+          <div>
+            <h3 className="font-semibold text-lg text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              {title}
+            </h3>
+          </div>
+        </div>
+
+        <p className="text-[#4a5568] text-sm leading-relaxed">{message}</p>
+
+        <div className="flex gap-3 pt-3">
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={onCancel}
+            className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50 cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={isSubmitting}
+            onClick={onConfirm}
+            className={`flex-1 text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer ${
+              confirmVariant === "danger"
+                ? "bg-[#e8622a] hover:bg-[#d4541f]"
+                : "bg-[#0f2922] hover:bg-[#1a3f35]"
+            }`}
+          >
+            {isSubmitting ? "Processing..." : confirmLabel}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Trip Card ────────────────────────────────────────────────────────────────
 
 interface TripCardProps {
   trip: Trip;
   instances: TripInstance[];
   onEditTrip: () => void;
-  onDeleteTrip: () => void;
+  onArchiveTrip: () => void;
+  onRestoreTrip: () => void;
 }
 
-function TripCard({ trip, instances, onEditTrip, onDeleteTrip }: TripCardProps) {
+function TripCard({ trip, instances, onEditTrip, onArchiveTrip, onRestoreTrip }: TripCardProps) {
   const { destinations } = useApp();
   const navigate = useNavigate();
   const upcoming = instances.filter((i) => i.status === "upcoming").length;
   const tripUrl = `/admin/trips/${trip.slug || trip.id}`;
+  const isArchived = trip.status === "archived";
+  const isDraft = trip.status === "draft";
 
   return (
     <div
       onClick={() => navigate(tripUrl)}
-      className="bg-white rounded-xl border border-[#e2e8f0] shadow-sm overflow-hidden hover:shadow-md transition cursor-pointer flex flex-col justify-between group"
+      className={`bg-white rounded-xl border ${
+        isArchived ? "border-[#cbd5e1] opacity-80" : "border-[#e2e8f0]"
+      } shadow-sm overflow-hidden hover:shadow-md transition cursor-pointer flex flex-col justify-between group`}
     >
       <div>
         {/* Cover Image & Badges */}
@@ -403,38 +487,57 @@ function TripCard({ trip, instances, onEditTrip, onDeleteTrip }: TripCardProps) 
           <img
             src={trip.image}
             alt={trip.name}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+              isArchived ? "grayscale-[50%]" : ""
+            }`}
             onError={(e) => {
               (e.target as HTMLImageElement).src =
                 "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format";
             }}
           />
-          <span className={`absolute top-3 right-3 text-xs font-semibold rounded-full px-2.5 py-1 ${trip.badge ? "bg-[#e8622a] text-white shadow-sm" : "bg-black/60 text-white backdrop-blur-sm"}`}>
-            {trip.badge || "Active"}
-          </span>
-          <span className="absolute bottom-3 left-3 text-[11px] font-semibold rounded-full px-2.5 py-1 bg-black/60 text-white backdrop-blur-sm capitalize">
-            {trip.category}
-          </span>
+          {/* Status badge in top-left */}
+          <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+            {isArchived ? (
+              <span className="bg-black/40 backdrop-blur-md text-gray-200 border border-white/15 text-[10px] font-medium rounded-full px-2 py-0.5">
+                Archived
+              </span>
+            ) : isDraft ? (
+              <span className="bg-black/40 backdrop-blur-md text-amber-300 border border-amber-400/25 text-[10px] font-medium rounded-full px-2 py-0.5">
+                Draft
+              </span>
+            ) : (
+              <span className="bg-black/40 backdrop-blur-md text-emerald-300 border border-emerald-400/25 text-[10px] font-medium rounded-full px-2 py-0.5">
+                Published
+              </span>
+            )}
+          </div>
+
+          {/* Theme/Category tag in top-right */}
+          {(trip.badge || trip.category) && (
+            <span className="absolute top-2.5 right-2.5 text-[10px] font-medium tracking-wide uppercase rounded-full px-2 py-0.5 bg-black/40 backdrop-blur-md text-white/90 border border-white/15">
+              {trip.badge || trip.category}
+            </span>
+          )}
         </div>
 
         {/* Content */}
-        <div className="p-4">
-          <h3 className="font-semibold text-[#0f2922] text-base group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif, serif)" }}>
-            {trip.name}
-          </h3>
-          <p className="text-[#718096] text-xs mt-1 capitalize">
-            {getTripDestinationsLabel(trip, destinations)} · {trip.duration} · {trip.difficulty}
-          </p>
+        <div className="p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <h3 className="font-semibold text-[#0f2922] text-base group-hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              {trip.name}
+            </h3>
+            <p className="text-[#718096] text-xs mt-1 capitalize line-clamp-1">
+              {getTripDestinationsLabel(trip, destinations)} · {trip.duration} · {trip.difficulty}
+            </p>
+          </div>
 
-          <div className="flex items-center justify-between mt-3">
+          <div className="flex items-center justify-between mt-3 pt-1">
             <span className="text-[#e8622a] font-bold text-base">
               ₹{trip.price.toLocaleString("en-IN")}
             </span>
-            <span className={`inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1 rounded-full ${
-              upcoming > 0 ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-gray-100 text-gray-600"
-            }`}>
-              <span className={`w-1.5 h-1.5 rounded-full ${upcoming > 0 ? "bg-blue-600" : "bg-gray-400"}`} />
-              {upcoming > 0 ? `${upcoming} upcoming departure${upcoming !== 1 ? "s" : ""}` : "No upcoming departures"}
+            <span className="inline-flex items-center gap-1 text-[11px] font-normal px-2.5 py-0.5 rounded-full bg-black/[0.03] text-[#718096] border border-black/[0.06]">
+              <span className={`w-1.5 h-1.5 rounded-full ${upcoming > 0 ? "bg-[#38a169]/70" : "bg-[#cbd5e1]"}`} />
+              {upcoming > 0 ? `${upcoming} upcoming` : "No upcoming"}
             </span>
           </div>
         </div>
@@ -448,12 +551,21 @@ function TripCard({ trip, instances, onEditTrip, onDeleteTrip }: TripCardProps) 
         >
           Edit Trip
         </button>
-        <button
-          onClick={onDeleteTrip}
-          className="border border-[#e2e8f0] text-red-500 hover:border-red-300 hover:bg-red-50 text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
-        >
-          Archive
-        </button>
+        {isArchived ? (
+          <button
+            onClick={onRestoreTrip}
+            className="border border-[#e2e8f0] text-emerald-600 hover:border-emerald-300 hover:bg-emerald-50 text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
+          >
+            Restore
+          </button>
+        ) : (
+          <button
+            onClick={onArchiveTrip}
+            className="border border-[#e2e8f0] text-red-500 hover:border-red-300 hover:bg-red-50 text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
+          >
+            Archive
+          </button>
+        )}
       </div>
     </div>
   );
@@ -473,7 +585,14 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
 
   const [search, setSearch] = useState("");
   const [destFilter, setDestFilter] = useState("All");
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft" | "archived">("all");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
+
+  // Archive & Restore confirmation dialog states
+  const [archiveTarget, setArchiveTarget] = useState<Trip | null>(null);
+  const [isArchiving, setIsArchiving] = useState(false);
+  const [unarchiveTarget, setUnarchiveTarget] = useState<Trip | null>(null);
+  const [isUnarchiving, setIsUnarchiving] = useState(false);
 
   // Instance modals
   const [editingInstance, setEditingInstance] = useState<TripInstance | null>(null);
@@ -484,22 +603,41 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
   const [detailInstance, setDetailInstance] = useState<TripInstance | null>(null);
   const [detailTrip, setDetailTrip] = useState<Trip | null>(null);
 
-  const filtered = trips.filter((t) => {
-    const q = search.toLowerCase();
-    const destNames = t.destinations ? t.destinations.map((d) => d.name.toLowerCase()).join(" ") : (t.destination || "").toLowerCase();
-    const matchesDest =
-      destFilter === "All" ||
-      (t.destinations &&
-        t.destinations.some(
-          (d) =>
-            d.id === destFilter ||
-            d.slug === destFilter ||
-            d.name.toLowerCase() === destFilter.toLowerCase()
-        )) ||
-      t.destination === destFilter;
-    const matchesSearch = t.name.toLowerCase().includes(q) || destNames.includes(q);
-    return matchesDest && matchesSearch;
-  });
+  const publishedCount = trips.filter((t) => t.status === "published" || t.status === "active").length;
+  const draftCount = trips.filter((t) => t.status === "draft").length;
+  const archivedCount = trips.filter((t) => t.status === "archived").length;
+
+  const sortedAndFiltered = trips
+    .filter((t) => {
+      const q = search.trim().toLowerCase();
+      const destNames = t.destinations ? t.destinations.map((d) => d.name.toLowerCase()).join(" ") : (t.destination || "").toLowerCase();
+      const matchesDest =
+        destFilter === "All" ||
+        (t.destinations &&
+          t.destinations.some(
+            (d) =>
+              d.id === destFilter ||
+              d.slug === destFilter ||
+              d.name.toLowerCase() === destFilter.toLowerCase()
+          )) ||
+        t.destination === destFilter;
+      const matchesSearch = !q || t.name.toLowerCase().includes(q) || destNames.includes(q);
+
+      let matchesStatus = true;
+      if (statusFilter === "published") matchesStatus = t.status === "published" || t.status === "active";
+      if (statusFilter === "draft") matchesStatus = t.status === "draft";
+      if (statusFilter === "archived") matchesStatus = t.status === "archived";
+
+      return matchesDest && matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      const aArchived = a.status === "archived" ? 1 : 0;
+      const bArchived = b.status === "archived" ? 1 : 0;
+      if (aArchived !== bArchived) {
+        return aArchived - bArchived; // Active and Drafts first, Archived at the bottom!
+      }
+      return (a.sortOrder || 0) - (b.sortOrder || 0);
+    });
 
   const getInstances = (tripId: string) =>
     tripInstances.filter((inst) => inst.tripId === tripId);
@@ -569,15 +707,35 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
     setAddingInstanceTrip(null);
   };
 
-
-  const handleDeleteTrip = async (tripId: string) => {
+  const handleConfirmArchive = async () => {
+    if (!archiveTarget) return;
+    setIsArchiving(true);
     try {
-      await tripsApi.archive(tripId);
+      await tripsApi.archive(archiveTarget.id);
       await refreshTrips();
-      showToast("Trip archived.", "info");
-    } catch {
-      setTrips((prev) => prev.filter((t) => t.id !== tripId));
-      showToast("Trip removed locally.", "info");
+      showToast(`"${archiveTarget.name}" has been archived.`, "info");
+      setArchiveTarget(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to archive trip";
+      showToast(msg, "error");
+    } finally {
+      setIsArchiving(false);
+    }
+  };
+
+  const handleConfirmUnarchive = async () => {
+    if (!unarchiveTarget) return;
+    setIsUnarchiving(true);
+    try {
+      await tripsApi.unarchive(unarchiveTarget.id);
+      await refreshTrips();
+      showToast(`"${unarchiveTarget.name}" restored to published.`, "success");
+      setUnarchiveTarget(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to restore trip";
+      showToast(msg, "error");
+    } finally {
+      setIsUnarchiving(false);
     }
   };
 
@@ -596,55 +754,115 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Trips</h2>
-          <p className="text-[#718096] text-sm mt-0.5">{trips.length} trips · {tripInstances.filter((i) => i.status === "upcoming").length} upcoming departures</p>
+          <p className="text-[#718096] text-sm mt-0.5">
+            {publishedCount} published · {draftCount} drafts · {archivedCount} archived · {tripInstances.filter((i) => i.status === "upcoming").length} upcoming departures
+          </p>
         </div>
         <Link
           to="/admin/trips/new"
           onClick={() => setAdminPage?.("trip-editor")}
-          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition inline-flex items-center gap-1"
+          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition inline-flex items-center gap-1 shadow-sm"
         >
           + Add New Trip
         </Link>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 items-center">
-        <div className="relative">
-          <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search trips..."
-            className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-52 focus:outline-none focus:border-[#0f2922]"
-          />
+      {/* Filters and Status Tabs */}
+      <div className="bg-white p-3 rounded-xl border border-[#e2e8f0] shadow-sm flex flex-wrap gap-3 items-center justify-between">
+        <div className="flex flex-wrap gap-3 items-center flex-1">
+          <div className="relative min-w-[200px]">
+            <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search trips..."
+              className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-full focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+          <select
+            value={destFilter}
+            onChange={(e) => setDestFilter(e.target.value)}
+            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#0f2922]"
+          >
+            <option value="All">All Destinations</option>
+            {destinations.map((d) => (
+              <option key={d.id} value={d.id}>
+                {d.name}
+              </option>
+            ))}
+          </select>
         </div>
-        <select
-          value={destFilter}
-          onChange={(e) => setDestFilter(e.target.value)}
-          className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#0f2922]"
-        >
-          <option value="All">All Destinations</option>
-          {destinations.map((d) => (
-            <option key={d.id} value={d.id}>
-              {d.name}
-            </option>
-          ))}
-        </select>
-        <div className="ml-auto flex gap-1 bg-[#f7f8f5] rounded-lg p-1">
-          <button onClick={() => setViewMode("card")} className={`p-1.5 rounded-md transition ${viewMode === "card" ? "bg-white shadow-sm text-[#0f2922]" : "text-[#a0aec0]"}`}>
+
+        {/* Quick status tabs matching Destinations */}
+        <div className="flex bg-[#f7f8f5] p-1 rounded-lg border border-[#e2e8f0] text-xs font-medium">
+          <button
+            onClick={() => setStatusFilter("all")}
+            className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+              statusFilter === "all" ? "bg-white text-[#0f2922] shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            All ({trips.length})
+          </button>
+          <button
+            onClick={() => setStatusFilter("published")}
+            className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+              statusFilter === "published" ? "bg-white text-emerald-800 shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            Published ({publishedCount})
+          </button>
+          <button
+            onClick={() => setStatusFilter("draft")}
+            className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+              statusFilter === "draft" ? "bg-white text-amber-800 shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            Drafts ({draftCount})
+          </button>
+          <button
+            onClick={() => setStatusFilter("archived")}
+            className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+              statusFilter === "archived" ? "bg-white text-gray-800 shadow-sm font-semibold" : "text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            Archived ({archivedCount})
+          </button>
+        </div>
+
+        {/* View toggle */}
+        <div className="flex gap-1 bg-[#f7f8f5] rounded-lg p-1">
+          <button onClick={() => setViewMode("card")} className={`p-1.5 rounded-md transition cursor-pointer ${viewMode === "card" ? "bg-white shadow-sm text-[#0f2922]" : "text-[#a0aec0]"}`}>
             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 012.5 1h3A1.5 1.5 0 017 2.5v3A1.5 1.5 0 015.5 7h-3A1.5 1.5 0 011 5.5v-3zm8 0A1.5 1.5 0 0110.5 1h3A1.5 1.5 0 0115 2.5v3A1.5 1.5 0 0113.5 7h-3A1.5 1.5 0 019 5.5v-3zm-8 8A1.5 1.5 0 012.5 9h3A1.5 1.5 0 017 10.5v3A1.5 1.5 0 015.5 15h-3A1.5 1.5 0 011 13.5v-3zm8 0A1.5 1.5 0 0110.5 9h3A1.5 1.5 0 0115 10.5v3A1.5 1.5 0 0113.5 15h-3A1.5 1.5 0 019 13.5v-3z"/></svg>
           </button>
-          <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-md transition ${viewMode === "table" ? "bg-white shadow-sm text-[#0f2922]" : "text-[#a0aec0]"}`}>
+          <button onClick={() => setViewMode("table")} className={`p-1.5 rounded-md transition cursor-pointer ${viewMode === "table" ? "bg-white shadow-sm text-[#0f2922]" : "text-[#a0aec0]"}`}>
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg>
           </button>
         </div>
       </div>
 
-      {viewMode === "card" ? (
+      {sortedAndFiltered.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-dashed border-[#cbd5e1] p-12 text-center">
+          <div className="w-12 h-12 rounded-full bg-[#f0f9f4] text-[#0f2922] mx-auto flex items-center justify-center mb-3">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+            </svg>
+          </div>
+          <h3 className="text-base font-semibold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            No trips found
+          </h3>
+          <p className="text-sm text-[#718096] mt-1 max-w-sm mx-auto">
+            {statusFilter === "draft"
+              ? "You don't have any drafted trips yet."
+              : statusFilter === "archived"
+              ? "No trips are currently archived."
+              : "Try adjusting your search query or filters."}
+          </p>
+        </div>
+      ) : viewMode === "card" ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {filtered.map((trip) => (
+          {sortedAndFiltered.map((trip) => (
             <TripCard
               key={trip.id}
               trip={trip}
@@ -653,7 +871,8 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                 setAdminPage?.("trip-editor");
                 navigate(`/admin/trips/${trip.id}/edit`);
               }}
-              onDeleteTrip={() => handleDeleteTrip(trip.id)}
+              onArchiveTrip={() => setArchiveTarget(trip)}
+              onRestoreTrip={() => setUnarchiveTarget(trip)}
             />
           ))}
         </div>
@@ -664,6 +883,7 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
               <thead>
                 <tr className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
                   <th className="px-4 py-3 text-left">Trip</th>
+                  <th className="px-4 py-3 text-left">Status</th>
                   <th className="px-4 py-3 text-left">Destination</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Duration</th>
                   <th className="px-4 py-3 text-left whitespace-nowrap">Price</th>
@@ -672,19 +892,36 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#f0f4f1]">
-                {filtered.map((trip) => {
+                {sortedAndFiltered.map((trip) => {
                   const insts = getInstances(trip.id);
                   const upcoming = insts.filter((i) => i.status === "upcoming").length;
                   const tripUrl = `/admin/trips/${trip.slug || trip.id}`;
+                  const isArchived = trip.status === "archived";
+                  const isDraft = trip.status === "draft";
                   return (
                     <tr
                       key={trip.id}
                       onClick={() => navigate(tripUrl)}
-                      className="hover:bg-[#f7f8f5] transition cursor-pointer"
+                      className={`hover:bg-[#f7f8f5] transition cursor-pointer ${isArchived ? "opacity-75" : ""}`}
                     >
                       <td className="px-4 py-3 flex items-center gap-3">
-                        <img src={trip.image} alt={trip.name} className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        <img src={trip.image} alt={trip.name} className={`w-10 h-10 rounded-lg object-cover shrink-0 ${isArchived ? "grayscale-[50%]" : ""}`} />
                         <span className="font-medium text-[#0f2922] hover:text-[#e8622a] transition-colors line-clamp-1">{trip.name}</span>
+                      </td>
+                      <td className="px-4 py-3 whitespace-nowrap">
+                        {isArchived ? (
+                          <span className="bg-gray-100 text-gray-700 border border-gray-300 text-[11px] font-semibold rounded-full px-2 py-0.5">
+                            Archived
+                          </span>
+                        ) : isDraft ? (
+                          <span className="bg-amber-50 text-amber-700 border border-amber-200 text-[11px] font-semibold rounded-full px-2 py-0.5">
+                            Draft
+                          </span>
+                        ) : (
+                          <span className="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[11px] font-semibold rounded-full px-2 py-0.5">
+                            Published
+                          </span>
+                        )}
                       </td>
                       <td className="px-4 py-3 text-[#4a5568] capitalize">{getTripDestinationsLabel(trip, destinations)}</td>
                       <td className="px-4 py-3 text-[#718096] whitespace-nowrap">{trip.duration}</td>
@@ -693,7 +930,7 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                         <div className="flex items-center gap-1.5 whitespace-nowrap">
                           <span>{insts.length} total</span>
                           {upcoming > 0 && (
-                            <span className="inline-flex items-center whitespace-nowrap bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium text-[11px]">
+                            <span className="inline-flex items-center whitespace-nowrap bg-black/[0.03] text-[#718096] border border-black/[0.06] px-2 py-0.5 rounded-full font-normal text-[11px]">
                               {upcoming} upcoming
                             </span>
                           )}
@@ -704,14 +941,28 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
                           <Link
                             to={`/admin/trips/${trip.id}/edit`}
                             onClick={() => setAdminPage?.("trip-editor")}
-                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition"
+                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-semibold transition"
                           >
                             Edit
                           </Link>
-                          <button onClick={() => handleDeleteTrip(trip.id)} className="text-red-500 hover:text-red-700 text-xs font-medium transition">Archive</button>
+                          {isArchived ? (
+                            <button
+                              onClick={() => setUnarchiveTarget(trip)}
+                              className="text-emerald-600 hover:text-emerald-800 text-xs font-semibold transition cursor-pointer"
+                            >
+                              Restore
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => setArchiveTarget(trip)}
+                              className="text-red-500 hover:text-red-700 text-xs font-semibold transition cursor-pointer"
+                            >
+                              Archive
+                            </button>
+                          )}
                           <button
                             onClick={() => setAddingInstanceTrip(trip)}
-                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition px-2.5 py-1 border border-[#e2e8f0] rounded-lg hover:border-[#0f2922] bg-white shadow-xs inline-flex items-center gap-1 shrink-0"
+                            className="text-[#0f2922] hover:text-[#e8622a] text-xs font-medium transition px-2.5 py-1 border border-[#e2e8f0] rounded-lg hover:border-[#0f2922] bg-white shadow-xs inline-flex items-center gap-1 shrink-0 cursor-pointer"
                           >
                             + Departure
                           </button>
@@ -725,6 +976,29 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
           </div>
         </div>
       )}
+
+      {/* Confirmation Modals for Archive and Restore */}
+      <ConfirmModal
+        isOpen={Boolean(archiveTarget)}
+        title="Archive Trip"
+        message={`Are you sure you want to archive "${archiveTarget?.name}"? It will no longer be visible to visitors on the website, but all past departures and records will be preserved.`}
+        confirmLabel="Archive Trip"
+        confirmVariant="danger"
+        isSubmitting={isArchiving}
+        onConfirm={handleConfirmArchive}
+        onCancel={() => setArchiveTarget(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(unarchiveTarget)}
+        title="Restore Trip"
+        message={`Are you sure you want to restore "${unarchiveTarget?.name}"? It will be moved back to Published status and made visible to visitors.`}
+        confirmLabel="Restore Trip"
+        confirmVariant="success"
+        isSubmitting={isUnarchiving}
+        onConfirm={handleConfirmUnarchive}
+        onCancel={() => setUnarchiveTarget(null)}
+      />
 
       {/* Modals */}
       {editingInstance && (

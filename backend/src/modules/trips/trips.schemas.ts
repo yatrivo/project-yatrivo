@@ -81,7 +81,8 @@ export const createTripSchema = z.object({
   sortOrder: z.coerce.number().int().default(0),
   isFeatured: booleanPreprocess.default(false),
   seoTitle: z.string().trim().optional(),
-  seoDescription: z.string().trim().optional()
+  seoDescription: z.string().trim().optional(),
+  status: z.enum(["draft", "published", "active", "archived"]).optional().default("published")
 });
 
 export const updateTripSchema = z.object({
@@ -130,7 +131,8 @@ export const updateTripSchema = z.object({
   sortOrder: z.coerce.number().int().optional(),
   isFeatured: booleanPreprocess.optional(),
   seoTitle: z.string().trim().optional(),
-  seoDescription: z.string().trim().optional()
+  seoDescription: z.string().trim().optional(),
+  status: z.enum(["draft", "published", "active", "archived"]).optional()
 });
 
 export const tripParamSchema = z.object({

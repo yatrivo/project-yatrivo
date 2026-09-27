@@ -30,9 +30,10 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
   const dest = destinations.find((d) => d.id.toLowerCase() === destId.toLowerCase() || (d.slug && d.slug.toLowerCase() === destId.toLowerCase())) || destinations.find((d) => d.id === "chopta") || destinations[0];
   const destTrips = trips.filter(
     (t) =>
-      (t.destinations && t.destinations.some((d) => d.id === destId || d.slug === destId || (dest && (d.id === dest.id || d.slug === dest.slug)))) ||
+      (!isAdmin ? t.status !== "draft" && t.status !== "archived" : true) &&
+      ((t.destinations && t.destinations.some((d) => d.id === destId || d.slug === destId || (dest && (d.id === dest.id || d.slug === dest.slug)))) ||
       t.destination === destId ||
-      (dest && (t.destination === dest.id || t.destination === dest.slug))
+      (dest && (t.destination === dest.id || t.destination === dest.slug)))
   );
   const destReviews = reviews.filter((r) => (r.destination === destId || (dest && (r.destination === dest.id || r.destination === dest.slug))) && r.status === "published");
 
@@ -202,12 +203,16 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                       <div key={inst.id} className="border border-[#e2e8f0] rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
                         <div className="h-40 overflow-hidden relative">
                           <img src={trip.image} alt={trip.name} className="w-full h-full object-cover" />
-                          <span className={`absolute top-3 right-3 text-xs font-semibold px-2.5 py-1 rounded-full ${spotsLow ? "bg-red-500 text-white" : "bg-[#0f2922]/80 text-white backdrop-blur-sm"}`}>
+                          <span className={`absolute top-2.5 right-2.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${
+                            spotsLow
+                              ? "bg-red-950/40 text-red-200 border border-red-400/30 backdrop-blur-md"
+                              : "bg-black/40 text-white/90 border border-white/15 backdrop-blur-md"
+                          }`}>
                             {inst.spotsLeft} spots left
                           </span>
                         </div>
                         <div className="p-4">
-                          <div className="text-[#0f2922] font-medium mb-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
+                          <div className="text-[#0f2922] font-medium mb-1 line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                           <div className="flex items-center justify-between text-sm mb-3">
                             <span className="text-[#4a5568]">{inst.displayDate}</span>
                             <span className="text-[#e8622a] font-semibold">₹{inst.price.toLocaleString("en-IN")} / person</span>

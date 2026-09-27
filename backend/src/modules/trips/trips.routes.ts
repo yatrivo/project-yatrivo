@@ -84,3 +84,10 @@ tripsRouter.patch(
   validate({ body: updateDepartureSchema }),
   asyncHandler(tripsController.updateDeparture)
 );
+
+tripsRouter.delete(
+  "/trips/departures/:instanceId",
+  authenticate,
+  requireAdmin,
+  asyncHandler(tripsController.deleteDeparture)
+);

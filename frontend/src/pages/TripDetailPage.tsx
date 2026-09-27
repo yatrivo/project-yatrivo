@@ -331,6 +331,37 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
     }
   };
 
+  const handleDeleteDeparture = async (inst: TripInstance) => {
+    if (!window.confirm(`Are you sure you want to delete the departure on ${inst.displayDate || inst.date}? This action cannot be undone.`)) {
+      return;
+    }
+    try {
+      await tripsApi.deleteDeparture(inst.id);
+      await refreshTripData();
+      showToast("Departure deleted successfully.", "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete departure";
+      showToast(msg, "error");
+    }
+  };
+
+  // SEO & Document title updates
+  useEffect(() => {
+    if (activeTrip?.name) {
+      document.title = activeTrip.seoTitle || `${activeTrip.name} | Yatrivo Himalayan Adventures`;
+    }
+    let metaDesc = document.querySelector('meta[name="description"]');
+    if (!metaDesc) {
+      metaDesc = document.createElement("meta");
+      metaDesc.setAttribute("name", "description");
+      document.head.appendChild(metaDesc);
+    }
+    metaDesc.setAttribute(
+      "content",
+      activeTrip?.seoDescription || activeTrip?.shortDescription || "Curated Himalayan journeys with Yatrivo."
+    );
+  }, [activeTrip?.name, activeTrip?.seoTitle, activeTrip?.seoDescription, activeTrip?.shortDescription]);
+
   const [itinerary, setItinerary] = useState<DayItem[]>([
     { day: "Day 1", title: "Dehradun to Chopta Basecamp", desc: "Scenic mountain drive via Devprayag where Alaknanda meets Bhagirathi. Arrive at our pine-wood meadow cabins. Welcome dinner with local Pahadi cuisine. Evening orientation walk.", open: true },
     { day: "Day 2", title: "Trek to Tungnath Temple & Summit", desc: "Mindful morning ascent through dense rhododendron forests to the ancient Tungnath shrine (3,680m), pushing to Chandrashila peak (4,130m) for a 360° panoramic view of Nanda Devi, Trishul, Bandarpoonch.", open: false },
@@ -344,44 +375,106 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
     setItinerary((prev) => prev.map((d, idx) => ({ ...d, open: idx === i ? !d.open : d.open })));
   };
 
+  // Restrict direct visitor access to draft and archived packages
+  if (!isAdmin && (activeTrip?.status === "draft" || activeTrip?.status === "archived")) {
+    return (
+      <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4 py-20">
+        <div className="w-16 h-16 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center text-2xl font-bold mb-4 border border-amber-200">
+          !
+        </div>
+        <h1 className="text-2xl font-bold text-[#0f2922] mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
+          Trip Package Unavailable
+        </h1>
+        <p className="text-[#718096] text-sm max-w-md mb-6 leading-relaxed">
+          This Himalayan package is currently drafted or archived and not open for public bookings. Explore our active scheduled departures.
+        </p>
+        <Link
+          to="/trips"
+          className="bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium text-sm px-6 py-2.5 rounded-lg transition"
+        >
+          Explore All Active Trips
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="pb-20 md:pb-0">
       {/* Admin Mode Bar */}
       {isAdmin && (
-        <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">
-          <div className="flex items-center gap-3">
-            <Link
-              to="/admin/trips"
-              className="inline-flex items-center gap-1.5 text-xs text-[#a3bfb5] hover:text-white transition font-medium"
-            >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-              </svg>
-              Back to Trips
-            </Link>
-            <span className="text-white/20">|</span>
-            <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-semibold px-2 py-0.5 rounded">
-              Admin Preview Mode
-            </span>
+        <>
+          <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">
+            <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+              <Link
+                to="/admin/trips"
+                className="inline-flex items-center gap-1.5 text-xs text-[#a3bfb5] hover:text-white transition font-medium"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back to Trips
+              </Link>
+              <span className="text-white/20">|</span>
+              <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-semibold px-2 py-0.5 rounded">
+                Admin Preview Mode
+              </span>
+              <span className={`text-[11px] font-semibold px-2 py-0.5 rounded capitalize ${
+                activeTrip?.status === "draft"
+                  ? "bg-amber-400/20 text-amber-300 border border-amber-400/30"
+                  : activeTrip?.status === "archived"
+                  ? "bg-gray-500/20 text-gray-300 border border-gray-400/30"
+                  : "bg-emerald-400/20 text-emerald-300 border border-emerald-400/30"
+              }`}>
+                {activeTrip?.status || "published"}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsAddingDeparture(true)}
+                className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
+              >
+                + Add Departure
+              </button>
+              <Link
+                to={`/admin/trips/${tripId}/edit`}
+                className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+                Edit Trip
+              </Link>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsAddingDeparture(true)}
-              className="bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1 cursor-pointer"
-            >
-              + Add Departure
-            </button>
-            <Link
-              to={`/admin/trips/${tripId}/edit`}
-              className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-3.5 py-1.5 rounded-lg transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-              Edit Trip
-            </Link>
-          </div>
-        </div>
+
+          {/* Admin SEO Meta Bar */}
+          {(activeTrip?.seoTitle || activeTrip?.seoDescription) && (
+            <div className="bg-[#16382f] text-white/90 text-xs px-4 sm:px-6 py-2 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="bg-white/10 text-[#a3bfb5] text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-wider">
+                  Active Google SEO Meta
+                </span>
+                <span className="font-medium text-white truncate max-w-sm sm:max-w-md">
+                  {activeTrip.seoTitle || activeTrip.name}
+                </span>
+                {activeTrip.seoDescription && (
+                  <>
+                    <span className="text-white/30 hidden md:inline">•</span>
+                    <span className="text-white/70 truncate max-w-lg hidden md:inline text-[11px]">
+                      {activeTrip.seoDescription}
+                    </span>
+                  </>
+                )}
+              </div>
+              <Link
+                to={`/admin/trips/${tripId}/edit`}
+                className="text-amber-300 hover:text-amber-200 underline text-[11px] shrink-0"
+              >
+                Edit SEO
+              </Link>
+            </div>
+          )}
+        </>
       )}
 
       {/* Hero with Single Cover Image (No Gallery Thumbs Carousel Overlay) */}
@@ -551,6 +644,13 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                             >
                               Cancel
                             </button>
+                            <button
+                              onClick={() => handleDeleteDeparture(d)}
+                              className="border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                              title="Delete departure"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       ))}
@@ -589,6 +689,13 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                               className="border border-[#e2e8f0] text-[#4a5568] hover:bg-white text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
                             >
                               Edit
+                            </button>
+                            <button
+                              onClick={() => handleDeleteDeparture(d)}
+                              className="border border-red-200 text-red-500 hover:bg-red-50 text-xs font-semibold px-2.5 py-1.5 rounded-lg transition cursor-pointer"
+                              title="Delete departure"
+                            >
+                              Delete
                             </button>
                           </div>
                         </div>

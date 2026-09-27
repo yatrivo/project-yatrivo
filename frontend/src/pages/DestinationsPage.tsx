@@ -16,6 +16,8 @@ const seasons = [
 export default function DestinationsPage() {
   const { navigate, destinations } = useApp();
   const [filter, setFilter] = useState<string>("all");
+  const [filterOpen, setFilterOpen] = useState(false);
+  const filterRef = useRef<HTMLDivElement>(null);
   const [sort, setSort] = useState<SortKey>("recommended");
   const [sortOpen, setSortOpen] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,9 @@ export default function DestinationsPage() {
     const handler = (e: MouseEvent) => {
       if (sortRef.current && !sortRef.current.contains(e.target as Node)) {
         setSortOpen(false);
+      }
+      if (filterRef.current && !filterRef.current.contains(e.target as Node)) {
+        setFilterOpen(false);
       }
     };
     document.addEventListener("mousedown", handler);
@@ -57,55 +62,92 @@ export default function DestinationsPage() {
         </p>
       </section>
 
-      {/* Filters */}
+      {/* Filters & Sorting */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setFilter("all")}
-              className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                filter === "all"
-                  ? "bg-[#0f2922] text-white border-[#0f2922]"
-                  : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] bg-white"
-              }`}
-            >
-              All Experiences
-            </button>
-            {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => (
+        <div className="flex flex-wrap items-center justify-between gap-4 py-2 border-b border-[#e2e8f0]/60">
+          {/* Experience Filter Dropdown */}
+          <div className="flex items-center gap-3">
+            <div className="relative" ref={filterRef}>
               <button
-                key={tag}
-                onClick={() => setFilter(tag)}
-                className={`px-3.5 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                  filter === tag
-                    ? "bg-[#0f2922] text-white border-[#0f2922]"
-                    : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] bg-white"
-                }`}
+                onClick={() => setFilterOpen((o) => !o)}
+                className="flex items-center gap-2 bg-white border border-[#e2e8f0] px-3.5 py-2 rounded-xl text-sm text-[#4a5568] hover:border-[#0f2922] transition-colors shadow-2xs cursor-pointer"
               >
-                {tag}
+                <span className="text-xs text-[#718096]">Experience:</span>
+                <span className="text-[#0f2922] font-semibold">{filter === "all" ? "All Experiences" : filter}</span>
+                <svg className={`w-3.5 h-3.5 text-[#718096] transition-transform ${filterOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
               </button>
-            ))}
-          </div>
-          {/* Sort dropdown */}
-          <div className="relative shrink-0" ref={sortRef}>
-            <button
-              onClick={() => setSortOpen((o) => !o)}
-              className="flex items-center gap-1.5 text-sm text-[#4a5568] hover:text-[#0f2922] transition-colors"
-            >
-              Sort by: <span className="text-[#0f2922] font-medium">{sortLabels[sort]} ↓</span>
-            </button>
-            {sortOpen && (
-              <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-[#e2e8f0] rounded-xl shadow-lg py-1 z-20">
-                {(Object.keys(sortLabels) as SortKey[]).map((key) => (
+              {filterOpen && (
+                <div className="absolute left-0 top-full mt-2 w-56 max-h-72 overflow-y-auto bg-white border border-[#e2e8f0] rounded-xl shadow-lg py-1 z-30">
                   <button
-                    key={key}
-                    onClick={() => { setSort(key); setSortOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${sort === key ? "text-[#0f2922] font-medium bg-[#f7f8f5]" : "text-[#4a5568] hover:bg-[#f7f8f5]"}`}
+                    onClick={() => { setFilter("all"); setFilterOpen(false); }}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between cursor-pointer ${
+                      filter === "all" ? "text-[#0f2922] font-semibold bg-[#f7f8f5]" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                    }`}
                   >
-                    {sortLabels[key]}
+                    <span>All Experiences</span>
+                    {filter === "all" && <span className="text-[#0f2922]">✓</span>}
                   </button>
-                ))}
-              </div>
+                  <div className="h-px bg-[#f0f4f1] my-1" />
+                  {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => { setFilter(tag); setFilterOpen(false); }}
+                      className={`w-full text-left px-4 py-2 text-sm transition-colors flex items-center justify-between cursor-pointer ${
+                        filter === tag ? "text-[#0f2922] font-semibold bg-[#f7f8f5]" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                      }`}
+                    >
+                      <span>{tag}</span>
+                      {filter === tag && <span className="text-[#0f2922]">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            {filter !== "all" && (
+              <button
+                onClick={() => setFilter("all")}
+                className="text-xs text-[#718096] hover:text-[#e8622a] underline cursor-pointer"
+              >
+                Clear
+              </button>
             )}
+          </div>
+
+          {/* Right side: Count & Sort */}
+          <div className="flex items-center gap-4">
+            <span className="text-xs text-[#718096] hidden sm:inline">
+              Showing {sorted.length} destination{sorted.length !== 1 ? "s" : ""}
+            </span>
+            <div className="relative shrink-0" ref={sortRef}>
+              <button
+                onClick={() => setSortOpen((o) => !o)}
+                className="flex items-center gap-2 bg-white border border-[#e2e8f0] px-3.5 py-2 rounded-xl text-sm text-[#4a5568] hover:border-[#0f2922] transition-colors shadow-2xs cursor-pointer"
+              >
+                <span className="text-xs text-[#718096]">Sort:</span>
+                <span className="text-[#0f2922] font-semibold">{sortLabels[sort]}</span>
+                <svg className={`w-3.5 h-3.5 text-[#718096] transition-transform ${sortOpen ? "rotate-180" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {sortOpen && (
+                <div className="absolute right-0 top-full mt-2 w-44 bg-white border border-[#e2e8f0] rounded-xl shadow-lg py-1 z-30">
+                  {(Object.keys(sortLabels) as SortKey[]).map((key) => (
+                    <button
+                      key={key}
+                      onClick={() => { setSort(key); setSortOpen(false); }}
+                      className={`w-full text-left px-4 py-2.5 text-sm transition-colors flex items-center justify-between cursor-pointer ${
+                        sort === key ? "text-[#0f2922] font-semibold bg-[#f7f8f5]" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                      }`}
+                    >
+                      <span>{sortLabels[key]}</span>
+                      {sort === key && <span className="text-[#0f2922]">✓</span>}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
@@ -120,33 +162,23 @@ export default function DestinationsPage() {
               className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between cursor-pointer"
             >
               <div>
-                <div className="h-52 overflow-hidden">
+                <div className="h-52 overflow-hidden relative">
                   <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {d.season && (
+                    <span className="absolute top-3 right-3 text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white/90 border border-white/15">
+                      {d.season}
+                    </span>
+                  )}
                 </div>
                 <div className="p-5">
-                  <div className="flex items-start justify-between gap-2 mb-1">
-                    <h3 className="text-[#0f2922] text-xl" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</h3>
-                    <span className="text-[#e8622a] text-xs font-medium shrink-0 mt-1">{d.season}</span>
-                  </div>
-                  <p className="text-[#4a5568] text-sm leading-relaxed">{d.tagline}</p>
+                  <h3 className="text-[#0f2922] text-xl line-clamp-1 mb-1.5" style={{ fontFamily: "var(--font-serif)" }}>
+                    {d.name}
+                  </h3>
+                  <p className="text-[#718096] text-sm leading-relaxed line-clamp-2">
+                    {d.tagline || d.description}
+                  </p>
                 </div>
               </div>
-              {d.experienceTags && d.experienceTags.length > 0 && (
-                <div className="px-5 pb-5 pt-0">
-                  <div className="flex flex-wrap gap-1.5 pt-3 border-t border-[#f0f4f1]">
-                    {d.experienceTags.slice(0, 3).map((tag) => (
-                      <span key={tag} className="text-[11px] bg-[#f7f8f5] text-[#4a5568] px-2 py-0.5 rounded-md font-medium">
-                        {tag}
-                      </span>
-                    ))}
-                    {d.experienceTags.length > 3 && (
-                      <span className="text-[11px] text-[#a0aec0] px-1 py-0.5 font-medium">
-                        +{d.experienceTags.length - 3}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )}
             </Link>
           ))}
         </div>

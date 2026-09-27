@@ -44,6 +44,7 @@ export interface CreateTripPayload {
   isFeatured?: boolean;
   seoTitle?: string;
   seoDescription?: string;
+  status?: "draft" | "published" | "active" | "archived";
 }
 
 export type UpdateTripPayload = Partial<CreateTripPayload>;
@@ -245,5 +246,18 @@ export const tripsApi = {
     }
 
     return body.data as TripInstance;
+  },
+
+  async deleteDeparture(instanceId: string): Promise<void> {
+    const url = `${API_BASE}/api/v1/trips/departures/${encodeURIComponent(instanceId)}`;
+    const res = await authFetch(url, {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(body?.error?.message || "Failed to delete departure");
+    }
   }
 };

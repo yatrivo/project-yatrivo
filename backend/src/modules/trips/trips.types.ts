@@ -182,6 +182,7 @@ export interface CreateTripInput {
   exclusions?: string[];
   seoTitle?: string;
   seoDescription?: string;
+  status?: TripStatus;
 }
 
 export type UpdateTripInput = Partial<CreateTripInput>;
