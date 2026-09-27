@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { TripInstance } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
@@ -210,6 +211,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
 }
 
 export default function AdminTripInstances() {
+  const navigate = useNavigate();
   const { trips, tripInstances, setTripInstances, showToast, refreshTrips } = useApp();
 
   const [editingInstance, setEditingInstance] = useState<TripInstance | null>(null);
@@ -353,9 +355,19 @@ export default function AdminTripInstances() {
               {sorted.map((inst) => {
                 const tripName = getTripName(inst.tripId);
                 return (
-                  <tr key={inst.id} className="hover:bg-[#fafafa] transition">
+                  <tr
+                    key={inst.id}
+                    onClick={() => navigate(`/admin/departures/${inst.id}`)}
+                    className="hover:bg-[#fafafa] transition cursor-pointer"
+                  >
                     <td className="px-4 py-3">
-                      <div className="font-medium text-[#0f2922] text-sm leading-tight">{tripName}</div>
+                      <Link
+                        to={`/admin/departures/${inst.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="font-semibold text-[#0f2922] hover:text-[#e8622a] text-sm leading-tight transition"
+                      >
+                        {tripName}
+                      </Link>
                       {inst.notes && (
                         <div className="text-[#a0aec0] text-xs mt-0.5 truncate max-w-[200px]" title={inst.notes}>{inst.notes}</div>
                       )}
@@ -380,9 +392,15 @@ export default function AdminTripInstances() {
                         {inst.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
                       <div className="flex items-center justify-end gap-2">
-                        {inst.status === "upcoming" ? (
+                        <Link
+                          to={`/admin/departures/${inst.id}`}
+                          className="text-[#0f2922] hover:text-[#e8622a] font-medium transition text-xs border border-[#e2e8f0] hover:border-[#0f2922] px-2.5 py-1 rounded-lg cursor-pointer"
+                        >
+                          {inst.status === "completed" ? "Reviews / Details" : "Details"}
+                        </Link>
+                        {inst.status === "upcoming" && (
                           <>
                             <button
                               onClick={() => setEditingInstance(inst)}
@@ -403,8 +421,6 @@ export default function AdminTripInstances() {
                               Cancel
                             </button>
                           </>
-                        ) : (
-                          <span className="text-[#a0aec0] text-xs">—</span>
                         )}
                       </div>
                     </td>

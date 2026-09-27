@@ -35,6 +35,7 @@ import AdminEnquiryDetail from "@/admin/AdminEnquiryDetail";
 import AdminTrips from "@/admin/AdminTrips";
 import AdminTripEditor from "@/admin/AdminTripEditor";
 import AdminTripInstances from "@/admin/AdminTripInstances";
+import AdminDepartureDetail from "@/admin/AdminDepartureDetail";
 import AdminDestinations from "@/admin/AdminDestinations";
 import AdminBookings from "@/admin/AdminBookings";
 import AdminBookingDetail from "@/admin/AdminBookingDetail";
@@ -131,6 +132,9 @@ export default function App() {
           <Route path="trips/:id/edit" element={<AdminTripEditor />} />
           <Route path="trips/:slug" element={<TripDetailPage adminMode={true} />} />
           <Route path="trip-instances" element={<AdminTripInstances />} />
+          <Route path="trip-instances/:id" element={<AdminDepartureDetail />} />
+          <Route path="departures" element={<Navigate to="/admin/trip-instances" replace />} />
+          <Route path="departures/:id" element={<AdminDepartureDetail />} />
           <Route path="destinations" element={<AdminDestinations />} />
           <Route path="destinations/:slug" element={<DestinationDetailPage adminMode={true} />} />
           <Route path="bookings" element={<AdminBookings />} />

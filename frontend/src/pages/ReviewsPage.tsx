@@ -65,7 +65,6 @@ const Stars = () => (
 );
 
 export default function ReviewsPage() {
-  const { navigate } = useApp();
   const [filter, setFilter] = useState<Filter>("all");
 
   const filtered = reviews.filter((r) => r.filter.includes(filter));
