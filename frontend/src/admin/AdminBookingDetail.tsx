@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { AdminPage } from "./AdminLayout";
@@ -97,6 +98,15 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   const [payRef, setPayRef] = useState("");
   const [payNotes, setPayNotes] = useState("");
   const [isRecordingPay, setIsRecordingPay] = useState(false);
+
+  useEffect(() => {
+    if (!payModalOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [payModalOpen]);
 
   // Traveller Details Editing
   const [isEditingTravellers, setIsEditingTravellers] = useState(false);
@@ -322,120 +332,124 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   return (
     <div className="p-6 space-y-6">
       {/* Record Payment Modal */}
-      {payModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setPayModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden border border-[#e2e8f0]">
-            <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-[#e2e8f0]">
-              <div>
-                <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">FINANCIAL TRANSACTION</div>
-                <h3 className="text-[#0f2922] font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                  Record Payment
-                </h3>
-              </div>
-              <button
-                onClick={() => setPayModalOpen(false)}
-                className="text-[#718096] hover:text-[#0f2922] transition p-1 cursor-pointer"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleRecordPaymentSubmit} className="p-6 space-y-4 text-xs">
-              <div className="bg-[#f7f8f5] p-3 rounded-lg border border-[#e2e8f0] flex justify-between">
+      {payModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setPayModalOpen(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+              <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
-                  <span className="text-[#718096] block text-[11px]">Total Package</span>
-                  <span className="font-bold text-[#0f2922]">₹{booking.totalAmount.toLocaleString("en-IN")}</span>
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">FINANCIAL TRANSACTION</div>
+                  <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Record Payment
+                  </h3>
                 </div>
-                <div>
-                  <span className="text-[#718096] block text-[11px]">Already Paid</span>
-                  <span className="font-semibold text-emerald-700">₹{booking.paidAmount.toLocaleString("en-IN")}</span>
-                </div>
-                <div>
-                  <span className="text-[#718096] block text-[11px]">Remaining</span>
-                  <span className="font-bold text-[#e8622a]">₹{booking.remainingAmount.toLocaleString("en-IN")}</span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                  Amount Received (₹) <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)}
-                  placeholder="e.g. 15,000"
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                    Method
-                  </label>
-                  <select
-                    value={payMethod}
-                    onChange={(e) => setPayMethod(e.target.value)}
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                  >
-                    <option value="upi">UPI / GPay / PhonePe</option>
-                    <option value="bank_transfer">Bank Transfer (NEFT/IMPS)</option>
-                    <option value="cash">Cash</option>
-                    <option value="card">Card / POS</option>
-                    <option value="other">Other</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                    Reference / UTR
-                  </label>
-                  <input
-                    type="text"
-                    value={payRef}
-                    onChange={(e) => setPayRef(e.target.value)}
-                    placeholder="UTR / Txn ID"
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                  Payment Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={payNotes}
-                  onChange={(e) => setPayNotes(e.target.value)}
-                  placeholder="Advance payment, bank slip verified, etc..."
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
                 <button
-                  type="button"
                   onClick={() => setPayModalOpen(false)}
-                  className="flex-1 border border-[#e2e8f0] text-[#4a5568] py-2 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer font-semibold"
+                  className="text-white/70 hover:text-white transition p-1 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isRecordingPay}
-                  className="flex-1 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-2 rounded-lg transition cursor-pointer font-semibold shadow-xs"
-                >
-                  {isRecordingPay ? "Recording..." : "Record Payment"}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleRecordPaymentSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4 text-xs">
+                  <div className="bg-[#f7f8f5] p-3 rounded-lg border border-[#e2e8f0] flex justify-between">
+                    <div>
+                      <span className="text-[#718096] block text-[11px]">Total Package</span>
+                      <span className="font-bold text-[#0f2922]">₹{booking.totalAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#718096] block text-[11px]">Already Paid</span>
+                      <span className="font-semibold text-emerald-700">₹{booking.paidAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                    <div>
+                      <span className="text-[#718096] block text-[11px]">Remaining</span>
+                      <span className="font-bold text-[#e8622a]">₹{booking.remainingAmount.toLocaleString("en-IN")}</span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                      Amount Received (₹) <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={payAmount}
+                      onChange={(e) => setPayAmount(e.target.value)}
+                      placeholder="e.g. 15,000"
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                        Method
+                      </label>
+                      <select
+                        value={payMethod}
+                        onChange={(e) => setPayMethod(e.target.value)}
+                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                      >
+                        <option value="upi">UPI / GPay / PhonePe</option>
+                        <option value="bank_transfer">Bank Transfer (NEFT/IMPS)</option>
+                        <option value="cash">Cash</option>
+                        <option value="card">Card / POS</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                        Reference / UTR
+                      </label>
+                      <input
+                        type="text"
+                        value={payRef}
+                        onChange={(e) => setPayRef(e.target.value)}
+                        placeholder="UTR / Txn ID"
+                        className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                      Payment Notes
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={payNotes}
+                      onChange={(e) => setPayNotes(e.target.value)}
+                      placeholder="Advance payment, bank slip verified, etc..."
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setPayModalOpen(false)}
+                    className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white rounded-lg transition cursor-pointer font-semibold text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isRecordingPay}
+                    className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white rounded-lg transition cursor-pointer font-semibold text-xs shadow-xs"
+                  >
+                    {isRecordingPay ? "Recording..." : "Record Payment"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Top Back Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

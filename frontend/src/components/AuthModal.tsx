@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 
 export default function AuthModal() {
@@ -12,6 +13,13 @@ export default function AuthModal() {
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    if (!authModalOpen) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = orig; };
+  }, [authModalOpen]);
 
   if (!authModalOpen) return null;
 
@@ -63,11 +71,11 @@ export default function AuthModal() {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-[90] flex items-center justify-center p-4" onClick={closeAuthModal}>
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden overscroll-contain" onClick={closeAuthModal}>
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-sm" />
       <div
-        className="relative bg-white rounded-2xl w-full max-w-sm p-7 shadow-2xl"
+        className="relative bg-white rounded-2xl w-full max-w-sm p-7 shadow-2xl z-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Close */}
@@ -165,6 +173,7 @@ export default function AuthModal() {
           </>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { TripInstance } from "@/context/AppContext";
@@ -25,6 +26,14 @@ function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
   const [date, setDate] = useState(instance.date);
   const [notes, setNotes] = useState(instance.notes ?? "");
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSave = () => {
     // Derive displayDate from date
     const d = new Date(date + "T00:00:00");
@@ -40,86 +49,98 @@ function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-            Edit Instance
-          </h3>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        {/* Header */}
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE SETTINGS</div>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              Edit Instance
+            </h3>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#718096] mb-4">{tripName}</p>
-        <div className="space-y-4">
+
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+          <p className="text-xs text-[#718096]">{tripName}</p>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Date</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Date</label>
             <input
               type="date"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
             />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Price (₹)</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Price (₹)</label>
               <input
                 type="number"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Total Spots</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Total Spots</label>
               <input
                 type="number"
                 value={spotsTotal}
                 onChange={(e) => setSpotsTotal(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Spots Left</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Spots Left</label>
               <input
                 type="number"
                 value={spotsLeft}
                 onChange={(e) => setSpotsLeft(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
               />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Notes (optional)</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Notes (optional)</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
               placeholder="Any notes..."
             />
           </div>
         </div>
-        <div className="flex gap-2 mt-5">
+
+        {/* Sticky Pinned Footer - ALWAYS VISIBLE */}
+        <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
           <button
-            onClick={handleSave}
-            className="flex-1 bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold py-2.5 rounded-lg transition"
-          >
-            Save Changes
-          </button>
-          <button
+            type="button"
             onClick={onClose}
-            className="px-4 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium rounded-lg hover:bg-[#f7f8f5] transition"
+            className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer"
           >
             Cancel
           </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs"
+          >
+            Save Changes
+          </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -135,6 +156,14 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const trip = trips.find((t) => t.id === instance.tripId);
   const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
   const [photos, setPhotos] = useState<string[]>(instance.completedPhotos ?? ["", "", ""]);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   const handleSave = () => {
     const cleaned = photos.map((p) => p.trim()).filter(Boolean);
@@ -152,61 +181,74 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     setPhotos(next);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-            Mark as Completed
-          </h3>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        {/* Header */}
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE STATUS</div>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              Mark as Completed
+            </h3>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#718096] mb-4">{tripName} — {instance.displayDate}</p>
 
-        <div className="space-y-3 mb-5">
-          <label className="block text-xs font-medium text-[#4a5568]">Completed Trip Photos (optional)</label>
-          {photos.map((url, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
-              <MediaPicker
-                value={url}
-                onChange={(newUrl) => updatePhoto(i, newUrl)}
-                className="flex-1"
-                context={{
-                  destinationId: dest?.id,
-                  destinationSlug: dest?.slug,
-                  destinationName: dest?.name,
-                  category: "completed_trips"
-                }}
-              />
-            </div>
-          ))}
+        {/* Scrollable Body */}
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+          <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
+
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
+            {photos.map((url, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
+                <MediaPicker
+                  value={url}
+                  onChange={(newUrl) => updatePhoto(i, newUrl)}
+                  className="flex-1"
+                  context={{
+                    destinationId: dest?.id,
+                    destinationSlug: dest?.slug,
+                    destinationName: dest?.name,
+                    category: "completed_trips"
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
+            This will mark the trip as completed and set spots remaining to 0.
+          </div>
         </div>
 
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700 mb-5">
-          This will mark the trip as completed and set spots remaining to 0.
-        </div>
-
-        <div className="flex gap-2">
+        {/* Sticky Pinned Footer - ALWAYS VISIBLE */}
+        <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
           <button
-            onClick={handleSave}
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-lg transition"
-          >
-            Confirm Complete
-          </button>
-          <button
+            type="button"
             onClick={onClose}
-            className="px-4 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium rounded-lg hover:bg-[#f7f8f5] transition"
+            className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer"
           >
             Cancel
           </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs"
+          >
+            Confirm Complete
+          </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

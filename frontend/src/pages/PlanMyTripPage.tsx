@@ -279,7 +279,7 @@ export default function PlanMyTripPage() {
   return (
     <div className="min-h-screen bg-[#fafbfa]">
       {/* Clean Minimal Header */}
-      <div className="bg-[#0f2922] text-white py-8 px-4 sm:px-6 border-b border-[#1b3d32]">
+      <div className="bg-[#0f2922] text-white pt-14 pb-8 px-4 sm:px-6 border-b border-[#1b3d32]">
         <div className="max-w-4xl mx-auto">
           <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-widest mb-1.5">
             CUSTOM TRIP ENQUIRY

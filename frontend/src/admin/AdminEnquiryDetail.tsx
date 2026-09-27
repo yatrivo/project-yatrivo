@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { AdminPage } from "./AdminLayout";
@@ -101,6 +102,15 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
   const [quoteAmount, setQuoteAmount] = useState("");
   const [quoteNotes, setQuoteNotes] = useState("");
   const [isQuoting, setIsQuoting] = useState(false);
+
+  useEffect(() => {
+    if (!quoteModalOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [quoteModalOpen]);
 
   const fetchDetails = useCallback(async () => {
     if (!id) return;
@@ -303,78 +313,82 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
   return (
     <div className="p-6 space-y-6">
       {/* Quote Action Modal */}
-      {quoteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setQuoteModalOpen(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden border border-[#e2e8f0]">
-            <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between">
-              <div>
-                <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">CRM ACTION</div>
-                <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                  Record Quote for Customer
-                </h3>
-              </div>
-              <button
-                onClick={() => setQuoteModalOpen(false)}
-                className="text-white/60 hover:text-white transition p-1 cursor-pointer"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-
-            <form onSubmit={handleQuoteSubmit} className="p-6 space-y-4 text-xs">
-              <p className="text-[#718096]">
-                Mark this enquiry as Quoted and record the offered package rate for CRM audit tracking.
-              </p>
-
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                  Quoted Package Amount (₹)
-                </label>
-                <input
-                  type="text"
-                  value={quoteAmount}
-                  onChange={(e) => setQuoteAmount(e.target.value)}
-                  placeholder="e.g. 14,500"
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                  Quotation Notes / Terms
-                </label>
-                <textarea
-                  rows={3}
-                  value={quoteNotes}
-                  onChange={(e) => setQuoteNotes(e.target.value)}
-                  placeholder="Includes homestay, meals, guide. Valid for 3 days..."
-                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
-                />
-              </div>
-
-              <div className="flex gap-2.5 pt-2">
+      {quoteModalOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setQuoteModalOpen(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+              <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">CRM ACTION</div>
+                  <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Record Quote for Customer
+                  </h3>
+                </div>
                 <button
-                  type="button"
                   onClick={() => setQuoteModalOpen(false)}
-                  className="flex-1 border border-[#e2e8f0] text-[#4a5568] py-2 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer font-semibold"
+                  className="text-white/60 hover:text-white transition p-1 cursor-pointer"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isQuoting}
-                  className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white py-2 rounded-lg transition cursor-pointer font-semibold shadow-xs"
-                >
-                  {isQuoting ? "Saving..." : "Save Quote"}
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
-      )}
+
+              <form onSubmit={handleQuoteSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4 text-xs">
+                  <p className="text-[#718096]">
+                    Mark this enquiry as Quoted and record the offered package rate for CRM audit tracking.
+                  </p>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                      Quoted Package Amount (₹)
+                    </label>
+                    <input
+                      type="text"
+                      value={quoteAmount}
+                      onChange={(e) => setQuoteAmount(e.target.value)}
+                      placeholder="e.g. 14,500"
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                      Quotation Notes / Terms
+                    </label>
+                    <textarea
+                      rows={3}
+                      value={quoteNotes}
+                      onChange={(e) => setQuoteNotes(e.target.value)}
+                      placeholder="Includes homestay, meals, guide. Valid for 3 days..."
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setQuoteModalOpen(false)}
+                    className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white rounded-lg transition cursor-pointer font-semibold text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isQuoting}
+                    className="px-5 py-2 bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white rounded-lg transition cursor-pointer font-semibold shadow-xs text-xs"
+                  >
+                    {isQuoting ? "Saving..." : "Save Quote"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Top Breadcrumb & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

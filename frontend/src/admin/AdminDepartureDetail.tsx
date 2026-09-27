@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { reviewsApi, type DepartureOperational, type EnrolledTraveller, type ReviewItem, type ReviewRequestPreview } from "@/api/reviews";
@@ -72,6 +73,15 @@ export default function AdminDepartureDetail() {
   // Photo lightbox modal
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
   const [moderatingId, setModeratingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!showAskModal && !activePhoto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [showAskModal, activePhoto]);
 
   const fetchDepartureData = async () => {
     if (!id) return;
@@ -761,33 +771,35 @@ export default function AdminDepartureDetail() {
       </div>
 
       {/* "ASK FOR REVIEWS" WORKFLOW MODAL */}
-      {showAskModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 overflow-y-auto">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8 overflow-hidden border border-[#e2e8f0]">
-            {/* Modal Header */}
-            <div className="bg-[#0f2922] text-white px-6 py-4 flex items-center justify-between">
-              <div>
-                <h3 className="text-lg font-bold" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                  Ask for Post-Trip Reviews
-                </h3>
-                <p className="text-xs text-white/70 mt-0.5">
-                  Send personalized WhatsApp review requests with individual secure links for {dep.tripName} ({dep.displayDate}).
-                </p>
+      {showAskModal &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowAskModal(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+              {/* Modal Header */}
+              <div className="bg-[#0f2922] text-white px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-lg font-bold" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Ask for Post-Trip Reviews
+                  </h3>
+                  <p className="text-xs text-white/70 mt-0.5">
+                    Send personalized WhatsApp review requests with individual secure links for {dep.tripName} ({dep.displayDate}).
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAskModal(false)}
+                  className="text-white/70 hover:text-white p-1 rounded-lg transition cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
-              <button
-                onClick={() => setShowAskModal(false)}
-                className="text-white/70 hover:text-white p-1 rounded-lg transition"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
 
-            {/* Modal Content */}
-            <div className="p-6 space-y-6 max-h-[80vh] overflow-y-auto">
-              {/* Step 1: Select Eligible Travellers */}
-              <div>
+              {/* Modal Content */}
+              <div className="p-6 space-y-6 overflow-y-auto flex-1 min-h-0">
+                {/* Step 1: Select Eligible Travellers */}
+                <div>
                 <div className="flex items-center justify-between mb-2">
                   <label className="text-xs font-bold text-[#0f2922] uppercase tracking-wider">
                     1. Select Travellers ({selectedBookingIds.size} of {dep.enrolledTravellers.length} selected)
@@ -1018,7 +1030,7 @@ export default function AdminDepartureDetail() {
             </div>
 
             {/* Modal Footer */}
-            <div className="bg-[#f7f8f5] px-6 py-4 border-t border-[#e2e8f0] flex items-center justify-between">
+            <div className="bg-[#f7f8f5] px-6 py-4 border-t border-[#e2e8f0] flex items-center justify-between shrink-0">
               <button
                 type="button"
                 onClick={() => setShowAskModal(false)}
@@ -1048,28 +1060,31 @@ export default function AdminDepartureDetail() {
               )}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* PHOTO LIGHTBOX MODAL */}
-      {activePhoto && (
-        <div
-          onClick={() => setActivePhoto(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-pointer"
-        >
-          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <img src={activePhoto} alt="Review attachment" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
-            <button
-              onClick={() => setActivePhoto(null)}
-              className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+      {activePhoto &&
+        createPortal(
+          <div
+            onClick={() => setActivePhoto(null)}
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-pointer"
+          >
+            <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
+              <img src={activePhoto} alt="Review attachment" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
+              <button
+                onClick={() => setActivePhoto(null)}
+                className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black transition"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

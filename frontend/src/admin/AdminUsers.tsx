@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 
 interface AdminUser {
@@ -26,6 +27,14 @@ function AddAdminModal({ onClose, onAdd }: { onClose: () => void; onAdd: (u: Adm
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
@@ -46,47 +55,51 @@ function AddAdminModal({ onClose, onAdd }: { onClose: () => void; onAdd: (u: Adm
     setLoading(false);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden">
-        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-white font-semibold" style={{ fontFamily: "var(--font-serif, serif)" }}>Add Admin</h3>
-          <button onClick={onClose} className="text-[#a3bfb5] hover:text-white transition">
+          <button onClick={onClose} className="text-[#a3bfb5] hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm space-y-1">
-              {errors.map((e, i) => <p key={i}>{e}</p>)}
+
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+            {errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm space-y-1">
+                {errors.map((e, i) => <p key={i}>{e}</p>)}
+              </div>
+            )}
+            <div>
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">Name <span className="text-red-500">*</span></label>
+              <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
             </div>
-          )}
-          <div>
-            <label className="block text-sm font-medium text-[#4a5568] mb-1">Name <span className="text-red-500">*</span></label>
-            <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full name" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+            <div>
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">Email <span className="text-red-500">*</span></label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@yatrivo.com" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">Role</label>
+              <select value={role} onChange={(e) => setRole(e.target.value as "Super Admin" | "Admin")} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
+                <option>Admin</option>
+                <option>Super Admin</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-[#4a5568] mb-1">Temporary Password <span className="text-[#a0aec0] font-normal">(optional)</span></label>
+              <input type="password" value={tempPassword} onChange={(e) => setTempPassword(e.target.value)} placeholder="Leave blank to auto-generate" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-medium text-[#4a5568] mb-1">Email <span className="text-red-500">*</span></label>
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="admin@yatrivo.com" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#4a5568] mb-1">Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value as "Super Admin" | "Admin")} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white">
-              <option>Admin</option>
-              <option>Super Admin</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-[#4a5568] mb-1">Temporary Password <span className="text-[#a0aec0] font-normal">(optional)</span></label>
-            <input type="password" value={tempPassword} onChange={(e) => setTempPassword(e.target.value)} placeholder="Leave blank to auto-generate" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-          </div>
-          <div className="flex gap-3 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition">Cancel</button>
+
+          <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+            <button type="button" onClick={onClose} className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
             <button
               type="submit"
               disabled={loading}
-              className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-70"
+              className="px-5 py-2 bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold rounded-lg transition flex items-center justify-center gap-2 disabled:opacity-70 cursor-pointer shadow-xs"
             >
               {loading ? (
                 <>
@@ -98,7 +111,8 @@ function AddAdminModal({ onClose, onAdd }: { onClose: () => void; onAdd: (u: Adm
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

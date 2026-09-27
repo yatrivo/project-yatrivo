@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useApp, type Enquiry } from "@/context/AppContext";
 import { enquiriesApi } from "@/api/enquiries";
 import { YATRIVO_CONTACT } from "@/constants/contact";
@@ -113,6 +114,14 @@ export default function EnquiryModal() {
     setErrors({});
   };
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    if (!enquiryModalOpen) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = orig; };
+  }, [enquiryModalOpen]);
+
   // 1. Submit Enquiry (Tracked, saved to PostgreSQL & notifies admin)
   const handleSubmitEnquiry = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -220,18 +229,18 @@ export default function EnquiryModal() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[90] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden overscroll-contain"
       onClick={handleClose}
     >
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] overflow-y-auto"
+        className="relative bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden z-10"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ background: "var(--forest)" }} className="px-6 pt-6 pb-5 text-white rounded-t-2xl">
+        <div style={{ background: "var(--forest)" }} className="px-6 pt-6 pb-5 text-white rounded-t-2xl shrink-0">
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 text-white/60 hover:text-white transition p-1 cursor-pointer"
@@ -258,8 +267,8 @@ export default function EnquiryModal() {
           )}
         </div>
 
-        {/* Content */}
-        <div className="p-6">
+        {/* Scrollable Content */}
+        <div className="overflow-y-auto flex-1 min-h-0 p-6">
           {submittedEnquiry ? (
             /* Success confirmation */
             <div className="text-center py-6">
@@ -308,7 +317,7 @@ export default function EnquiryModal() {
             </div>
           ) : (
             /* Enquiry Form */
-            <form onSubmit={handleSubmitEnquiry} className="space-y-4">
+            <form onSubmit={handleSubmitEnquiry} className="space-y-4" id="enquiry-form">
               {/* Departure Selection */}
               <div>
                 <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
@@ -441,62 +450,66 @@ export default function EnquiryModal() {
                   className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
                 />
               </div>
-
-              {/* Visual separation & Two Distinct Actions */}
-              <div className="pt-2 space-y-3">
-                {/* 1. Tracked System Enquiry */}
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-3.5 rounded-full text-sm font-semibold transition cursor-pointer shadow-sm flex items-center justify-center gap-2"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                      <span>Submitting Enquiry...</span>
-                    </>
-                  ) : (
-                    <>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 2L11 13" />
-                        <path d="M22 2l-7 20-4-9-9-4 20-7z" />
-                      </svg>
-                      <span>Submit Enquiry</span>
-                    </>
-                  )}
-                </button>
-                <p className="text-[11px] text-center text-[#718096]">
-                  Official system enquiry · Tracked in Yatrivo CRM · Responded within 2 hours
-                </p>
-
-                {/* Conceptual divider */}
-                <div className="relative flex py-1 items-center">
-                  <div className="flex-grow border-t border-[#e2e8f0]"></div>
-                  <span className="flex-shrink mx-3 text-[11px] text-[#a0aec0] uppercase tracking-wider">
-                    Or chat directly
-                  </span>
-                  <div className="flex-grow border-t border-[#e2e8f0]"></div>
-                </div>
-
-                {/* 2. Direct WhatsApp Conversation */}
-                <button
-                  type="button"
-                  onClick={handleConnectWhatsApp}
-                  className="w-full border border-[#16a34a] text-[#16a34a] hover:bg-emerald-50 py-3 rounded-full text-sm font-semibold transition cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-                  </svg>
-                  <span>Connect on WhatsApp</span>
-                </button>
-                <p className="text-[11px] text-center text-[#718096]">
-                  Instant conversation · Direct chat with our team · Not saved to database
-                </p>
-              </div>
             </form>
           )}
         </div>
+
+        {/* Pinned Footer — only shown when form (not success state) */}
+        {!submittedEnquiry && (
+          <div className="bg-white border-t border-[#e2e8f0] px-6 py-4 space-y-3 shrink-0">
+            {/* 1. Tracked System Enquiry */}
+            <button
+              type="submit"
+              form="enquiry-form"
+              disabled={isSubmitting}
+              className="w-full bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-3.5 rounded-full text-sm font-semibold transition cursor-pointer shadow-sm flex items-center justify-center gap-2"
+            >
+              {isSubmitting ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  <span>Submitting Enquiry...</span>
+                </>
+              ) : (
+                <>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M22 2L11 13" />
+                    <path d="M22 2l-7 20-4-9-9-4 20-7z" />
+                  </svg>
+                  <span>Submit Enquiry</span>
+                </>
+              )}
+            </button>
+            <p className="text-[11px] text-center text-[#718096]">
+              Official system enquiry · Tracked in Yatrivo CRM · Responded within 2 hours
+            </p>
+
+            {/* Conceptual divider */}
+            <div className="relative flex py-1 items-center">
+              <div className="flex-grow border-t border-[#e2e8f0]"></div>
+              <span className="flex-shrink mx-3 text-[11px] text-[#a0aec0] uppercase tracking-wider">
+                Or chat directly
+              </span>
+              <div className="flex-grow border-t border-[#e2e8f0]"></div>
+            </div>
+
+            {/* 2. Direct WhatsApp Conversation */}
+            <button
+              type="button"
+              onClick={handleConnectWhatsApp}
+              className="w-full border border-[#16a34a] text-[#16a34a] hover:bg-emerald-50 py-3 rounded-full text-sm font-semibold transition cursor-pointer flex items-center justify-center gap-2"
+            >
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
+              </svg>
+              <span>Connect on WhatsApp</span>
+            </button>
+            <p className="text-[11px] text-center text-[#718096]">
+              Instant conversation · Direct chat with our team · Not saved to database
+            </p>
+          </div>
+        )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

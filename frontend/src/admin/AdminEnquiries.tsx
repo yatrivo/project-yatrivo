@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { Enquiry } from "@/context/AppContext";
@@ -32,6 +33,14 @@ function AddInquiryModal({ onClose, onAdded }: AddInquiryModalProps) {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
+
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
 
   // Filter trips for selected destination
   const filteredTrips = useMemo(() => {
@@ -91,10 +100,10 @@ function AddInquiryModal({ onClose, onAdded }: AddInquiryModalProps) {
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 max-h-[92vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
         {/* Header */}
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <div>
@@ -116,10 +125,11 @@ function AddInquiryModal({ onClose, onAdded }: AddInquiryModalProps) {
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
-          <p className="text-[#718096] text-xs">
-            Manually log an enquiry received via direct phone call, WhatsApp chat, or walk-in customer. It maps directly into the official enquiries CRM with timeline tracking.
-          </p>
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+            <p className="text-[#718096] text-xs">
+              Manually log an enquiry received via direct phone call, WhatsApp chat, or walk-in customer. It maps directly into the official enquiries CRM with timeline tracking.
+            </p>
 
           {errors.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-red-600 text-xs space-y-1">
@@ -290,25 +300,29 @@ function AddInquiryModal({ onClose, onAdded }: AddInquiryModalProps) {
             />
           </div>
 
-          <div className="flex gap-3 pt-3 border-t border-[#e2e8f0]">
+          </div>
+
+          {/* Sticky Pinned Footer - ALWAYS VISIBLE */}
+          <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-xs font-semibold py-2.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
+              className="px-5 py-2.5 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-lg transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+              className="px-6 py-2.5 bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
             >
               {isSubmitting ? "Recording..." : "Record Enquiry"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

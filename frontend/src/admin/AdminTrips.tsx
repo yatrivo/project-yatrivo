@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useApp } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
 import type { TripInstance, Trip } from "@/data/trips";
@@ -47,6 +48,14 @@ function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
   const [date, setDate] = useState(instance.date);
   const [notes, setNotes] = useState(instance.notes ?? "");
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSave = () => {
     const d = new Date(date + "T00:00:00");
     const displayDate = d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
@@ -61,54 +70,61 @@ function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Edit Instance</h3>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE SETTINGS</div>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Edit Instance</h3>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#718096] mb-4">{tripName}</p>
-        <div className="space-y-4">
+
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+          <p className="text-xs text-[#718096]">{tripName}</p>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Date</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Date</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Price (₹)</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Price (₹)</label>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Total Spots</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Total Spots</label>
               <input type="number" value={spotsTotal} onChange={(e) => setSpotsTotal(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Spots Left</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Spots Left</label>
               <input type="number" value={spotsLeft} onChange={(e) => setSpotsLeft(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Notes (optional)</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Notes (optional)</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={3}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none text-[#0f2922]"
               placeholder="Any notes..." />
           </div>
         </div>
-        <div className="flex gap-2 mt-5">
-          <button onClick={handleSave} className="flex-1 bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold py-2.5 rounded-lg transition">Save Changes</button>
-          <button onClick={onClose} className="px-4 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium rounded-lg hover:bg-[#f7f8f5] transition">Cancel</button>
+
+        <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
+          <button onClick={handleSave} className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs">Save Changes</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -127,6 +143,14 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
   const [photos, setPhotos] = useState<string[]>(instance.completedPhotos ?? ["", "", ""]);
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSave = () => {
     const cleaned = photos.map((p) => p.trim()).filter(Boolean);
     onSave({ ...instance, status: "completed", spotsLeft: 0, completedPhotos: cleaned.length > 0 ? cleaned : undefined });
@@ -138,46 +162,55 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     setPhotos(next);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Mark as Completed</h3>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE STATUS</div>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Mark as Completed</h3>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#718096] mb-4">{tripName} — {instance.displayDate}</p>
-        <div className="space-y-3 mb-5">
-          <label className="block text-xs font-medium text-[#4a5568]">Completed Trip Photos (optional)</label>
-          {photos.map((url, i) => (
-            <div key={i} className="flex gap-2 items-center">
-              <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
-              <MediaPicker
-                value={url}
-                onChange={(newUrl) => updatePhoto(i, newUrl)}
-                className="flex-1"
-                context={{
-                  destinationId: dest?.id,
-                  destinationSlug: dest?.slug,
-                  destinationName: dest?.name,
-                  category: "completed_trips"
-                }}
-              />
-            </div>
-          ))}
+
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+          <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
+            {photos.map((url, i) => (
+              <div key={i} className="flex gap-2 items-center">
+                <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
+                <MediaPicker
+                  value={url}
+                  onChange={(newUrl) => updatePhoto(i, newUrl)}
+                  className="flex-1"
+                  context={{
+                    destinationId: dest?.id,
+                    destinationSlug: dest?.slug,
+                    destinationName: dest?.name,
+                    category: "completed_trips"
+                  }}
+                />
+              </div>
+            ))}
+          </div>
+          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
+            This will mark the trip as completed and set spots remaining to 0.
+          </div>
         </div>
-        <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700 mb-5">
-          This will mark the trip as completed and set spots remaining to 0.
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleSave} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-lg transition">Confirm Complete</button>
-          <button onClick={onClose} className="px-4 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium rounded-lg hover:bg-[#f7f8f5] transition">Cancel</button>
+
+        <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
+          <button onClick={handleSave} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs">Confirm Complete</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -196,6 +229,14 @@ function AddInstanceModal({ trip, onSave, onClose }: AddInstanceModalProps) {
   const [spotsLeft, setSpotsLeft] = useState("12");
   const [notes, setNotes] = useState("");
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSave = () => {
     if (!date) return;
     const d = new Date(date + "T00:00:00");
@@ -213,54 +254,61 @@ function AddInstanceModal({ trip, onSave, onClose }: AddInstanceModalProps) {
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Add Departure</h3>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">NEW DEPARTURE</div>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Add Departure</h3>
+          </div>
+          <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <p className="text-sm text-[#718096] mb-4">{trip.name}</p>
-        <div className="space-y-4">
+
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+          <p className="text-xs text-[#718096]">{trip.name}</p>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Departure Date *</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Departure Date *</label>
             <input type="date" value={date} onChange={(e) => setDate(e.target.value)}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Price (₹)</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Price (₹)</label>
               <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Total Spots</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Total Spots</label>
               <input type="number" value={spotsTotal} onChange={(e) => setSpotsTotal(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-[#4a5568] mb-1">Spots Left</label>
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Spots Left</label>
               <input type="number" value={spotsLeft} onChange={(e) => setSpotsLeft(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#4a5568] mb-1">Notes (optional)</label>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Notes (optional)</label>
             <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none text-[#0f2922]"
               placeholder="Any notes..." />
           </div>
         </div>
-        <div className="flex gap-2 mt-5">
-          <button onClick={handleSave} disabled={!date} className="flex-1 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white text-sm font-semibold py-2.5 rounded-lg transition">Add Departure</button>
-          <button onClick={onClose} className="px-4 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium rounded-lg hover:bg-[#f7f8f5] transition">Cancel</button>
+
+        <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+          <button onClick={onClose} className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
+          <button onClick={handleSave} disabled={!date} className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs">Add Departure</button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -279,24 +327,32 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
   const { enquiries, destinations } = useApp();
   const relatedEnquiries = enquiries.filter((e) => e.tripName === trip.name);
 
-  return (
-    <div className="fixed inset-0 z-40 flex">
-      <div className="flex-1 bg-black/40" onClick={onClose} />
-      <div className="w-full max-w-lg bg-white h-full overflow-y-auto shadow-2xl flex flex-col">
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex justify-end overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/50 backdrop-blur-2xs" onClick={onClose} />
+      <div className="relative w-full max-w-lg bg-white h-full shadow-2xl flex flex-col z-10 overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] sticky top-0 bg-white z-10">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] bg-white shrink-0">
           <div>
             <h3 className="font-bold text-[#0f2922] text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>{trip.name}</h3>
             <p className="text-[#718096] text-xs mt-0.5">{getTripDestinationsLabel(trip, destinations)} · {trip.duration}</p>
           </div>
-          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition">
+          <button onClick={onClose} className="text-[#a0aec0] hover:text-[#0f2922] transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
-        <div className="flex-1 p-6 space-y-6">
+        <div className="flex-1 overflow-y-auto min-h-0 p-6 space-y-6">
           {/* Instance summary */}
           <div className="bg-[#f7f8f5] rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
@@ -377,16 +433,17 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
           </div>
         </div>
 
-        {/* Action footer */}
+        {/* Action footer - ALWAYS VISIBLE PINNED AT BOTTOM */}
         {instance.status === "upcoming" && (
-          <div className="px-6 py-4 border-t border-[#e2e8f0] flex gap-2">
-            <button onClick={() => onEdit(instance)} className="flex-1 border border-[#e2e8f0] text-[#0f2922] hover:bg-[#f7f8f5] text-sm font-medium py-2.5 rounded-lg transition">Edit</button>
-            <button onClick={() => onComplete(instance)} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-lg transition">Mark Complete</button>
-            <button onClick={() => onCancel(instance)} className="px-3 border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium py-2.5 rounded-lg transition">Cancel</button>
+          <div className="px-6 py-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex gap-2 shrink-0">
+            <button onClick={() => onEdit(instance)} className="flex-1 border border-[#e2e8f0] text-[#0f2922] hover:bg-white text-sm font-medium py-2.5 rounded-lg transition cursor-pointer">Edit</button>
+            <button onClick={() => onComplete(instance)} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer">Mark Complete</button>
+            <button onClick={() => onCancel(instance)} className="px-3 border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium py-2.5 rounded-lg transition cursor-pointer">Cancel</button>
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -411,12 +468,21 @@ function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSubmitting ? undefined : onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden overscroll-contain">
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={isSubmitting ? undefined : onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4 border border-[#e2e8f0]">
         <div className="flex items-center gap-3">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
@@ -465,7 +531,8 @@ function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

@@ -1,4 +1,5 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { Destination, UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
@@ -80,6 +81,14 @@ export function DestinationModal({
   const set = <K extends keyof DestFormData>(field: K, value: DestFormData[K]) =>
     setForm((prev) => ({ ...prev, [field]: value }));
 
+  useEffect(() => {
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, []);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const errs: string[] = [];
@@ -90,29 +99,30 @@ export function DestinationModal({
     await onSave(form);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSaving ? undefined : onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 max-h-[90vh] flex flex-col overflow-hidden">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={isSaving ? undefined : onClose} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-white font-semibold" style={{ fontFamily: "var(--font-serif, serif)" }}>{title}</h3>
           <button
             type="button"
             onClick={onClose}
             disabled={isSaving}
-            className="text-[#a3bfb5] hover:text-white transition disabled:opacity-50"
+            className="text-[#a3bfb5] hover:text-white transition disabled:opacity-50 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="overflow-y-auto flex-1 p-6 space-y-4">
-          {errors.length > 0 && (
-            <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm space-y-1">
-              {errors.map((e, i) => <p key={i}>{e}</p>)}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+          <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+            {errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm space-y-1">
+                {errors.map((e, i) => <p key={i}>{e}</p>)}
+              </div>
+            )}
 
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2">
@@ -389,19 +399,22 @@ export function DestinationModal({
             </div>
           </div>
 
-          <div className="flex gap-3 pt-3 border-t border-[#edf2f7]">
+          </div>
+
+          {/* Sticky Pinned Footer - ALWAYS VISIBLE */}
+          <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
             <button
               type="button"
               disabled={isSaving}
               onClick={onClose}
-              className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50"
+              className="px-5 py-2.5 border border-[#e2e8f0] text-[#4a5568] text-sm font-semibold rounded-lg hover:bg-white transition disabled:opacity-50 cursor-pointer"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSaving}
-              className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2"
+              className="px-6 py-2.5 bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 shadow-xs cursor-pointer"
             >
               {isSaving ? (
                 <>
@@ -418,7 +431,8 @@ export function DestinationModal({
           </div>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 
@@ -444,12 +458,21 @@ function ConfirmModal({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={isSubmitting ? undefined : onCancel} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4">
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-hidden overscroll-contain">
+      <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={isSubmitting ? undefined : onCancel} />
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 p-6 space-y-4 border border-[#e2e8f0]">
         <div className="flex items-center gap-3">
           <div
             className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
@@ -480,7 +503,7 @@ function ConfirmModal({
             type="button"
             disabled={isSubmitting}
             onClick={onCancel}
-            className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-medium py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50"
+            className="flex-1 border border-[#e2e8f0] text-[#4a5568] text-sm font-semibold py-2.5 rounded-lg hover:bg-[#f7f8f5] transition disabled:opacity-50 cursor-pointer"
           >
             Cancel
           </button>
@@ -488,7 +511,7 @@ function ConfirmModal({
             type="button"
             disabled={isSubmitting}
             onClick={onConfirm}
-            className={`flex-1 text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 ${
+            className={`flex-1 text-white text-sm font-semibold py-2.5 rounded-lg transition disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer shadow-xs ${
               confirmVariant === "danger"
                 ? "bg-[#e8622a] hover:bg-[#d4541f]"
                 : "bg-[#0f2922] hover:bg-[#1a3f35]"
@@ -508,7 +531,8 @@ function ConfirmModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }
 

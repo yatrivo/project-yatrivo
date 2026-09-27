@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { reviewsApi, type ReviewItem } from "@/api/reviews";
@@ -44,6 +45,15 @@ export default function AdminReviews() {
   const [selectedReview, setSelectedReview] = useState<ReviewItem | null>(null);
   const [moderatingId, setModeratingId] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!selectedReview && !activePhoto) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = originalOverflow;
+    };
+  }, [selectedReview, activePhoto]);
 
   const fetchReviews = async () => {
     try {
@@ -341,168 +351,170 @@ export default function AdminReviews() {
       </div>
 
       {/* REVIEW DETAILS DRAWER / MODAL */}
-      {selectedReview && (
-        <div
-          onClick={() => setSelectedReview(null)}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4"
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[90vh] overflow-hidden flex flex-col border border-[#e2e8f0]"
-          >
-            {/* Header */}
-            <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f7f8f5]">
-              <div>
-                <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                  Review Details
-                </h3>
-                <p className="text-xs text-[#718096] mt-0.5">Submitted by {selectedReview.reviewerName}</p>
+      {selectedReview &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setSelectedReview(null)} />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl max-h-[88vh] sm:max-h-[90vh] overflow-hidden flex flex-col border border-[#e2e8f0] z-10"
+            >
+              {/* Header */}
+              <div className="p-5 border-b border-[#e2e8f0] flex items-center justify-between bg-[#f7f8f5] shrink-0">
+                <div>
+                  <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Review Details
+                  </h3>
+                  <p className="text-xs text-[#718096] mt-0.5">Submitted by {selectedReview.reviewerName}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedReview(null)}
+                  className="text-gray-400 hover:text-gray-700 p-1 rounded-lg transition cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
               </div>
+
+              {/* Body */}
+              <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
+                {/* Trip & Departure Badge */}
+                <div className="bg-[#f7f8f5] p-3.5 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-[#0f2922] text-sm">{selectedReview.tripName}</span>
+                    <span
+                      className={`text-xs font-semibold rounded-full px-2.5 py-0.5 capitalize ${
+                        STATUS_BADGE[selectedReview.status] ?? "bg-gray-100 text-gray-700"
+                      }`}
+                    >
+                      {selectedReview.status === "pending" ? "Pending Approval" : selectedReview.status}
+                    </span>
+                  </div>
+                  <div className="text-[#718096] flex items-center gap-3">
+                    <span>Destination: <strong>{selectedReview.destinationName || "Uttarakhand"}</strong></span>
+                    {selectedReview.departureDisplayDate && (
+                      <span>Departure: <strong>{selectedReview.departureDisplayDate}</strong></span>
+                    )}
+                  </div>
+                  {selectedReview.bookingNumber && (
+                    <div className="text-[#718096] font-mono">Booking Ref: {selectedReview.bookingNumber}</div>
+                  )}
+                  {selectedReview.tripInstanceId && (
+                    <div className="pt-1">
+                      <Link
+                        to={`/admin/departures/${selectedReview.tripInstanceId}`}
+                        className="text-emerald-700 hover:underline font-semibold"
+                      >
+                        View Departure Page & Enrolled Travellers →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* Rating & Reviewer info */}
+                <div className="flex items-center justify-between border-b border-[#f0f4f8] pb-3">
+                  <div className="flex items-center gap-2">
+                    <Stars rating={selectedReview.rating} />
+                    <span className="text-sm font-bold text-[#0f2922]">{selectedReview.rating} / 5 Stars</span>
+                  </div>
+                  <span className="text-xs text-[#a0aec0]">
+                    Submitted on {new Date(selectedReview.submittedAt).toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric"
+                    })}
+                  </span>
+                </div>
+
+                {/* Review Text */}
+                <div>
+                  <label className="text-xs font-bold text-[#a0aec0] uppercase tracking-wider block mb-1">
+                    Review Text
+                  </label>
+                  <div className="text-sm text-[#0f2922] bg-[#fcfcfc] border border-[#e2e8f0] p-4 rounded-xl whitespace-pre-line leading-relaxed">
+                    {selectedReview.body}
+                  </div>
+                </div>
+
+                {/* Photos */}
+                {selectedReview.photoUrls && selectedReview.photoUrls.length > 0 && (
+                  <div>
+                    <label className="text-xs font-bold text-[#a0aec0] uppercase tracking-wider block mb-2">
+                      Traveller Photos ({selectedReview.photoUrls.length})
+                    </label>
+                    <div className="grid grid-cols-3 gap-3">
+                      {selectedReview.photoUrls.map((url, i) => (
+                        <div
+                          key={i}
+                          onClick={() => setActivePhoto(url)}
+                          className="aspect-square rounded-xl overflow-hidden border border-[#e2e8f0] cursor-pointer hover:opacity-90 transition shadow-xs"
+                        >
+                          <img src={url} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer Actions: strictly Approve/Publish and Hide, NO delete */}
+              <div className="p-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex items-center justify-between shrink-0">
+                <button
+                  type="button"
+                  onClick={() => setSelectedReview(null)}
+                  className="px-4 py-2 border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] transition cursor-pointer"
+                >
+                  Close
+                </button>
+
+                <div className="flex items-center gap-2">
+                  {selectedReview.status !== "published" && (
+                    <button
+                      disabled={moderatingId === selectedReview.id}
+                      onClick={() => handleUpdateStatus(selectedReview.id, "published")}
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
+                    >
+                      Publish Review
+                    </button>
+                  )}
+                  {selectedReview.status !== "hidden" && (
+                    <button
+                      disabled={moderatingId === selectedReview.id}
+                      onClick={() => handleUpdateStatus(selectedReview.id, "hidden")}
+                      className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                    >
+                      Hide Review
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
+
+      {/* PHOTO LIGHTBOX */}
+      {activePhoto &&
+        createPortal(
+          <div
+            onClick={() => setActivePhoto(null)}
+            className="fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-pointer"
+          >
+            <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
+              <img src={activePhoto} alt="Review attachment" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
               <button
-                onClick={() => setSelectedReview(null)}
-                className="text-gray-400 hover:text-gray-700 p-1 rounded-lg transition"
+                onClick={() => setActivePhoto(null)}
+                className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black transition"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-
-            {/* Body */}
-            <div className="p-6 space-y-4 overflow-y-auto">
-              {/* Trip & Departure Badge */}
-              <div className="bg-[#f7f8f5] p-3.5 rounded-xl space-y-1.5 text-xs">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-[#0f2922] text-sm">{selectedReview.tripName}</span>
-                  <span
-                    className={`text-xs font-semibold rounded-full px-2.5 py-0.5 capitalize ${
-                      STATUS_BADGE[selectedReview.status] ?? "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {selectedReview.status === "pending" ? "Pending Approval" : selectedReview.status}
-                  </span>
-                </div>
-                <div className="text-[#718096] flex items-center gap-3">
-                  <span>Destination: <strong>{selectedReview.destinationName || "Uttarakhand"}</strong></span>
-                  {selectedReview.departureDisplayDate && (
-                    <span>Departure: <strong>{selectedReview.departureDisplayDate}</strong></span>
-                  )}
-                </div>
-                {selectedReview.bookingNumber && (
-                  <div className="text-[#718096] font-mono">Booking Ref: {selectedReview.bookingNumber}</div>
-                )}
-                {selectedReview.tripInstanceId && (
-                  <div className="pt-1">
-                    <Link
-                      to={`/admin/departures/${selectedReview.tripInstanceId}`}
-                      className="text-emerald-700 hover:underline font-semibold"
-                    >
-                      View Departure Page & Enrolled Travellers →
-                    </Link>
-                  </div>
-                )}
-              </div>
-
-              {/* Rating & Reviewer info */}
-              <div className="flex items-center justify-between border-b border-[#f0f4f8] pb-3">
-                <div className="flex items-center gap-2">
-                  <Stars rating={selectedReview.rating} />
-                  <span className="text-sm font-bold text-[#0f2922]">{selectedReview.rating} / 5 Stars</span>
-                </div>
-                <span className="text-xs text-[#a0aec0]">
-                  Submitted on {new Date(selectedReview.submittedAt).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric"
-                  })}
-                </span>
-              </div>
-
-              {/* Review Text */}
-              <div>
-                <label className="text-xs font-bold text-[#a0aec0] uppercase tracking-wider block mb-1">
-                  Review Text
-                </label>
-                <div className="text-sm text-[#0f2922] bg-[#fcfcfc] border border-[#e2e8f0] p-4 rounded-xl whitespace-pre-line leading-relaxed">
-                  {selectedReview.body}
-                </div>
-              </div>
-
-              {/* Photos */}
-              {selectedReview.photoUrls && selectedReview.photoUrls.length > 0 && (
-                <div>
-                  <label className="text-xs font-bold text-[#a0aec0] uppercase tracking-wider block mb-2">
-                    Traveller Photos ({selectedReview.photoUrls.length})
-                  </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    {selectedReview.photoUrls.map((url, i) => (
-                      <div
-                        key={i}
-                        onClick={() => setActivePhoto(url)}
-                        className="aspect-square rounded-xl overflow-hidden border border-[#e2e8f0] cursor-pointer hover:opacity-90 transition shadow-xs"
-                      >
-                        <img src={url} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Footer Actions: strictly Approve/Publish and Hide, NO delete */}
-            <div className="p-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex items-center justify-between">
-              <button
-                type="button"
-                onClick={() => setSelectedReview(null)}
-                className="px-4 py-2 border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] transition cursor-pointer"
-              >
-                Close
-              </button>
-
-              <div className="flex items-center gap-2">
-                {selectedReview.status !== "published" && (
-                  <button
-                    disabled={moderatingId === selectedReview.id}
-                    onClick={() => handleUpdateStatus(selectedReview.id, "published")}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer disabled:opacity-50"
-                  >
-                    Publish Review
-                  </button>
-                )}
-                {selectedReview.status !== "hidden" && (
-                  <button
-                    disabled={moderatingId === selectedReview.id}
-                    onClick={() => handleUpdateStatus(selectedReview.id, "hidden")}
-                    className="px-4 py-2 border border-gray-300 text-gray-700 hover:bg-gray-100 rounded-xl text-xs font-semibold transition cursor-pointer disabled:opacity-50"
-                  >
-                    Hide Review
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* PHOTO LIGHTBOX */}
-      {activePhoto && (
-        <div
-          onClick={() => setActivePhoto(null)}
-          className="fixed inset-0 z-60 flex items-center justify-center bg-black/80 backdrop-blur-xs p-4 cursor-pointer"
-        >
-          <div className="relative max-w-4xl max-h-[90vh] overflow-hidden rounded-2xl" onClick={(e) => e.stopPropagation()}>
-            <img src={activePhoto} alt="Review attachment" className="w-full h-full object-contain max-h-[85vh] rounded-2xl" />
-            <button
-              onClick={() => setActivePhoto(null)}
-              className="absolute top-4 right-4 bg-black/60 text-white p-2 rounded-full hover:bg-black transition"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
