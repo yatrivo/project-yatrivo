@@ -429,7 +429,7 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
             <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
               Enquiries CRM
             </h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#f7f8f5] text-[#0f2922] border border-[#e2e8f0]">
               {enquiries.length} total
             </span>
           </div>
@@ -676,6 +676,22 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
                       <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${STATUS_BADGE[e.status] ?? "bg-gray-100 text-gray-700"}`}>
                         {e.status}
                       </span>
+                      {e.bookingId && (
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setAdminPage?.("bookings");
+                              navigate(`/admin/bookings/${e.bookingId}`);
+                            }}
+                            className="text-[10px] font-bold text-emerald-800 hover:text-emerald-950 hover:underline flex items-center gap-0.5 cursor-pointer"
+                          >
+                            <span>Booking #{e.bookingNumber || e.bookingId.slice(0, 8)}</span>
+                            <span>→</span>
+                          </button>
+                        </div>
+                      )}
                     </td>
 
                     {/* Assigned To Badge */}
@@ -693,6 +709,19 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
                     {/* Actions */}
                     <td className="px-4 py-3 text-right" onClick={(ev) => ev.stopPropagation()}>
                       <div className="inline-flex items-center gap-1.5">
+                        {e.bookingId && (
+                          <button
+                            onClick={() => {
+                              setAdminPage?.("bookings");
+                              navigate(`/admin/bookings/${e.bookingId}`);
+                            }}
+                            className="px-2 py-1 text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 rounded-md transition cursor-pointer shadow-2xs inline-flex items-center gap-1"
+                            title="Open linked booking"
+                          >
+                            <span>Booking</span>
+                            <span>→</span>
+                          </button>
+                        )}
                         <button
                           onClick={() => handleRowClick(e)}
                           className="px-2.5 py-1 text-xs font-semibold text-[#0f2922] bg-[#f7f8f5] hover:bg-[#e2e8f0] rounded-md transition cursor-pointer"

@@ -456,18 +456,61 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
             <span>Provide Quote</span>
           </button>
 
-          <button
-            onClick={() => void handleConvertToBooking()}
-            disabled={isConverting}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span>{isConverting ? "Converting..." : "Convert to Booking"}</span>
-          </button>
+          {enquiry.bookingId ? (
+            <Link
+              to={`/admin/bookings/${enquiry.bookingId}`}
+              onClick={() => setAdminPage?.("bookings")}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold transition cursor-pointer shadow-xs"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              <span>View Linked Booking (#{enquiry.bookingNumber || enquiry.bookingId.slice(0, 8)}) →</span>
+            </Link>
+          ) : (
+            <button
+              onClick={() => void handleConvertToBooking()}
+              disabled={isConverting}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>{isConverting ? "Converting..." : "Convert to Booking"}</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Linked Booking Card */}
+      {(rawStatus === "converted" || enquiry.bookingId) && (
+        <div className="bg-white border border-[#e2e8f0] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-[#f7f8f5] border border-[#e2e8f0] text-[#0f2922] flex items-center justify-center font-bold text-xs shrink-0">
+              ✓
+            </div>
+            <div>
+              <h4 className="font-bold text-[#0f2922] text-sm">
+                Enquiry Converted to Official Booking
+              </h4>
+              <p className="text-[#718096] text-xs mt-0.5">
+                Linked Booking: <span className="font-mono font-bold text-[#0f2922]">#{enquiry.bookingNumber || enquiry.bookingId}</span>. 
+                Traveller records, payments, and lifecycle are active on the dedicated Booking screen.
+              </p>
+            </div>
+          </div>
+          {enquiry.bookingId && (
+            <Link
+              to={`/admin/bookings/${enquiry.bookingId}`}
+              onClick={() => setAdminPage?.("bookings")}
+              className="px-4 py-2 bg-[#0f2922] hover:bg-[#1a3d31] text-white rounded-lg font-bold text-xs shrink-0 text-center transition cursor-pointer shadow-xs inline-flex items-center justify-center gap-1.5"
+            >
+              <span>Open Booking Page</span>
+              <span>→</span>
+            </Link>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Customer Details, Package Details, Notes, and Real Timeline */}

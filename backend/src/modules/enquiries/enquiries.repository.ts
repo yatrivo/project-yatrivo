@@ -320,6 +320,8 @@ export const enquiriesRepository = {
       assigned_to_user_id: string | null;
       assigned_to_name: string | null;
       assigned_to_email: string | null;
+      booking_id: string | null;
+      booking_number: string | null;
     }>(
       `SELECT e.id, e.enquiry_number, e.source::text, e.status::text,
               e.customer_name, e.customer_phone, e.customer_email,
@@ -332,10 +334,13 @@ export const enquiriesRepository = {
               e.submitted_at::text,
               e.assigned_to_user_id,
               u.full_name as assigned_to_name,
-              u.email as assigned_to_email
+              u.email as assigned_to_email,
+              b.id as booking_id,
+              b.booking_number
        FROM enquiries e
        LEFT JOIN trips t ON t.id = e.trip_id
        LEFT JOIN users u ON u.id = e.assigned_to_user_id
+       LEFT JOIN bookings b ON b.enquiry_id = e.id
        ${whereClause}
        ORDER BY e.submitted_at DESC
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
@@ -362,7 +367,9 @@ export const enquiriesRepository = {
       submittedAt: row.submitted_at,
       assignedToUserId: row.assigned_to_user_id,
       assignedToName: row.assigned_to_name,
-      assignedToEmail: row.assigned_to_email
+      assignedToEmail: row.assigned_to_email,
+      bookingId: row.booking_id,
+      bookingNumber: row.booking_number
     }));
 
     return { enquiries, total };
@@ -393,6 +400,8 @@ export const enquiriesRepository = {
       assigned_to_user_id: string | null;
       assigned_to_name: string | null;
       assigned_to_email: string | null;
+      booking_id: string | null;
+      booking_number: string | null;
     }>(
       `SELECT e.id, e.enquiry_number, e.source::text, e.status::text,
               e.customer_name, e.customer_phone, e.customer_email,
@@ -405,10 +414,13 @@ export const enquiriesRepository = {
               e.submitted_at::text,
               e.assigned_to_user_id,
               u.full_name as assigned_to_name,
-              u.email as assigned_to_email
+              u.email as assigned_to_email,
+              b.id as booking_id,
+              b.booking_number
        FROM enquiries e
        LEFT JOIN trips t ON t.id = e.trip_id
        LEFT JOIN users u ON u.id = e.assigned_to_user_id
+       LEFT JOIN bookings b ON b.enquiry_id = e.id
        WHERE ${whereCond}
        LIMIT 1`,
       [idOrNumber]

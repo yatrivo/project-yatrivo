@@ -26,19 +26,19 @@ const BOOKING_STATUSES: { value: BookingStatus; label: string }[] = [
 ];
 
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700 border border-gray-300",
-  awaiting_traveller_details: "bg-amber-50 text-amber-800 border border-amber-200",
-  details_received: "bg-blue-50 text-blue-700 border border-blue-200",
-  confirmed: "bg-emerald-50 text-emerald-800 border border-emerald-200",
-  cancelled: "bg-red-50 text-red-700 border border-red-200",
-  completed: "bg-purple-50 text-purple-700 border border-purple-200"
+  draft: "bg-gray-100 text-gray-600",
+  awaiting_traveller_details: "bg-yellow-50 text-yellow-700",
+  details_received: "bg-blue-50 text-blue-700",
+  confirmed: "bg-emerald-50 text-emerald-700",
+  cancelled: "bg-red-50 text-red-600",
+  completed: "bg-purple-50 text-purple-700"
 };
 
 const PAYMENT_BADGE: Record<string, string> = {
-  unpaid: "bg-red-50 text-red-700 border border-red-200",
-  partial: "bg-yellow-50 text-yellow-800 border border-yellow-200",
-  paid: "bg-emerald-50 text-emerald-800 border border-emerald-200",
-  refunded: "bg-gray-100 text-gray-700 border border-gray-300"
+  unpaid: "bg-red-50 text-red-600",
+  partial: "bg-yellow-50 text-yellow-700",
+  paid: "bg-emerald-50 text-emerald-700",
+  refunded: "bg-gray-100 text-gray-600"
 };
 
 function formatDateTime(dateStr: string): string {
@@ -99,6 +99,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   const [isRecordingPay, setIsRecordingPay] = useState(false);
 
   // Traveller Details Editing
+  const [isEditingTravellers, setIsEditingTravellers] = useState(false);
   const [travellersForm, setTravellersForm] = useState<SaveTravellerPayload[]>([]);
   const [isSavingTravellers, setIsSavingTravellers] = useState(false);
 
@@ -167,6 +168,42 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
     }
   };
 
+  // Cancel edit travellers and revert form to saved booking state
+  const handleCancelEditTravellers = () => {
+    if (!booking) return;
+    const existing = booking.travellers || [];
+    const count = Math.max(booking.travellerCount || 1, existing.length);
+    const rows: SaveTravellerPayload[] = [];
+    for (let i = 0; i < count; i++) {
+      if (existing[i]) {
+        rows.push({
+          id: existing[i].id,
+          fullName: existing[i].fullName,
+          gender: existing[i].gender,
+          age: existing[i].age,
+          phone: existing[i].phone,
+          email: existing[i].email,
+          documentType: existing[i].documentType,
+          idNumber: existing[i].idNumber,
+          notes: existing[i].notes
+        });
+      } else {
+        rows.push({
+          fullName: i === 0 ? booking.primaryContactName : "",
+          gender: "Male",
+          age: null,
+          phone: i === 0 ? booking.primaryContactPhone : "",
+          email: i === 0 ? booking.primaryContactEmail || "" : "",
+          documentType: "Aadhaar Card",
+          idNumber: "",
+          notes: ""
+        });
+      }
+    }
+    setTravellersForm(rows);
+    setIsEditingTravellers(false);
+  };
+
   // Handle traveller details saving by admin
   const handleSaveTravellers = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -176,6 +213,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
     try {
       await bookingsApi.saveTravellersAdmin(booking.id, travellersForm);
       showToast("Traveller details saved successfully.", "success");
+      setIsEditingTravellers(false);
       void fetchBooking();
     } catch (err: unknown) {
       showToast(err instanceof Error ? err.message : "Failed to save travellers", "error");
@@ -288,16 +326,16 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setPayModalOpen(false)} />
           <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 overflow-hidden border border-[#e2e8f0]">
-            <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between">
+            <div className="bg-white px-6 py-4 flex items-center justify-between border-b border-[#e2e8f0]">
               <div>
                 <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">FINANCIAL TRANSACTION</div>
-                <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                <h3 className="text-[#0f2922] font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
                   Record Payment
                 </h3>
               </div>
               <button
                 onClick={() => setPayModalOpen(false)}
-                className="text-white/60 hover:text-white transition p-1 cursor-pointer"
+                className="text-[#718096] hover:text-[#0f2922] transition p-1 cursor-pointer"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -389,7 +427,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                 <button
                   type="submit"
                   disabled={isRecordingPay}
-                  className="flex-1 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white py-2 rounded-lg transition cursor-pointer font-semibold shadow-xs"
+                  className="flex-1 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-2 rounded-lg transition cursor-pointer font-semibold shadow-xs"
                 >
                   {isRecordingPay ? "Recording..." : "Record Payment"}
                 </button>
@@ -423,79 +461,25 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
       </div>
 
       {/* Header Banner */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-2xs flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2 mb-1 flex-wrap">
-            <span className="font-mono text-xs font-bold text-[#0f2922] bg-[#f7f8f5] px-2.5 py-0.5 rounded-md border border-[#e2e8f0]">
-              {booking.bookingNumber}
-            </span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${STATUS_BADGE[booking.status] ?? "bg-gray-100 text-gray-700"}`}>
-              {booking.status.replace(/_/g, " ")}
-            </span>
-            <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${PAYMENT_BADGE[booking.paymentStatus] ?? "bg-gray-100 text-gray-700"}`}>
-              Payment: {booking.paymentStatus}
-            </span>
-          </div>
-
-          <h1 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-            {booking.tripName || "Himalayan Expedition"}
-          </h1>
-          <p className="text-xs text-[#718096] mt-0.5">
-            Destination: <span className="font-semibold text-[#0f2922]">{booking.destinationLabel || "Uttarakhand"}</span> • Scheduled Departure: <span className="font-semibold text-[#0f2922]">{booking.tripDateLabel}</span>
-          </p>
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-6 shadow-2xs">
+        <div className="flex items-center gap-2 mb-1 flex-wrap">
+          <span className="font-mono text-xs font-bold text-[#0f2922] bg-[#f7f8f5] px-2.5 py-0.5 rounded-md border border-[#e2e8f0]">
+            {booking.bookingNumber}
+          </span>
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${STATUS_BADGE[booking.status] ?? "bg-gray-100 text-gray-700"}`}>
+            {booking.status.replace(/_/g, " ")}
+          </span>
+          <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full capitalize ${PAYMENT_BADGE[booking.paymentStatus] ?? "bg-gray-100 text-gray-700"}`}>
+            Payment: {booking.paymentStatus}
+          </span>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* Send details form on WhatsApp */}
-          <button
-            type="button"
-            onClick={handleSendWhatsAppForm}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#16a34a] hover:bg-[#15803d] text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-            title="Send prefilled WhatsApp message with secure customer link"
-          >
-            <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
-            <span>Send Details Form</span>
-          </button>
-
-          {/* Copy link */}
-          <button
-            type="button"
-            onClick={handleCopyLink}
-            className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#f7f8f5] hover:bg-[#e2e8f0] text-[#0f2922] text-xs font-semibold transition cursor-pointer border border-[#e2e8f0]"
-            title="Copy secure link for customer"
-          >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-            </svg>
-            <span>Copy Link</span>
-          </button>
-
-          {/* Record payment */}
-          <button
-            type="button"
-            onClick={() => setPayModalOpen(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-          >
-            <span>Record Payment</span>
-          </button>
-
-          {/* Confirm Booking if not confirmed */}
-          {booking.status !== "confirmed" && booking.status !== "completed" && (
-            <button
-              type="button"
-              onClick={() => void handleStatusChange("confirmed")}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold transition cursor-pointer shadow-xs"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
-              <span>Confirm Booking</span>
-            </button>
-          )}
-        </div>
+        <h1 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+          {booking.tripName || "Himalayan Expedition"}
+        </h1>
+        <p className="text-xs text-[#718096] mt-0.5">
+          Destination: <span className="font-semibold text-[#0f2922]">{booking.destinationLabel || "Uttarakhand"}</span> • Scheduled Departure: <span className="font-semibold text-[#0f2922]">{booking.tripDateLabel}</span>
+        </p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -558,191 +542,295 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
             </div>
           </div>
 
-          {/* Secure Link Notification Card */}
-          <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-xs space-y-2">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <span className="text-base">🔗</span>
-                <span className="font-bold text-emerald-900">Secure Customer Traveller Details Link</span>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyLink}
-                className="text-emerald-800 hover:text-emerald-950 font-bold underline cursor-pointer"
-              >
-                Copy Link
-              </button>
-            </div>
-            <p className="text-emerald-800 text-[11px] leading-relaxed">
-              Customers can fill their group details directly without logging in. Once submitted, this booking will automatically advance to <span className="font-bold">Details Received</span>.
-            </p>
-            <div className="bg-white/80 p-2 rounded border border-emerald-300 font-mono text-[11px] text-emerald-900 truncate">
-              {getCustomerLink()}
-            </div>
-          </div>
-
           {/* Dedicated Traveller Details Section */}
           <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-5 space-y-4">
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#e2e8f0] pb-3">
               <div>
                 <h3 className="font-bold text-[#0f2922] text-sm">
-                  Traveller Details ({travellersForm.length})
+                  Traveller Details ({isEditingTravellers ? travellersForm.length : (booking.travellers?.filter(t => t.fullName?.trim()).length || booking.travellerCount)})
                 </h3>
                 <p className="text-[#718096] text-xs">
-                  Enter details for each traveller. Can be updated by admin or submitted by customer.
+                  {isEditingTravellers
+                    ? "Editing traveller manifest. Click Save when finished."
+                    : "Verified traveller manifests and passenger information."}
                 </p>
               </div>
 
-              <button
-                type="button"
-                onClick={() => {
-                  setTravellersForm((prev) => [
-                    ...prev,
-                    {
-                      fullName: "",
-                      gender: "Male",
-                      age: null,
-                      phone: "",
-                      email: "",
-                      documentType: "Aadhaar Card",
-                      idNumber: "",
-                      notes: ""
-                    }
-                  ]);
-                }}
-                className="text-xs font-semibold text-[#0f2922] hover:text-[#e8622a] border border-[#e2e8f0] px-3 py-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
-              >
-                + Add Another Traveller Slot
-              </button>
+              {!isEditingTravellers ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTravellers(true)}
+                  className="text-xs font-semibold text-[#0f2922] hover:text-[#e8622a] border border-[#e2e8f0] px-3.5 py-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer inline-flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5 text-[#718096]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>Edit Travellers</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEditTravellers}
+                    className="text-xs font-medium text-[#718096] hover:text-[#0f2922] border border-[#e2e8f0] px-3 py-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setTravellersForm((prev) => [
+                        ...prev,
+                        {
+                          fullName: "",
+                          gender: "Male",
+                          age: null,
+                          phone: "",
+                          email: "",
+                          documentType: "Aadhaar Card",
+                          idNumber: "",
+                          notes: ""
+                        }
+                      ]);
+                    }}
+                    className="text-xs font-semibold text-[#0f2922] hover:text-[#e8622a] border border-[#e2e8f0] px-3 py-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
+                  >
+                    + Add Slot
+                  </button>
+                </div>
+              )}
             </div>
 
-            <form onSubmit={handleSaveTravellers} className="space-y-4">
-              {travellersForm.map((t, index) => (
-                <div
-                  key={index}
-                  className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-4 space-y-3"
-                >
-                  <div className="flex items-center justify-between text-xs font-bold text-[#0f2922]">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full bg-[#0f2922] text-white flex items-center justify-center text-[10px]">
-                        {index + 1}
-                      </span>
-                      <span>Traveller {index + 1} {index === 0 && "(Primary Contact)"}</span>
-                    </div>
-                    {travellersForm.length > 1 && (
+            {!isEditingTravellers ? (
+              // View Mode (Default)
+              (() => {
+                const filled = (booking.travellers || []).filter((t) => t.fullName && t.fullName.trim().length > 0);
+                if (filled.length === 0) {
+                  return (
+                    <div className="bg-[#f7f8f5] rounded-xl p-8 text-center border border-dashed border-[#cbd5e1] space-y-3">
+                      <div className="w-10 h-10 rounded-full bg-white border border-[#e2e8f0] flex items-center justify-center mx-auto text-[#718096]">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-[#0f2922]">No traveller details submitted yet</p>
+                        <p className="text-[11px] text-[#718096] mt-0.5 max-w-sm mx-auto">
+                          {booking.travellerCount} traveller {booking.travellerCount === 1 ? "seat is" : "seats are"} reserved. Share the customer link or click below to enter details manually.
+                        </p>
+                      </div>
                       <button
                         type="button"
-                        onClick={() => {
-                          setTravellersForm((prev) => prev.filter((_, i) => i !== index));
-                        }}
-                        className="text-[#a0aec0] hover:text-red-600 transition text-[11px] font-normal"
+                        onClick={() => setIsEditingTravellers(true)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold transition cursor-pointer shadow-xs"
                       >
-                        Remove Slot
+                        <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        <span>Enter Details</span>
                       </button>
+                    </div>
+                  );
+                }
+
+                return (
+                  <div className="space-y-3">
+                    {filled.map((t, idx) => (
+                      <div
+                        key={t.id || idx}
+                        className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-4 space-y-2.5"
+                      >
+                        <div className="flex items-center justify-between text-xs font-bold text-[#0f2922]">
+                          <div className="flex items-center gap-2">
+                            <span className="w-5 h-5 rounded-full bg-white border border-[#e2e8f0] text-[#0f2922] flex items-center justify-center text-[10px] font-semibold">
+                              {idx + 1}
+                            </span>
+                            <span className="text-xs font-semibold text-[#0f2922]">{t.fullName}</span>
+                            {idx === 0 && (
+                              <span className="text-[10px] font-medium text-[#718096] bg-white px-2 py-0.5 rounded-full border border-[#e2e8f0]">
+                                Primary Contact
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-[#718096] font-normal">
+                            {t.gender || "Gender unspecified"}{t.age ? ` • ${t.age} yrs` : ""}
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-xs pt-2 border-t border-[#e2e8f0]">
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-[#718096] block font-medium">Phone / WhatsApp</span>
+                            <span className="text-[#0f2922] font-mono">{t.phone || "—"}</span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-[#718096] block font-medium">ID Document</span>
+                            <span className="text-[#0f2922]">
+                              {t.documentType ? `${t.documentType}: ` : ""}
+                              <span className="font-mono">{t.idNumber || "—"}</span>
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] uppercase tracking-wider text-[#718096] block font-medium">Diet / Health / Notes</span>
+                            <span className="text-[#0f2922]">{t.notes || "None"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    {booking.travellerCount > filled.length && (
+                      <div className="bg-[#f7f8f5]/60 border border-dashed border-[#e2e8f0] rounded-xl p-3.5 flex items-center justify-between text-xs text-[#718096]">
+                        <span>
+                          {booking.travellerCount - filled.length} more {booking.travellerCount - filled.length === 1 ? "seat" : "seats"} awaiting details.
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingTravellers(true)}
+                          className="text-xs font-semibold text-[#0f2922] hover:text-[#e8622a] underline cursor-pointer"
+                        >
+                          Fill remaining slots →
+                        </button>
+                      </div>
                     )}
                   </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">
-                        Full Name <span className="text-red-500">*</span>
-                      </label>
-                      <input
-                        value={t.fullName}
-                        onChange={(e) => updateTravellerField(index, "fullName", e.target.value)}
-                        placeholder="Full Name"
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      />
+                );
+              })()
+            ) : (
+              // Edit Mode Form
+              <form onSubmit={handleSaveTravellers} className="space-y-4">
+                {travellersForm.map((t, index) => (
+                  <div
+                    key={index}
+                    className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-4 space-y-3"
+                  >
+                    <div className="flex items-center justify-between text-xs font-bold text-[#0f2922]">
+                      <div className="flex items-center gap-2">
+                        <span className="w-5 h-5 rounded-full bg-white border border-[#e2e8f0] text-[#0f2922] flex items-center justify-center text-[10px] font-semibold">
+                          {index + 1}
+                        </span>
+                        <span>Traveller {index + 1} {index === 0 && "(Primary Contact)"}</span>
+                      </div>
+                      {travellersForm.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setTravellersForm((prev) => prev.filter((_, i) => i !== index));
+                          }}
+                          className="text-[#a0aec0] hover:text-red-600 transition text-[11px] font-normal"
+                        >
+                          Remove Slot
+                        </button>
+                      )}
                     </div>
 
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">Gender</label>
-                      <select
-                        value={t.gender || "Male"}
-                        onChange={(e) => updateTravellerField(index, "gender", e.target.value)}
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      >
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">
+                          Full Name <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                          value={t.fullName}
+                          onChange={(e) => updateTravellerField(index, "fullName", e.target.value)}
+                          placeholder="Full Name"
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">Gender</label>
+                        <select
+                          value={t.gender || "Male"}
+                          onChange={(e) => updateTravellerField(index, "gender", e.target.value)}
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        >
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">Age</label>
+                        <input
+                          type="number"
+                          min="1"
+                          max="120"
+                          value={t.age ?? ""}
+                          onChange={(e) => updateTravellerField(index, "age", e.target.value ? parseInt(e.target.value, 10) : null)}
+                          placeholder="Age"
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        />
+                      </div>
                     </div>
 
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">Age</label>
-                      <input
-                        type="number"
-                        min="1"
-                        max="120"
-                        value={t.age ?? ""}
-                        onChange={(e) => updateTravellerField(index, "age", e.target.value ? parseInt(e.target.value, 10) : null)}
-                        placeholder="Age"
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      />
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">Phone / WhatsApp</label>
+                        <input
+                          value={t.phone ?? ""}
+                          onChange={(e) => updateTravellerField(index, "phone", e.target.value)}
+                          placeholder="+91..."
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">ID Document Type</label>
+                        <select
+                          value={t.documentType || "Aadhaar Card"}
+                          onChange={(e) => updateTravellerField(index, "documentType", e.target.value)}
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        >
+                          <option value="Aadhaar Card">Aadhaar Card</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Voter ID">Voter ID</option>
+                          <option value="Driving License">Driving License</option>
+                          <option value="Other">Other ID</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">ID Document Number</label>
+                        <input
+                          value={t.idNumber ?? ""}
+                          onChange={(e) => updateTravellerField(index, "idNumber", e.target.value)}
+                          placeholder="e.g. 12-digit Aadhaar / Passport #"
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[#4a5568] font-semibold mb-1">Diet / Health / Notes</label>
+                        <input
+                          value={t.notes ?? ""}
+                          onChange={(e) => updateTravellerField(index, "notes", e.target.value)}
+                          placeholder="Dietary preference, medical notes, etc."
+                          className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                        />
+                      </div>
                     </div>
                   </div>
+                ))}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">Phone / WhatsApp</label>
-                      <input
-                        value={t.phone ?? ""}
-                        onChange={(e) => updateTravellerField(index, "phone", e.target.value)}
-                        placeholder="+91..."
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">ID Document Type</label>
-                      <select
-                        value={t.documentType || "Aadhaar Card"}
-                        onChange={(e) => updateTravellerField(index, "documentType", e.target.value)}
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      >
-                        <option value="Aadhaar Card">Aadhaar Card</option>
-                        <option value="Passport">Passport</option>
-                        <option value="Voter ID">Voter ID</option>
-                        <option value="Driving License">Driving License</option>
-                        <option value="Other">Other ID</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">ID Document Number</label>
-                      <input
-                        value={t.idNumber ?? ""}
-                        onChange={(e) => updateTravellerField(index, "idNumber", e.target.value)}
-                        placeholder="e.g. 12-digit Aadhaar / Passport #"
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-[#4a5568] font-semibold mb-1">Diet / Health / Notes</label>
-                      <input
-                        value={t.notes ?? ""}
-                        onChange={(e) => updateTravellerField(index, "notes", e.target.value)}
-                        placeholder="Dietary preference, medical notes, etc."
-                        className="w-full bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-                      />
-                    </div>
-                  </div>
+                <div className="flex items-center justify-end gap-2.5 pt-2">
+                  <button
+                    type="button"
+                    onClick={handleCancelEditTravellers}
+                    className="border border-[#e2e8f0] text-[#4a5568] hover:bg-[#f7f8f5] text-xs font-semibold px-4 py-2.5 rounded-lg transition cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingTravellers}
+                    className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition cursor-pointer shadow-xs"
+                  >
+                    {isSavingTravellers ? "Saving Travellers..." : "Save Travellers"}
+                  </button>
                 </div>
-              ))}
-
-              <div className="flex justify-end pt-2">
-                <button
-                  type="submit"
-                  disabled={isSavingTravellers}
-                  className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition cursor-pointer shadow-xs"
-                >
-                  {isSavingTravellers ? "Saving Travellers..." : "Save All Travellers"}
-                </button>
-              </div>
-            </form>
+              </form>
+            )}
           </div>
 
           {/* Payment & Transactions Section */}
@@ -771,7 +859,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
               </div>
               <div>
                 <span className="text-[11px] text-[#718096] block uppercase tracking-wider font-semibold">Total Paid</span>
-                <span className="text-base font-bold text-emerald-700">₹{booking.paidAmount.toLocaleString("en-IN")}</span>
+                <span className="text-base font-bold text-[#0f2922]">₹{booking.paidAmount.toLocaleString("en-IN")}</span>
               </div>
               <div>
                 <span className="text-[11px] text-[#718096] block uppercase tracking-wider font-semibold">Balance Due</span>
@@ -800,7 +888,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                     {payments.map((p: BookingPayment) => (
                       <tr key={p.id}>
                         <td className="py-2 font-mono text-[#718096]">{p.paidAt ? formatDateTime(p.paidAt) : formatDateTime(p.createdAt)}</td>
-                        <td className="py-2 font-bold text-emerald-800">₹{p.amountInRupees.toLocaleString("en-IN")}</td>
+                        <td className="py-2 font-semibold text-[#0f2922]">₹{p.amountInRupees.toLocaleString("en-IN")}</td>
                         <td className="py-2 capitalize font-medium">{p.method.replace("_", " ")}</td>
                         <td className="py-2 font-mono text-[11px] text-[#718096]">{p.referenceNumber || "—"}</td>
                         <td className="py-2 text-[#718096]">{p.createdByName || "Admin"}</td>
@@ -862,57 +950,113 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
 
         {/* Right Column: Lifecycle Controls & Management */}
         <div className="space-y-5">
-          {/* Status Lifecycle Controls Box */}
-          <div className="bg-[#0f2922] rounded-xl p-5 text-white shadow-2xs space-y-4">
+          {/* Status Lifecycle Controls Box (Green & Orange Theme) */}
+          <div className="bg-[#0f2922] text-white rounded-xl p-5 shadow-md space-y-4 border border-[#1a3d31]">
             <div>
-              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">MANAGEMENT</div>
-              <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
+                MANAGEMENT & ACTIONS
+              </div>
+              <h3 className="text-white font-bold text-base mt-0.5" style={{ fontFamily: "var(--font-serif, serif)" }}>
                 Booking Controls
               </h3>
             </div>
 
             {/* Status Dropdown */}
             <div>
-              <label className="block text-[#a3bfb5] text-xs font-semibold uppercase tracking-wider mb-1.5">
+              <label className="block text-white/70 text-xs font-medium mb-1.5">
                 Booking Status
               </label>
               <select
                 value={booking.status}
                 onChange={(e) => void handleStatusChange(e.target.value as BookingStatus)}
-                className="w-full bg-[#1a3d31] text-white border border-[#2d5a48] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#e8622a] cursor-pointer"
+                className="w-full bg-[#1a3d31] text-white border border-[#2d5a47] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#e8622a] cursor-pointer"
               >
                 {BOOKING_STATUSES.map((s) => (
-                  <option key={s.value} value={s.value}>
+                  <option key={s.value} value={s.value} className="bg-[#0f2922] text-white">
                     {s.label}
                   </option>
                 ))}
               </select>
             </div>
 
-            {/* Quick Actions */}
+            {/* Actions in Side Panel */}
             <div className="border-t border-[#1a3d31] pt-3.5 space-y-2">
+              {/* Record Payment Button (Primary warm orange) */}
+              <button
+                type="button"
+                onClick={() => setPayModalOpen(true)}
+                className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold py-2.5 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>Record Payment</span>
+              </button>
+
+              {/* Confirm Booking button if not confirmed */}
+              {booking.status !== "confirmed" && booking.status !== "completed" && (
+                <button
+                  type="button"
+                  onClick={() => void handleStatusChange("confirmed")}
+                  className="w-full bg-[#1a3d31] hover:bg-[#235342] text-emerald-300 border border-emerald-500/30 text-xs font-semibold py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                  <span>Confirm Booking</span>
+                </button>
+              )}
+
+              {/* Edit Travellers Button */}
+              {!isEditingTravellers ? (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingTravellers(true)}
+                  className="w-full bg-[#1a3d31] hover:bg-[#235342] text-white border border-[#2d5a47] text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  <span>Edit Travellers</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={handleCancelEditTravellers}
+                  className="w-full bg-[#1a3d31] hover:bg-[#235342] text-[#e8622a] border border-[#e8622a]/40 text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                >
+                  <span>Cancel Edit Mode</span>
+                </button>
+              )}
+
+              {/* Copy Traveller Link */}
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="w-full bg-[#1a3d31] hover:bg-[#235342] text-white border border-[#2d5a47] text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <svg className="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span>Copy Traveller Link</span>
+              </button>
+
+              {/* Send Details via WhatsApp */}
               <button
                 type="button"
                 onClick={handleSendWhatsAppForm}
-                className="w-full bg-[#16a34a] hover:bg-[#15803d] text-white text-xs font-semibold py-2.5 px-3 rounded-lg transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
+                className="w-full bg-[#1a3d31] hover:bg-[#235342] text-white border border-[#2d5a47] text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
               >
-                <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                <svg className="w-3.5 h-3.5 text-emerald-400" fill="currentColor" viewBox="0 0 24 24">
                   <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
                 </svg>
                 <span>Send Details via WhatsApp</span>
               </button>
 
-              <button
-                type="button"
-                onClick={() => setPayModalOpen(true)}
-                className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold py-2.5 px-3 rounded-lg transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
-              >
-                <span>Record Payment</span>
-              </button>
-
+              {/* Call Primary Customer */}
               <a
                 href={`tel:${booking.primaryContactPhone.replace(/\s+/g, "")}`}
-                className="w-full bg-[#1a3d31] hover:bg-[#255243] text-white text-xs font-semibold py-2.5 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+                className="w-full bg-[#1a3d31] hover:bg-[#235342] text-white/80 hover:text-white border border-[#2d5a47] text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
               >
                 <span>Call Primary Customer</span>
               </a>

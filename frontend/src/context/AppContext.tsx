@@ -37,6 +37,8 @@ export interface Enquiry {
   assignedToUserId?: string | null;
   assignedToName?: string | null;
   assignedToEmail?: string | null;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
 }
 
 export interface Traveller {
@@ -579,7 +581,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
             source: e.source,
             assignedToUserId: e.assignedToUserId,
             assignedToName: e.assignedToName,
-            assignedToEmail: e.assignedToEmail
+            assignedToEmail: e.assignedToEmail,
+            bookingId: e.bookingId || undefined,
+            bookingNumber: e.bookingNumber || undefined
           };
         });
         setEnquiries(mapped);

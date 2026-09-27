@@ -5,12 +5,12 @@ import type { AdminPage } from "./AdminLayout";
 import { bookingsApi, type BookingResponse, type BookingStatus, type PaymentStatus } from "@/api/bookings";
 
 const STATUS_BADGE: Record<string, string> = {
-  draft: "bg-gray-100 text-gray-700 border border-gray-300",
-  awaiting_traveller_details: "bg-amber-50 text-amber-800 border border-amber-200",
-  details_received: "bg-blue-50 text-blue-700 border border-blue-200",
-  confirmed: "bg-emerald-50 text-emerald-800 border border-emerald-200",
-  cancelled: "bg-red-50 text-red-700 border border-red-200",
-  completed: "bg-purple-50 text-purple-700 border border-purple-200"
+  draft: "bg-gray-100 text-gray-600",
+  awaiting_traveller_details: "bg-yellow-50 text-yellow-700",
+  details_received: "bg-blue-50 text-blue-700",
+  confirmed: "bg-emerald-50 text-emerald-700",
+  cancelled: "bg-red-50 text-red-600",
+  completed: "bg-purple-50 text-purple-700"
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -23,10 +23,10 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const PAYMENT_BADGE: Record<string, string> = {
-  unpaid: "bg-red-50 text-red-700 border border-red-200",
-  partial: "bg-yellow-50 text-yellow-800 border border-yellow-200",
-  paid: "bg-emerald-50 text-emerald-800 border border-emerald-200",
-  refunded: "bg-gray-100 text-gray-700 border border-gray-300"
+  unpaid: "bg-red-50 text-red-600",
+  partial: "bg-yellow-50 text-yellow-700",
+  paid: "bg-emerald-50 text-emerald-700",
+  refunded: "bg-gray-100 text-gray-600"
 };
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -135,18 +135,18 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
       <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 max-h-[92vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
         {/* Header */}
-        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+        <div className="bg-white px-6 py-4 flex items-center justify-between shrink-0 border-b border-[#e2e8f0]">
           <div>
             <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
               OFFICIAL BOOKING ENTRY
             </div>
-            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            <h3 className="text-[#0f2922] font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
               Add New Booking
             </h3>
           </div>
           <button
             onClick={onClose}
-            className="text-white/60 hover:text-white transition p-1 cursor-pointer"
+            className="text-[#718096] hover:text-[#0f2922] transition p-1 cursor-pointer"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -359,6 +359,7 @@ interface Props {
 
 export default function AdminBookings({ setAdminPage }: Props = {}) {
   const navigate = useNavigate();
+  const { showToast } = useApp();
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -426,22 +427,14 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-              Bookings
-            </h2>
-            <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-              {bookings.length} total
-            </span>
-          </div>
-          <p className="text-[#718096] text-xs mt-0.5">
-            Active travellers, group batches, traveller documentation, and payment status tracking.
-          </p>
+          <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            Bookings
+          </h2>
+          <p className="text-[#718096] text-sm mt-0.5">{bookings.length} total bookings</p>
         </div>
-
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2">
           <button
             onClick={() => void loadBookings()}
             className="p-2 border border-[#e2e8f0] text-[#718096] hover:text-[#0f2922] hover:bg-[#f7f8f5] rounded-lg transition cursor-pointer"
@@ -453,7 +446,7 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
           </button>
           <button
             onClick={() => setAddModalOpen(true)}
-            className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs"
+            className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-4 py-2 rounded-lg transition flex items-center gap-1.5 cursor-pointer shadow-xs"
           >
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -463,10 +456,10 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
         </div>
       </div>
 
-      {/* Filter Tabs & Search */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs space-y-3">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
-          <div className="flex gap-1.5 overflow-x-auto pb-1">
+      {/* Tabs + Filters */}
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
+          <div className="flex gap-1 bg-[#f7f8f5] rounded-lg p-1">
             {STATUS_TABS.map((t) => (
               <button
                 key={t.value}
@@ -474,18 +467,17 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
                   setStatusFilter(t.value);
                   setPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition cursor-pointer ${
+                className={`px-3 py-1.5 rounded-md text-sm font-medium transition cursor-pointer ${
                   statusFilter === t.value
-                    ? "bg-[#0f2922] text-white shadow-2xs"
-                    : "bg-[#f7f8f5] text-[#718096] hover:text-[#0f2922]"
+                    ? "bg-white text-[#0f2922] shadow-xs font-semibold"
+                    : "text-[#718096] hover:text-[#0f2922]"
                 }`}
               >
                 {t.label}
               </button>
             ))}
           </div>
-
-          <div className="relative w-full md:w-72">
+          <div className="relative sm:ml-auto">
             <svg
               className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]"
               fill="none"
@@ -500,126 +492,78 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
                 setSearch(e.target.value);
                 setPage(1);
               }}
-              placeholder="Search customer, phone, package..."
-              className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-xs w-full focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+              placeholder="Search by name or trip..."
+              className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-60 focus:outline-none focus:border-[#0f2922] bg-white text-[#0f2922]"
             />
           </div>
         </div>
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs overflow-hidden">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs">
+          <table className="w-full text-sm">
             <thead>
-              <tr className="bg-[#f7f8f5] text-[#4a5568] uppercase font-semibold border-b border-[#e2e8f0]">
+              <tr className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
                 <th className="px-4 py-3 text-left">Booking ID</th>
                 <th className="px-4 py-3 text-left">Customer</th>
-                <th className="px-4 py-3 text-left">Package & Destination</th>
-                <th className="px-4 py-3 text-left">Departure</th>
+                <th className="px-4 py-3 text-left">Trip</th>
+                <th className="px-4 py-3 text-left">Date</th>
                 <th className="px-4 py-3 text-left">Travellers</th>
-                <th className="px-4 py-3 text-left">Booking Status</th>
-                <th className="px-4 py-3 text-left">Payment Status</th>
-                <th className="px-4 py-3 text-right">Total</th>
-                <th className="px-4 py-3 text-right">Paid</th>
-                <th className="px-4 py-3 text-right">Remaining</th>
-                <th className="px-4 py-3 text-right">Action</th>
+                <th className="px-4 py-3 text-left">Amount</th>
+                <th className="px-4 py-3 text-left">Payment</th>
+                <th className="px-4 py-3 text-left">Status</th>
+                <th className="px-4 py-3 text-left">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#f0f4f1]">
               {loading ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-[#718096]">
+                  <td colSpan={9} className="px-4 py-10 text-center text-[#718096]">
                     <div className="w-5 h-5 border-2 border-[#0f2922] border-t-transparent rounded-full animate-spin mx-auto mb-2" />
                     <span className="text-xs">Loading bookings...</span>
                   </td>
                 </tr>
               ) : paginated.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="px-4 py-12 text-center text-[#a0aec0]">
-                    <div className="max-w-xs mx-auto space-y-1">
-                      <p className="font-semibold text-sm text-[#4a5568]">No bookings found</p>
-                      <p className="text-xs">Create a new booking or convert one from an enquiry.</p>
-                    </div>
+                  <td colSpan={9} className="px-4 py-10 text-center text-[#a0aec0]">
+                    No bookings found
                   </td>
                 </tr>
               ) : (
                 paginated.map((b) => (
                   <tr
                     key={b.id}
-                    onClick={() => handleRowClick(b.id)}
                     className="hover:bg-[#f7f8f5] cursor-pointer transition"
+                    onClick={() => handleRowClick(b.id)}
                   >
-                    {/* Booking ID */}
-                    <td className="px-4 py-3 font-mono font-bold text-[#0f2922]">
-                      <div>{b.bookingNumber}</div>
-                      {b.enquiryNumber && (
-                        <span className="text-[10px] text-[#718096] font-normal">
-                          from #{b.enquiryNumber}
-                        </span>
-                      )}
-                    </td>
-
-                    {/* Customer */}
+                    <td className="px-4 py-3 font-mono text-xs text-[#718096]">{b.bookingNumber}</td>
                     <td className="px-4 py-3">
-                      <div className="font-bold text-[#0f2922]">{b.primaryContactName}</div>
-                      <div className="text-[#718096] font-mono text-[11px]">{b.primaryContactPhone}</div>
+                      <p className="font-medium text-[#0f2922]">{b.primaryContactName}</p>
+                      <p className="text-xs text-[#718096]">{b.primaryContactPhone}</p>
                     </td>
-
-                    {/* Package */}
-                    <td className="px-4 py-3 max-w-[180px]">
-                      <div className="font-semibold text-[#0f2922] truncate">{b.tripName || "Custom Package"}</div>
-                      <div className="text-[#718096] text-[11px] truncate">{b.destinationLabel || "Uttarakhand"}</div>
+                    <td className="px-4 py-3 text-[#4a5568] max-w-[150px] truncate">{b.tripName || "Custom Trip"}</td>
+                    <td className="px-4 py-3 text-[#718096] text-xs">{b.tripDateLabel || "—"}</td>
+                    <td className="px-4 py-3 text-[#4a5568]">{b.travellerCount}</td>
+                    <td className="px-4 py-3 font-semibold text-[#0f2922]">
+                      ₹{b.totalAmount.toLocaleString("en-IN")}
                     </td>
-
-                    {/* Departure Date */}
-                    <td className="px-4 py-3 whitespace-nowrap text-[#0f2922] font-medium">
-                      {b.tripDateLabel || "Scheduled Date"}
-                    </td>
-
-                    {/* Travellers count */}
                     <td className="px-4 py-3">
-                      <span className="bg-[#f7f8f5] border border-[#e2e8f0] px-2 py-0.5 rounded-md font-semibold text-[#0f2922]">
-                        {b.travellerCount} {b.travellerCount === 1 ? "traveller" : "travellers"}
-                      </span>
-                    </td>
-
-                    {/* Booking Status */}
-                    <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold rounded-full px-2.5 py-0.5 ${STATUS_BADGE[b.status] ?? "bg-gray-100 text-gray-700"}`}>
-                        {STATUS_LABELS[b.status] || b.status}
-                      </span>
-                    </td>
-
-                    {/* Payment Status */}
-                    <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold rounded-full px-2 py-0.5 ${PAYMENT_BADGE[b.paymentStatus] ?? "bg-gray-100 text-gray-700"}`}>
+                      <span className={`text-xs font-medium rounded-full px-2.5 py-1 ${PAYMENT_BADGE[b.paymentStatus] ?? "bg-gray-100 text-gray-600"}`}>
                         {PAYMENT_LABELS[b.paymentStatus] || b.paymentStatus}
                       </span>
                     </td>
-
-                    {/* Total */}
-                    <td className="px-4 py-3 text-right font-bold text-[#0f2922]">
-                      ₹{b.totalAmount.toLocaleString("en-IN")}
+                    <td className="px-4 py-3">
+                      <span className={`text-xs font-medium rounded-full px-2.5 py-1 ${STATUS_BADGE[b.status] ?? "bg-gray-100 text-gray-600"}`}>
+                        {STATUS_LABELS[b.status] || b.status}
+                      </span>
                     </td>
-
-                    {/* Paid */}
-                    <td className="px-4 py-3 text-right font-semibold text-emerald-700">
-                      ₹{b.paidAmount.toLocaleString("en-IN")}
-                    </td>
-
-                    {/* Remaining */}
-                    <td className="px-4 py-3 text-right font-bold text-[#e8622a]">
-                      ₹{b.remainingAmount.toLocaleString("en-IN")}
-                    </td>
-
-                    {/* Action */}
-                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                    <td className="px-4 py-3" onClick={(ev) => ev.stopPropagation()}>
                       <button
                         onClick={() => handleRowClick(b.id)}
-                        className="px-2.5 py-1 text-xs font-semibold text-[#0f2922] bg-[#f7f8f5] hover:bg-[#e2e8f0] rounded-md transition cursor-pointer"
+                        className="text-[#e8622a] hover:underline text-xs font-medium cursor-pointer"
                       >
-                        Manage
+                        View
                       </button>
                     </td>
                   </tr>
@@ -630,17 +574,17 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
         </div>
 
         {/* Pagination */}
-        <div className="flex items-center justify-between px-4 py-3 border-t border-[#e2e8f0] text-xs text-[#718096]">
+        <div className="flex items-center justify-between px-4 py-3 border-t border-[#e2e8f0] text-sm text-[#718096]">
           <span>
-            Showing {filtered.length === 0 ? 0 : (page - 1) * PER_PAGE + 1}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
+            Showing {filtered.length === 0 ? 0 : Math.min((page - 1) * PER_PAGE + 1, filtered.length)}–{Math.min(page * PER_PAGE, filtered.length)} of {filtered.length}
           </span>
           <div className="flex gap-1">
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
               <button
                 key={p}
                 onClick={() => setPage(p)}
-                className={`w-7 h-7 rounded-md text-xs font-semibold transition cursor-pointer ${
-                  p === page ? "bg-[#0f2922] text-white" : "hover:bg-[#f7f8f5] text-[#4a5568]"
+                className={`w-8 h-8 rounded-lg text-xs font-medium transition cursor-pointer ${
+                  p === page ? "bg-[#0f2922] text-white font-semibold" : "hover:bg-[#f7f8f5] text-[#4a5568]"
                 }`}
               >
                 {p}

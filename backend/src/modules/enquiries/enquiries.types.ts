@@ -65,6 +65,8 @@ export interface EnquiryDto {
   assignedToUserId?: string | null;
   assignedToName?: string | null;
   assignedToEmail?: string | null;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
   adminWhatsAppUrl?: string;
   notes?: EnquiryNoteDto[];
   events?: EnquiryEventDto[];

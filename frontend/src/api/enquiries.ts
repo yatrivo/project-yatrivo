@@ -68,6 +68,8 @@ export interface EnquiryResponse {
   assignedToUserId?: string | null;
   assignedToName?: string | null;
   assignedToEmail?: string | null;
+  bookingId?: string | null;
+  bookingNumber?: string | null;
   adminWhatsAppUrl?: string;
   notes?: EnquiryNote[];
   events?: EnquiryEvent[];
