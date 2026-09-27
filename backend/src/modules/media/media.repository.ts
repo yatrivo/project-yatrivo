@@ -31,6 +31,9 @@ export function toMediaAssetDto(record: MediaAssetRecord): MediaAssetDto {
   const url = record.public_url || record.external_url || "";
   return {
     id: record.id,
+    destinationId: record.destination_id || null,
+    destinationName: record.destination_name || null,
+    destinationSlug: record.destination_slug || null,
     category: record.category,
     label: record.label,
     altText: record.alt_text,
@@ -60,13 +63,19 @@ export const mediaRepository = {
 
     if (filters.category && filters.category !== "all") {
       const dbCat = filters.category.replace(/-/g, "_");
-      conditions.push(`category = $${paramIndex++}`);
+      conditions.push(`m.category = $${paramIndex++}`);
       params.push(dbCat);
+    }
+
+    if (filters.destinationId && filters.destinationId !== "all") {
+      conditions.push(`(m.destination_id::text = $${paramIndex} OR d.slug = $${paramIndex})`);
+      params.push(filters.destinationId);
+      paramIndex++;
     }
 
     if (filters.search) {
       conditions.push(
-        `(label ILIKE $${paramIndex} OR alt_text ILIKE $${paramIndex} OR storage_key ILIKE $${paramIndex} OR external_url ILIKE $${paramIndex})`
+        `(m.label ILIKE $${paramIndex} OR m.alt_text ILIKE $${paramIndex} OR m.storage_key ILIKE $${paramIndex} OR m.external_url ILIKE $${paramIndex} OR d.name ILIKE $${paramIndex})`
       );
       params.push(`%${filters.search}%`);
       paramIndex++;
@@ -75,7 +84,10 @@ export const mediaRepository = {
     const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countResult = await executor.query<{ count: string }>(
-      `SELECT count(*)::text as count FROM media_assets ${whereClause}`,
+      `SELECT count(*)::text as count
+       FROM media_assets m
+       LEFT JOIN destinations d ON d.id = m.destination_id
+       ${whereClause}`,
       params
     );
     const total = parseInt(countResult.rows[0]?.count || "0", 10);
@@ -89,9 +101,11 @@ export const mediaRepository = {
     const offsetParamIndex = paramIndex++;
 
     const listResult = await executor.query<MediaAssetRecord>(
-      `SELECT * FROM media_assets
+      `SELECT m.*, d.name as destination_name, d.slug as destination_slug
+       FROM media_assets m
+       LEFT JOIN destinations d ON d.id = m.destination_id
        ${whereClause}
-       ORDER BY created_at DESC
+       ORDER BY m.created_at DESC
        LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`,
       queryParams
     );
@@ -105,7 +119,10 @@ export const mediaRepository = {
   async findById(id: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
     const result = await executor.query<MediaAssetRecord>(
-      `SELECT * FROM media_assets WHERE id = $1`,
+      `SELECT m.*, d.name as destination_name, d.slug as destination_slug
+       FROM media_assets m
+       LEFT JOIN destinations d ON d.id = m.destination_id
+       WHERE m.id = $1`,
       [id]
     );
 
@@ -118,7 +135,10 @@ export const mediaRepository = {
   async findByUrl(url: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
     const result = await executor.query<MediaAssetRecord>(
-      `SELECT * FROM media_assets WHERE external_url = $1 OR public_url = $1 LIMIT 1`,
+      `SELECT m.*, d.name as destination_name, d.slug as destination_slug
+       FROM media_assets m
+       LEFT JOIN destinations d ON d.id = m.destination_id
+       WHERE m.external_url = $1 OR m.public_url = $1 LIMIT 1`,
       [url]
     );
 
@@ -138,13 +158,14 @@ export const mediaRepository = {
 
     const result = await executor.query<MediaAssetRecord>(
       `INSERT INTO media_assets (
-        category, label, alt_text, storage_bucket, storage_key,
+        category, destination_id, label, alt_text, storage_bucket, storage_key,
         public_url, mime_type, file_size_bytes, width, height,
         uploaded_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *`,
       [
         dbCat,
+        data.destinationId || null,
         data.label || null,
         data.altText || null,
         data.storageBucket,
@@ -177,12 +198,13 @@ export const mediaRepository = {
 
     const result = await executor.query<MediaAssetRecord>(
       `INSERT INTO media_assets (
-        category, label, alt_text, external_url, public_url,
+        category, destination_id, label, alt_text, external_url, public_url,
         uploaded_by_user_id
-      ) VALUES ($1, $2, $3, $4, $4, $5)
+      ) VALUES ($1, $2, $3, $4, $5, $5, $6)
       RETURNING *`,
       [
         dbCat,
+        data.destinationId || null,
         data.label || null,
         data.altText || null,
         data.url,

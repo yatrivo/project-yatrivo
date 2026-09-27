@@ -38,11 +38,16 @@ export function getS3Client(): S3Client {
   return s3ClientInstance;
 }
 
-export function generateStorageKey(category: string, originalFilename: string): string {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = String(now.getMonth() + 1).padStart(2, "0");
-  
+export interface StorageKeyOptions {
+  destinationSlug?: string | null;
+  isReview?: boolean;
+}
+
+export function generateStorageKey(
+  category: string,
+  originalFilename: string,
+  options?: StorageKeyOptions
+): string {
   const ext = path.extname(originalFilename).toLowerCase();
   const baseName = path.basename(originalFilename, ext);
   const sanitized = baseName
@@ -52,9 +57,23 @@ export function generateStorageKey(category: string, originalFilename: string): 
     .slice(0, 40) || "file";
 
   const uuid = crypto.randomUUID();
-  const cleanCategory = category.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "general";
 
-  return `${cleanCategory}/${year}/${month}/${uuid}-${sanitized}${ext}`;
+  // Destination-based storage structure:
+  // destinations/<slug>/reviews/... for review images
+  // destinations/<slug>/images/... for normal destination/trip images
+  if (options?.destinationSlug) {
+    const cleanDest = options.destinationSlug.toLowerCase().replace(/[^a-z0-9_-]/g, "");
+    if (options.isReview || category === "reviews") {
+      return `destinations/${cleanDest}/reviews/${uuid}-${sanitized}${ext}`;
+    }
+    return `destinations/${cleanDest}/images/${uuid}-${sanitized}${ext}`;
+  }
+
+  const cleanCategory = category.toLowerCase().replace(/[^a-z0-9_-]/g, "") || "general";
+  if (options?.isReview || category === "reviews") {
+    return `reviews/${uuid}-${sanitized}${ext}`;
+  }
+  return `${cleanCategory}/images/${uuid}-${sanitized}${ext}`;
 }
 
 export function buildPublicUrl(bucket: string, key: string): string {

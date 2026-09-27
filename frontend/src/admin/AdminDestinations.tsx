@@ -217,7 +217,12 @@ export function DestinationModal({
               set("image", url);
               if (id) set("coverMediaId", id);
             }}
-            defaultCategory="destinations"
+            context={{
+              destinationId: form.id,
+              destinationSlug: form.slug,
+              destinationName: form.name,
+              category: "destinations"
+            }}
           />
 
           {/* Gallery */}
@@ -240,7 +245,12 @@ export function DestinationModal({
                       }
                     }}
                     className="flex-1"
-                    defaultCategory="destinations"
+                    context={{
+                      destinationId: form.id,
+                      destinationSlug: form.slug,
+                      destinationName: form.name,
+                      category: "destinations"
+                    }}
                   />
                   <button
                     type="button"
@@ -271,7 +281,12 @@ export function DestinationModal({
                       }
                     }}
                     label="Add gallery image"
-                    defaultCategory="destinations"
+                    context={{
+                      destinationId: form.id,
+                      destinationSlug: form.slug,
+                      destinationName: form.name,
+                      category: "destinations"
+                    }}
                   />
                 </div>
               )}

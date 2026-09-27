@@ -4,6 +4,9 @@ const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 
 export interface MediaAsset {
   id: string;
+  destinationId?: string | null;
+  destinationName?: string | null;
+  destinationSlug?: string | null;
   category: string;
   label: string | null;
   altText: string | null;
@@ -21,6 +24,7 @@ export interface MediaAsset {
 
 export interface MediaListParams {
   category?: string;
+  destinationId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -66,6 +70,7 @@ export const mediaApi = {
   async list(params?: MediaListParams): Promise<{ media: MediaAsset[]; total: number }> {
     const query = new URLSearchParams();
     if (params?.category && params.category !== "all") query.set("category", params.category);
+    if (params?.destinationId && params.destinationId !== "all") query.set("destinationId", params.destinationId);
     if (params?.search) query.set("search", params.search);
     if (params?.page) query.set("page", String(params.page));
     if (params?.limit) query.set("limit", String(params.limit));
@@ -106,12 +111,22 @@ export const mediaApi = {
 
   async upload(
     file: File,
-    options?: { category?: string; label?: string; altText?: string }
+    options?: {
+      category?: string;
+      destinationId?: string;
+      destinationSlug?: string;
+      isReview?: boolean;
+      label?: string;
+      altText?: string;
+    }
   ): Promise<MediaAsset> {
     const url = `${API_BASE}/api/v1/media/upload`;
     const formData = new FormData();
     formData.append("file", file);
     if (options?.category) formData.append("category", options.category);
+    if (options?.destinationId) formData.append("destinationId", options.destinationId);
+    if (options?.destinationSlug) formData.append("destinationSlug", options.destinationSlug);
+    if (options?.isReview) formData.append("isReview", "true");
     if (options?.label) formData.append("label", options.label);
     if (options?.altText) formData.append("altText", options.altText);
 
@@ -151,6 +166,7 @@ export const mediaApi = {
 
   async createExternal(params: {
     url: string;
+    destinationId?: string;
     label?: string;
     altText?: string;
     category?: string;

@@ -172,6 +172,10 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
     return appDestinations[0] ? appDestinations[0].id : "";
   });
 
+  const primaryDest = (availableDestinations.length > 0 ? availableDestinations : appDestinations).find(
+    (d) => d.id === primaryDestinationId || selectedDestinationIds.includes(d.id)
+  );
+
   // Itinerary
   const [days, setDays] = useState<Day[]>(() => {
     return [
@@ -484,6 +488,12 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                   onChange={(url, mediaId) => {
                     setTripImage(url);
                     if (mediaId) setCoverMediaId(mediaId);
+                  }}
+                  context={{
+                    destinationId: primaryDest?.id,
+                    destinationSlug: primaryDest?.slug,
+                    destinationName: primaryDest?.name,
+                    category: "trips"
                   }}
                 />
               </div>
@@ -1091,6 +1101,12 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                       onChange={(newUrl) => updateGallerySlot(i, newUrl)}
                       label={`Gallery Image ${i + 1}`}
                       className="flex-1"
+                      context={{
+                        destinationId: primaryDest?.id,
+                        destinationSlug: primaryDest?.slug,
+                        destinationName: primaryDest?.name,
+                        category: "trips"
+                      }}
                     />
                     <button
                       type="button"

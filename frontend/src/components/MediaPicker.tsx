@@ -3,55 +3,93 @@ import { createPortal } from "react-dom";
 import { mediaApi, type MediaAsset } from "@/api/media";
 import { useApp } from "@/context/AppContext";
 
-const CATEGORY_TABS: { id: string; label: string }[] = [
-  { id: "all", label: "All" },
-  { id: "destinations", label: "Destinations" },
-  { id: "trips", label: "Trips" },
-  { id: "completed_trips", label: "Completed Trips" },
-  { id: "homepage", label: "Homepage" },
-  { id: "general", label: "General" }
-];
+export interface MediaContext {
+  destinationId?: string | null;
+  destinationSlug?: string | null;
+  destinationName?: string | null;
+  category?: "destinations" | "trips" | "reviews" | "homepage" | "general" | string;
+  isReview?: boolean;
+}
 
 export interface MediaPickerProps {
   value: string;
   mediaId?: string | null;
   onChange: (url: string, mediaId?: string) => void;
   label?: string;
+  description?: string;
   className?: string;
+  context?: MediaContext;
+  /** For backwards compatibility */
   defaultCategory?: string;
+  aspectRatio?: "video" | "square" | "banner";
+  compact?: boolean;
+  disabled?: boolean;
 }
+
+const CATEGORY_TABS: { id: string; label: string }[] = [
+  { id: "all", label: "All Types" },
+  { id: "destinations", label: "Destinations" },
+  { id: "trips", label: "Trips" },
+  { id: "reviews", label: "Reviews" },
+  { id: "homepage", label: "Homepage" },
+  { id: "general", label: "General" }
+];
 
 export default function MediaPicker({
   value,
   mediaId,
   onChange,
   label,
-  className,
-  defaultCategory = "destinations"
+  description,
+  className = "",
+  context,
+  defaultCategory = "destinations",
+  aspectRatio = "video",
+  compact = false,
+  disabled = false
 }: MediaPickerProps) {
-  const { showToast } = useApp();
+  const { showToast, destinations } = useApp();
+
+  // Dialog and picker modes
   const [modalOpen, setModalOpen] = useState(false);
   const [urlMode, setUrlMode] = useState(false);
   const [urlInput, setUrlInput] = useState("");
-  const [search, setSearch] = useState("");
-  const [catFilter, setCatFilter] = useState<string>("all");
-  const [uploadTab, setUploadTab] = useState<"gallery" | "upload">("upload");
+  const [isUploadingDirect, setIsUploadingDirect] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  // Media library state
+  // Hidden native file input for direct 1-click upload
+  const directFileInputRef = useRef<HTMLInputElement>(null);
+  const modalFileInputRef = useRef<HTMLInputElement>(null);
+
+  // Media library browser state
   const [mediaList, setMediaList] = useState<MediaAsset[]>([]);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
+  const [search, setSearch] = useState("");
+  const [catFilter, setCatFilter] = useState<string>("all");
+  const [destFilter, setDestFilter] = useState<string>("all");
 
-  // Upload tab state
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploadLabel, setUploadLabel] = useState("");
-  const [uploadCategory, setUploadCategory] = useState(defaultCategory);
-  const [isUploading, setIsUploading] = useState(false);
-  const [altTextInput, setAltTextInput] = useState("");
-  const [isDragging, setIsDragging] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  // Determine effective context
+  const effectiveCategory = context?.category || (context?.isReview ? "reviews" : defaultCategory);
+  const effectiveDestId = context?.destinationId || undefined;
+  const effectiveDestSlug = context?.destinationSlug || undefined;
+  const effectiveDestName =
+    context?.destinationName ||
+    (effectiveDestId ? destinations.find((d) => d.id === effectiveDestId || d.slug === effectiveDestId)?.name : undefined);
 
-  // Load media when modal opens or category changes
+  // Initialize destination filter in modal to current context destination if available
+  useEffect(() => {
+    if (modalOpen) {
+      if (effectiveDestId) {
+        setDestFilter(effectiveDestId);
+      } else if (effectiveDestSlug) {
+        setDestFilter(effectiveDestSlug);
+      } else {
+        setDestFilter("all");
+      }
+    }
+  }, [modalOpen, effectiveDestId, effectiveDestSlug]);
+
+  // Load media whenever modal is opened or filters change
   useEffect(() => {
     if (!modalOpen) return;
     let isMounted = true;
@@ -60,7 +98,9 @@ export default function MediaPicker({
     mediaApi
       .list({
         category: catFilter !== "all" ? catFilter : undefined,
-        search: search.trim() || undefined
+        destinationId: destFilter !== "all" ? destFilter : undefined,
+        search: search.trim() || undefined,
+        limit: 100
       })
       .then((res) => {
         if (isMounted) {
@@ -77,9 +117,72 @@ export default function MediaPicker({
     return () => {
       isMounted = false;
     };
-  }, [modalOpen, catFilter, search]);
+  }, [modalOpen, catFilter, destFilter, search]);
 
-  const handleSelectAsset = (asset: MediaAsset, e?: React.MouseEvent) => {
+  // Handle direct file upload (zero questions / zero technical filters asked from user)
+  const uploadFileDirectly = async (file: File) => {
+    if (!file) return;
+    setIsUploadingDirect(true);
+    try {
+      const asset = await mediaApi.upload(file, {
+        category: effectiveCategory,
+        destinationId: effectiveDestId,
+        destinationSlug: effectiveDestSlug,
+        isReview: context?.isReview || effectiveCategory === "reviews",
+        label: file.name.replace(/\.[^/.]+$/, "")
+      });
+
+      onChange(asset.url, asset.id);
+      showToast(
+        effectiveDestName
+          ? `Image uploaded to ${effectiveDestName} and selected.`
+          : "Image uploaded and selected successfully.",
+        "success"
+      );
+      if (modalOpen) setModalOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload image";
+      showToast(msg, "error");
+    } finally {
+      setIsUploadingDirect(false);
+    }
+  };
+
+  const handleNativeFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      void uploadFileDirectly(file);
+    }
+    e.target.value = "";
+  };
+
+  // External URL handler
+  const handleApplyUrl = async (e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    try {
+      const asset = await mediaApi.createExternal({
+        url: trimmed,
+        destinationId: effectiveDestId,
+        category: effectiveCategory
+      });
+      onChange(asset.url, asset.id);
+      setUrlMode(false);
+      setUrlInput("");
+      showToast("External image applied.", "success");
+    } catch {
+      onChange(trimmed);
+      setUrlMode(false);
+      setUrlInput("");
+    }
+  };
+
+  const handleSelectExisting = (asset: MediaAsset, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -88,178 +191,312 @@ export default function MediaPicker({
     setModalOpen(false);
   };
 
-  const processSelectedFile = (file: File) => {
-    setUploadFile(file);
-    setPreviewUrl(URL.createObjectURL(file));
-    if (!uploadLabel) {
-      setUploadLabel(file.name.replace(/\.[^/.]+$/, ""));
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      processSelectedFile(file);
-    }
-    e.target.value = "";
-  };
-
-  const handleUploadSubmit = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    if (!uploadFile) return;
-    setIsUploading(true);
-    try {
-      const asset = await mediaApi.upload(uploadFile, {
-        category: uploadCategory,
-        label: uploadLabel.trim() || uploadFile.name,
-        altText: altTextInput.trim() || undefined
-      });
-
-      onChange(asset.url, asset.id);
-      showToast("Image uploaded and selected successfully.", "success");
-      setModalOpen(false);
-      setUploadFile(null);
-      setPreviewUrl(null);
-      setUploadLabel("");
-      setAltTextInput("");
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to upload image";
-      showToast(msg, "error");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-
-  const handleApplyUrl = async (e?: React.MouseEvent) => {
-    if (e) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-    const trimmed = urlInput.trim();
-    if (!trimmed) return;
-    try {
-      const asset = await mediaApi.createExternal({
-        url: trimmed,
-        category: defaultCategory
-      });
-      onChange(asset.url, asset.id);
-      setUrlMode(false);
-      setUrlInput("");
-      showToast("Image URL registered.", "success");
-    } catch {
-      // Fallback: still set raw URL even if external asset registration fails
-      onChange(trimmed);
-      setUrlMode(false);
-      setUrlInput("");
-    }
-  };
+  // Aspect ratio styling
+  const aspectClass =
+    aspectRatio === "square"
+      ? "aspect-square"
+      : aspectRatio === "banner"
+      ? "aspect-[21/9]"
+      : "aspect-[16/9]";
 
   return (
-    <div className={className}>
-      {label && <label className="block text-sm font-medium text-[#4a5568] mb-1">{label}</label>}
-
-      {/* Preview + Actions */}
-      <div className="flex items-start gap-3">
-        {/* Thumbnail */}
-        <div className="shrink-0 w-20 h-20 rounded-lg border border-[#e2e8f0] overflow-hidden bg-[#f7f8f5] flex items-center justify-center relative group shadow-inner">
-          {value ? (
-            <img
-              src={value}
-              alt=""
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src =
-                  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=100&h=100&fit=crop";
-              }}
-            />
-          ) : (
-            <svg className="w-8 h-8 text-[#c4cdd8]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
+    <div className={`space-y-1.5 ${className}`}>
+      {/* Label & Description */}
+      {(label || description) && (
+        <div>
+          {label && (
+            <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922]">
+              {label}
+            </label>
           )}
+          {description && <p className="text-[11px] text-[#718096] mt-0.5">{description}</p>}
         </div>
+      )}
 
-        {/* Buttons */}
-        <div className="flex-1 space-y-1.5">
-          <div className="grid grid-cols-2 gap-1.5">
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setUploadTab("upload");
-                setModalOpen(true);
-                setUrlMode(false);
-              }}
-              className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-2.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shadow-sm"
-              title="Upload an image from your device directly into storage"
+      {/* Hidden file input for 1-click uploads */}
+      <input
+        ref={directFileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+        onChange={handleNativeFileChange}
+        className="sr-only"
+        disabled={disabled || isUploadingDirect}
+      />
+
+      {/* Main Preview & Action Area */}
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-3 shadow-2xs hover:border-[#cbd5e1] transition">
+        {value ? (
+          /* State 1: Image Selected */
+          <div className="space-y-2.5">
+            {/* Visual Preview */}
+            <div
+              className={`relative rounded-lg overflow-hidden border border-[#e2e8f0] bg-[#f7f8f5] group shadow-inner ${
+                compact ? "h-32" : aspectClass
+              }`}
             >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-              Upload Image
-            </button>
-            <button
-              type="button"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                setUploadTab("gallery");
-                setModalOpen(true);
-                setUrlMode(false);
-              }}
-              className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold px-2.5 py-2 rounded-lg transition flex items-center justify-center gap-1.5 shadow-sm"
-              title="Select from existing media assets"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-              Media Library
-            </button>
+              <img
+                src={value}
+                alt="Selected asset"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src =
+                    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&fit=crop";
+                }}
+              />
+
+              {/* Uploading indicator overlay */}
+              {isUploadingDirect && (
+                <div className="absolute inset-0 bg-[#0f2922]/80 backdrop-blur-2xs flex flex-col items-center justify-center text-white z-20">
+                  <svg className="animate-spin h-7 w-7 text-[#e8622a] mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p className="text-xs font-semibold">Uploading to storage...</p>
+                </div>
+              )}
+
+              {/* Remove button overlay */}
+              {!disabled && !isUploadingDirect && (
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onChange("", undefined);
+                  }}
+                  className="absolute top-2 right-2 bg-black/60 hover:bg-red-600 text-white p-1 rounded-full opacity-80 hover:opacity-100 transition shadow-xs cursor-pointer z-10"
+                  title="Remove image"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Context indicator badge if associated with destination */}
+              {effectiveDestName && (
+                <div className="absolute bottom-2 left-2 bg-[#0f2922]/80 backdrop-blur-xs text-white text-[10px] font-medium px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <span>🏔️</span>
+                  <span>{effectiveDestName}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Clean action buttons: [ Upload New ] [ Choose from Media Library ] */}
+            {!disabled && (
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      directFileInputRef.current?.click();
+                    }}
+                    disabled={isUploadingDirect}
+                    className="bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Upload New</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setModalOpen(true);
+                      setUrlMode(false);
+                    }}
+                    disabled={isUploadingDirect}
+                    className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Media Library</span>
+                  </button>
+                </div>
+
+                {/* Secondary Option: External URL */}
+                <div className="text-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setUrlMode((v) => !v);
+                    }}
+                    className="text-[11px] text-[#718096] hover:text-[#0f2922] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <svg className="w-3 h-3 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span>{urlMode ? "Hide External URL Input" : "Use External URL"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
-          <button
-            type="button"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setUrlMode((v) => !v);
-            }}
-            className="w-full border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] text-xs font-medium px-3 py-1.5 rounded-lg transition text-center"
-          >
-            {urlMode ? "Cancel URL Input" : "Use External URL"}
-          </button>
-          {urlMode && (
-            <div className="flex gap-1.5 pt-1">
+        ) : (
+          /* State 2: No Image Selected (Clean compact dropzone + actions) */
+          <div className="space-y-3">
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(true);
+              }}
+              onDragLeave={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setIsDragging(false);
+                const file = e.dataTransfer.files?.[0];
+                if (file) {
+                  void uploadFileDirectly(file);
+                }
+              }}
+              onClick={() => {
+                if (!disabled && !isUploadingDirect) {
+                  directFileInputRef.current?.click();
+                }
+              }}
+              className={`border-2 border-dashed rounded-lg p-5 flex flex-col items-center justify-center text-center cursor-pointer transition select-none ${
+                isDragging
+                  ? "border-[#e8622a] bg-[#fff5f0]"
+                  : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#fafbfa]"
+              }`}
+            >
+              {isUploadingDirect ? (
+                <div className="flex flex-col items-center justify-center py-2 text-[#0f2922]">
+                  <svg className="animate-spin h-6 w-6 text-[#e8622a] mb-2" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <p className="text-xs font-semibold">Uploading to storage...</p>
+                </div>
+              ) : (
+                <>
+                  <div className="w-10 h-10 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-2">
+                    <svg className="w-5 h-5 text-[#0f2922]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-semibold text-[#0f2922]">
+                    Drag &amp; drop an image here, or click to upload
+                  </p>
+                  <p className="text-[11px] text-[#718096] mt-0.5">
+                    {effectiveDestName
+                      ? `Automatically saves to ${effectiveDestName} folder`
+                      : "PNG, JPG, or WEBP up to 10MB"}
+                  </p>
+                </>
+              )}
+            </div>
+
+            {/* The Two Primary Action Buttons */}
+            {!disabled && (
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      directFileInputRef.current?.click();
+                    }}
+                    disabled={isUploadingDirect}
+                    className="bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>Upload New</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setModalOpen(true);
+                      setUrlMode(false);
+                    }}
+                    disabled={isUploadingDirect}
+                    className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    <span>Choose from Media Library</span>
+                  </button>
+                </div>
+
+                {/* Secondary Option: External URL */}
+                <div className="text-center pt-0.5">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      setUrlMode((v) => !v);
+                    }}
+                    className="text-[11px] text-[#718096] hover:text-[#0f2922] hover:underline font-medium inline-flex items-center gap-1 cursor-pointer transition"
+                  >
+                    <svg className="w-3 h-3 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    <span>{urlMode ? "Hide External URL Input" : "Use External URL"}</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Visually Secondary External URL Input Box */}
+        {urlMode && (
+          <div className="mt-2.5 pt-2.5 border-t border-[#e2e8f0] space-y-2">
+            <div className="flex items-center justify-between text-xs text-[#718096]">
+              <span className="font-semibold text-[#0f2922]">External Image URL</span>
+              <span className="text-[11px]">Unsplash, Cloudinary, etc.</span>
+            </div>
+            <div className="flex gap-2">
               <input
                 type="text"
                 value={urlInput}
                 onChange={(e) => setUrlInput(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
-                className="flex-1 border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922]"
+                placeholder="https://images.unsplash.com/photo-..."
+                className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
                     e.stopPropagation();
-                    handleApplyUrl();
+                    void handleApplyUrl();
                   }
                 }}
               />
               <button
                 type="button"
                 onClick={handleApplyUrl}
-                className="bg-[#e8622a] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition hover:bg-[#d4541f]"
+                disabled={!urlInput.trim()}
+                className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer"
               >
                 Apply
               </button>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
-      {/* Gallery & Upload Modal (Portaled to document.body to avoid parent form conflicts) */}
+      {/* Central Media Library Selection Modal */}
       {modalOpen &&
         createPortal(
           <div
@@ -269,319 +506,212 @@ export default function MediaPicker({
               setModalOpen(false);
             }}
           >
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
             <div
-              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 flex flex-col max-h-[85vh] overflow-hidden"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl z-10 flex flex-col max-h-[85vh] overflow-hidden border border-[#e2e8f0]"
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && (e.target as HTMLElement).tagName !== "TEXTAREA") {
-                  e.stopPropagation();
-                }
-              }}
             >
-              {/* Header */}
-              <div className="bg-[#0f2922] px-5 py-4 flex items-center justify-between shrink-0">
+              {/* Modal Header */}
+              <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
-                  <h3 className="text-white font-semibold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                    Media Asset Manager
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
+                    CENTRAL MEDIA REPOSITORY
+                  </div>
+                  <h3 className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Select Image from Media Library
                   </h3>
-                  <p className="text-[#a3bfb5] text-xs">Browse existing assets or upload a new file to storage</p>
                 </div>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setModalOpen(false);
-                  }}
-                  className="text-[#a3bfb5] hover:text-white transition"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+
+                <div className="flex items-center gap-2">
+                  {/* Quick upload trigger right inside modal */}
+                  <button
+                    type="button"
+                    onClick={() => modalFileInputRef.current?.click()}
+                    disabled={isUploadingDirect}
+                    className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-3 py-1.5 rounded-lg transition cursor-pointer flex items-center gap-1.5 shadow-xs"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    <span>{isUploadingDirect ? "Uploading..." : "Upload New File"}</span>
+                  </button>
+
+                  <input
+                    ref={modalFileInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
+                    onChange={handleNativeFileChange}
+                    className="sr-only"
+                    disabled={isUploadingDirect}
+                  />
+
+                  <button
+                    type="button"
+                    onClick={() => setModalOpen(false)}
+                    className="text-white/70 hover:text-white transition p-1 cursor-pointer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
-              {/* Tabs: Upload / Gallery */}
-              <div className="flex gap-0 border-b border-[#e2e8f0] shrink-0 bg-[#f7f8f5]">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setUploadTab("upload");
-                  }}
-                  className={`flex-1 py-3 text-sm font-semibold transition border-b-2 -mb-px flex items-center justify-center gap-1.5 ${
-                    uploadTab === "upload"
-                      ? "border-[#e8622a] text-[#0f2922] bg-white"
-                      : "border-transparent text-[#718096] hover:text-[#0f2922]"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  Upload File to Storage
-                </button>
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setUploadTab("gallery");
-                  }}
-                  className={`flex-1 py-3 text-sm font-semibold transition border-b-2 -mb-px flex items-center justify-center gap-1.5 ${
-                    uploadTab === "gallery"
-                      ? "border-[#e8622a] text-[#0f2922] bg-white"
-                      : "border-transparent text-[#718096] hover:text-[#0f2922]"
-                  }`}
-                >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
-                  </svg>
-                  Media Library ({mediaList.length})
-                </button>
-              </div>
-
-              {uploadTab === "gallery" ? (
-                <>
-                  {/* Search + Category filter */}
-                  <div className="p-4 space-y-3 shrink-0 border-b border-[#edf2f7]">
+              {/* Filter Row: Search & Destination & Type (For Browsing Only) */}
+              <div className="p-4 bg-[#f7f8f5] border-b border-[#e2e8f0] space-y-3 shrink-0">
+                <div className="flex flex-col sm:flex-row gap-2.5">
+                  {/* Search */}
+                  <div className="relative flex-1">
+                    <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
                     <input
                       type="text"
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search by label or URL..."
-                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
+                      placeholder="Search images by name, label, or destination..."
+                      className="w-full pl-9 pr-3 py-2 bg-white border border-[#e2e8f0] rounded-lg text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
                     />
-                    <div className="flex gap-1.5 flex-wrap">
-                      {CATEGORY_TABS.map((cat) => (
-                        <button
-                          key={cat.id}
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setCatFilter(cat.id);
-                          }}
-                          className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                            catFilter === cat.id ? "bg-[#0f2922] text-white" : "bg-[#f7f8f5] text-[#4a5568] hover:bg-[#e2e8f0]"
-                          }`}
-                        >
-                          {cat.label}
-                        </button>
-                      ))}
-                    </div>
                   </div>
 
-                  {/* Grid */}
-                  <div className="overflow-y-auto flex-1 p-4">
-                    {isLoadingMedia ? (
-                      <div className="flex flex-col items-center justify-center py-16 text-[#718096]">
-                        <svg className="animate-spin h-6 w-6 text-[#0f2922] mb-2" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        <p className="text-xs">Loading media assets...</p>
-                      </div>
-                    ) : mediaList.length === 0 ? (
-                      <div className="text-center py-16 text-[#a0aec0] text-sm">
-                        No media assets found. Switch to the Upload tab to add your first image.
-                      </div>
-                    ) : (
-                      <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                        {mediaList.map((img) => {
-                          const isCurrent = value === img.url || mediaId === img.id;
-                          return (
-                            <button
-                              key={img.id}
-                              type="button"
-                              onClick={(e) => handleSelectAsset(img, e)}
-                              className={`group relative rounded-xl overflow-hidden border-2 transition aspect-square text-left bg-[#f8faf9] ${
-                                isCurrent
-                                  ? "border-[#e8622a] ring-2 ring-[#e8622a]/30"
-                                  : "border-[#e2e8f0] hover:border-[#0f2922]"
-                              }`}
-                              title={img.label ?? img.url}
-                            >
-                              <img
-                                src={img.url}
-                                alt={img.label ?? ""}
-                                className="w-full h-full object-cover"
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src =
-                                    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=100&h=100&fit=crop";
-                                }}
-                              />
-                              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition" />
-                              {isCurrent && (
-                                <div className="absolute top-1.5 right-1.5 bg-[#e8622a] text-white p-0.5 rounded-full">
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                                  </svg>
-                                </div>
-                              )}
-                              <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-[10px] px-1.5 py-1 truncate">
-                                {img.label || img.category}
-                              </div>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </>
-              ) : (
-                <div className="p-6 space-y-4 flex-1 overflow-y-auto">
-                  {/* File picker & dropzone */}
-                  <div>
-                    <label className="block text-sm font-semibold text-[#0f2922] mb-1">
-                      Select Image File <span className="text-red-500">*</span>
-                    </label>
-                    <p className="text-xs text-[#718096] mb-3">
-                      Supported formats: PNG, JPEG, WEBP, SVG (Max 10MB). Uploads directly to Neon S3 storage.
-                    </p>
+                  {/* Destination Filter */}
+                  <select
+                    value={destFilter}
+                    onChange={(e) => setDestFilter(e.target.value)}
+                    className="bg-white border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer"
+                  >
+                    <option value="all">All Destinations</option>
+                    {destinations.map((d) => (
+                      <option key={d.id} value={d.id}>
+                        {d.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-                    <label
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsDragging(true);
-                      }}
-                      onDragLeave={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsDragging(false);
-                      }}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsDragging(false);
-                        const file = e.dataTransfer.files?.[0];
-                        if (file) {
-                          processSelectedFile(file);
-                        }
-                      }}
-                      className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition select-none ${
-                        isDragging
-                          ? "border-[#e8622a] bg-[#fff5f0]"
-                          : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#fafbfa]"
+                {/* Category Pills */}
+                <div className="flex gap-1.5 flex-wrap">
+                  {CATEGORY_TABS.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setCatFilter(cat.id)}
+                      className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+                        catFilter === cat.id
+                          ? "bg-[#0f2922] text-white shadow-2xs"
+                          : "bg-white text-[#4a5568] border border-[#e2e8f0] hover:bg-[#edf2f7]"
                       }`}
                     >
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept="image/jpeg,image/png,image/webp,image/gif,image/svg+xml"
-                        onChange={handleFileChange}
-                        className="sr-only"
-                      />
-
-                      {previewUrl ? (
-                        <div className="space-y-2 text-center">
-                          <img
-                            src={previewUrl}
-                            alt="Upload preview"
-                            className="w-32 h-32 object-cover rounded-lg mx-auto border border-[#e2e8f0] shadow-sm"
-                          />
-                          <p className="text-xs font-semibold text-[#0f2922]">{uploadFile?.name}</p>
-                          <p className="text-[11px] text-[#718096]">
-                            {uploadFile ? `${(uploadFile.size / 1024 / 1024).toFixed(2)} MB` : ""}
-                          </p>
-                          <span className="inline-block text-xs text-[#e8622a] hover:underline font-medium">
-                            Change file
-                          </span>
-                        </div>
-                      ) : (
-                        <>
-                          <div className="w-12 h-12 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-2">
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                          </div>
-                          <p className="text-sm font-semibold text-[#0f2922]">Click or drag &amp; drop image here</p>
-                          <p className="text-xs text-[#718096] mt-0.5">PNG, JPG, or WEBP up to 10MB</p>
-                        </>
-                      )}
-                    </label>
-                  </div>
-
-                  {/* Label input */}
-                  <div>
-                    <label className="block text-xs font-medium text-[#4a5568] mb-1">Asset Label (optional)</label>
-                    <input
-                      type="text"
-                      value={uploadLabel}
-                      onChange={(e) => setUploadLabel(e.target.value)}
-                      placeholder="e.g. Chopta Valley Ridge View"
-                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Alt Text */}
-                  <div>
-                    <label className="block text-xs font-medium text-[#4a5568] mb-1">Alt Text (for accessibility)</label>
-                    <input
-                      type="text"
-                      value={altTextInput}
-                      onChange={(e) => setAltTextInput(e.target.value)}
-                      placeholder="e.g. Snowy peaks over Chopta valley"
-                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]"
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                        }
-                      }}
-                    />
-                  </div>
-
-                  {/* Category selector */}
-                  <div>
-                    <label className="block text-xs font-medium text-[#4a5568] mb-1">Category</label>
-                    <select
-                      value={uploadCategory}
-                      onChange={(e) => setUploadCategory(e.target.value)}
-                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
-                    >
-                      <option value="destinations">Destinations</option>
-                      <option value="trips">Trips</option>
-                      <option value="completed_trips">Completed Trips</option>
-                      <option value="homepage">Homepage</option>
-                      <option value="general">General</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={handleUploadSubmit}
-                    disabled={!uploadFile || isUploading}
-                    className="w-full bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-sm font-semibold py-2.5 rounded-lg transition flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    {isUploading ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                        </svg>
-                        Uploading to Storage...
-                      </>
-                    ) : (
-                      "Upload & Select Asset"
-                    )}
-                  </button>
+                      {cat.label}
+                    </button>
+                  ))}
                 </div>
-              )}
+              </div>
+
+              {/* Gallery Grid */}
+              <div className="overflow-y-auto flex-1 p-5">
+                {isLoadingMedia ? (
+                  <div className="flex flex-col items-center justify-center py-20 text-[#718096]">
+                    <svg className="animate-spin h-7 w-7 text-[#0f2922] mb-2" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <p className="text-xs">Loading media assets...</p>
+                  </div>
+                ) : mediaList.length === 0 ? (
+                  <div className="text-center py-20 text-[#a0aec0] space-y-2">
+                    <p className="text-sm font-semibold text-[#4a5568]">No images match your search or filter.</p>
+                    <p className="text-xs">Use the "Upload New File" button above to upload an image directly.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3.5">
+                    {mediaList.map((img) => {
+                      const isSelected = value === img.url || mediaId === img.id;
+                      const formattedDate = img.createdAt
+                        ? new Date(img.createdAt).toLocaleDateString("en-IN", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric"
+                          })
+                        : "";
+
+                      return (
+                        <div
+                          key={img.id}
+                          onClick={(e) => handleSelectExisting(img, e)}
+                          className={`group relative rounded-xl overflow-hidden border-2 transition cursor-pointer bg-[#fafbfa] flex flex-col shadow-2xs hover:shadow-md ${
+                            isSelected
+                              ? "border-[#e8622a] ring-2 ring-[#e8622a]/30"
+                              : "border-[#e2e8f0] hover:border-[#0f2922]"
+                          }`}
+                        >
+                          {/* Image preview box */}
+                          <div className="aspect-[4/3] w-full overflow-hidden bg-[#e2e8f0] relative">
+                            <img
+                              src={img.url}
+                              alt={img.label ?? ""}
+                              className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src =
+                                  "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&fit=crop";
+                              }}
+                            />
+                            {isSelected && (
+                              <div className="absolute top-2 right-2 bg-[#e8622a] text-white p-1 rounded-full shadow-sm">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            )}
+
+                            {/* Destination badge if associated */}
+                            {img.destinationName && (
+                              <div className="absolute top-2 left-2 bg-[#0f2922]/80 backdrop-blur-2xs text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 shadow-xs">
+                                <span>🏔️</span>
+                                <span>{img.destinationName}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Metadata Card Footer */}
+                          <div className="p-2.5 flex-1 flex flex-col justify-between bg-white text-xs">
+                            <div>
+                              <p className="font-semibold text-[#0f2922] truncate text-[11px]" title={img.label || img.url}>
+                                {img.label || "Untitled Asset"}
+                              </p>
+                              <div className="flex items-center gap-1.5 mt-0.5 text-[10px] text-[#718096]">
+                                <span className="capitalize bg-[#f7f8f5] px-1.5 py-0.2 rounded border border-[#e2e8f0]">
+                                  {img.category.replace("_", " ")}
+                                </span>
+                                {formattedDate && <span>• {formattedDate}</span>}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="mt-2 w-full py-1 rounded bg-[#f7f8f5] group-hover:bg-[#0f2922] text-[#4a5568] group-hover:text-white text-[11px] font-semibold transition text-center"
+                            >
+                              {isSelected ? "Currently Selected" : "Select Image"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 bg-[#f7f8f5] border-t border-[#e2e8f0] flex items-center justify-between text-xs text-[#718096] shrink-0">
+                <span>{mediaList.length} assets available</span>
+                <button
+                  type="button"
+                  onClick={() => setModalOpen(false)}
+                  className="px-4 py-1.5 border border-[#e2e8f0] rounded-lg text-[#4a5568] hover:bg-white transition cursor-pointer font-semibold"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
           </div>,
           document.body

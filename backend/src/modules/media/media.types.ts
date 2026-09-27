@@ -1,6 +1,7 @@
 export interface MediaAssetRecord {
   id: string;
   folder_id: string | null;
+  destination_id: string | null;
   category: string;
   label: string | null;
   alt_text: string | null;
@@ -16,10 +17,15 @@ export interface MediaAssetRecord {
   uploaded_by_user_id: string | null;
   created_at: string | Date;
   updated_at: string | Date;
+  destination_name?: string | null;
+  destination_slug?: string | null;
 }
 
 export interface MediaAssetDto {
   id: string;
+  destinationId: string | null;
+  destinationName: string | null;
+  destinationSlug: string | null;
   category: string;
   label: string | null;
   altText: string | null;
@@ -38,6 +44,7 @@ export interface MediaAssetDto {
 
 export interface MediaFilters {
   category?: string;
+  destinationId?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -45,6 +52,7 @@ export interface MediaFilters {
 
 export interface CreateStorageMediaInput {
   category: string;
+  destinationId?: string | null;
   label?: string | null;
   altText?: string | null;
   storageBucket: string;
@@ -58,6 +66,7 @@ export interface CreateStorageMediaInput {
 
 export interface CreateExternalMediaInput {
   url: string;
+  destinationId?: string | null;
   label?: string | null;
   altText?: string | null;
   category?: string;

@@ -17,6 +17,7 @@ export const createExternalMediaSchema = z
     externalUrl: z.string().url("Must be a valid URL").optional(),
     label: z.string().trim().max(100).optional(),
     altText: z.string().trim().max(255).optional(),
+    destinationId: z.string().optional(),
     category: mediaCategoryEnum.default("general")
   })
   .refine((data) => Boolean(data.url || data.externalUrl), {
@@ -30,6 +31,8 @@ export const createExternalMediaSchema = z
 
 export const mediaQuerySchema = z.object({
   category: z.string().optional(),
+  destinationId: z.string().optional(),
+  destination: z.string().optional(),
   search: z.string().trim().optional(),
   page: z.coerce.number().int().positive().default(1),
   limit: z.coerce.number().int().positive().max(100).default(50)

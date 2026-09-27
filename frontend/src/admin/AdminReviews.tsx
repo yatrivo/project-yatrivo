@@ -147,8 +147,24 @@ export default function AdminReviews() {
                 <tr key={r.id} className="hover:bg-[#f7f8f5] transition">
                   <td className="px-4 py-3 font-medium text-[#0f2922]">{r.name}</td>
                   <td className="px-4 py-3"><Stars rating={r.rating} /></td>
-                  <td className="px-4 py-3 text-[#718096] max-w-[200px]">
-                    <p className="truncate">{r.text}</p>
+                  <td className="px-4 py-3 text-[#718096] max-w-[240px]">
+                    <p className="line-clamp-2">{r.text}</p>
+                    {r.photos && r.photos.length > 0 && (
+                      <div className="flex gap-1.5 mt-1.5">
+                        {r.photos.map((photoUrl, pIdx) => (
+                          <a
+                            key={pIdx}
+                            href={photoUrl}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="block w-8 h-8 rounded border border-[#e2e8f0] overflow-hidden hover:opacity-80 transition"
+                            title="View customer photo"
+                          >
+                            <img src={photoUrl} alt="" className="w-full h-full object-cover" />
+                          </a>
+                        ))}
+                      </div>
+                    )}
                   </td>
                   <td className="px-4 py-3 text-[#4a5568] text-xs">{r.tripName}</td>
                   <td className="px-4 py-3 text-[#718096] text-xs capitalize">

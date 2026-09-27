@@ -8,6 +8,7 @@ export interface Review {
   date: string;
   status: "published" | "hidden" | "pending";
   avatar: string;
+  photos?: string[];
 }
 
 export const REVIEWS: Review[] = [

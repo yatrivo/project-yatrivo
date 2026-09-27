@@ -130,6 +130,9 @@ interface CompleteModalProps {
 }
 
 function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalProps) {
+  const { trips, destinations } = useApp();
+  const trip = trips.find((t) => t.id === instance.tripId);
+  const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
   const [photos, setPhotos] = useState<string[]>(instance.completedPhotos ?? ["", "", ""]);
 
   const handleSave = () => {
@@ -172,6 +175,12 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
                 value={url}
                 onChange={(newUrl) => updatePhoto(i, newUrl)}
                 className="flex-1"
+                context={{
+                  destinationId: dest?.id,
+                  destinationSlug: dest?.slug,
+                  destinationName: dest?.name,
+                  category: "completed_trips"
+                }}
               />
             </div>
           ))}

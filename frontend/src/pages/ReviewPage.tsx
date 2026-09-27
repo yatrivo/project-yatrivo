@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { mediaApi } from "@/api/media";
 import Footer from "@/components/Footer";
 import type { Review } from "@/data/reviews";
 
@@ -45,9 +46,34 @@ export default function ReviewPage() {
   const [name, setName] = useState("");
   const [text, setText] = useState("");
   const [selectedTripId, setSelectedTripId] = useState(prefilledTrip?.id ?? "");
+  const [reviewPhotos, setReviewPhotos] = useState<string[]>([]);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const tripId = prefilledTrip?.id ?? selectedTripId;
+    const trip = trips.find((t) => t.id === tripId);
+
+    setUploadingPhoto(true);
+    try {
+      const asset = await mediaApi.upload(file, {
+        category: "reviews",
+        destinationSlug: trip?.destination,
+        isReview: true
+      });
+      setReviewPhotos((prev) => [...prev, asset.url]);
+    } catch {
+      // Fallback preview
+      setReviewPhotos((prev) => [...prev, URL.createObjectURL(file)]);
+    } finally {
+      setUploadingPhoto(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -76,6 +102,7 @@ export default function ReviewPage() {
         date: new Date().toISOString().slice(0, 10),
         status: "pending" as const,
         avatar: name.trim().split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase(),
+        photos: reviewPhotos.length > 0 ? reviewPhotos : undefined,
       };
       setReviews((prev) => [newReview, ...prev]);
       setLoading(false);
@@ -175,6 +202,50 @@ export default function ReviewPage() {
                   {errors.text ? <p className="text-red-500 text-xs">{errors.text}</p> : <span />}
                   <span className={`text-xs ${text.trim().length < 20 ? "text-[#4a5568]" : "text-green-600"}`}>{text.trim().length} / 20 min</span>
                 </div>
+              </div>
+
+              {/* Trip Photos */}
+              <div>
+                <label className="block text-[#0f2922] text-sm font-medium mb-1.5">
+                  Attach Trip Photos (optional)
+                </label>
+                <div className="flex gap-2 flex-wrap mb-2">
+                  {reviewPhotos.map((url, i) => (
+                    <div key={i} className="relative w-16 h-16 rounded-lg overflow-hidden border border-[#e2e8f0] group">
+                      <img src={url} alt={`Trip photo ${i + 1}`} className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => setReviewPhotos((prev) => prev.filter((_, idx) => idx !== i))}
+                        className="absolute inset-0 bg-black/50 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+
+                  {reviewPhotos.length < 3 && (
+                    <label className="w-16 h-16 rounded-lg border-2 border-dashed border-[#cbd5e1] hover:border-[#0f2922] flex flex-col items-center justify-center cursor-pointer transition bg-[#fafbfa]">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePhotoUpload}
+                        className="sr-only"
+                        disabled={uploadingPhoto}
+                      />
+                      {uploadingPhoto ? (
+                        <div className="text-[10px] text-[#0f2922] font-semibold">...</div>
+                      ) : (
+                        <>
+                          <span className="text-lg leading-none text-[#718096]">+</span>
+                          <span className="text-[9px] text-[#718096]">Photo</span>
+                        </>
+                      )}
+                    </label>
+                  )}
+                </div>
+                <p className="text-[11px] text-[#718096]">
+                  Attach up to 3 photos of your journey (JPEG, PNG, WEBP).
+                </p>
               </div>
 
               <button

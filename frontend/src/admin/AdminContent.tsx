@@ -233,6 +233,7 @@ function HeroTab() {
                   label="Image"
                   value={addStaticUrl}
                   onChange={setAddStaticUrl}
+                  context={{ category: "homepage" }}
                 />
                 <div>
                   <label className="block text-xs font-medium text-[#4a5568] mb-1">Title</label>

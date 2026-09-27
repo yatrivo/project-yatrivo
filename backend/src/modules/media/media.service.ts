@@ -1,5 +1,6 @@
 import { AppError } from "../../errors/AppError";
 import { logger } from "../../config/logger";
+import { query } from "../../db/postgres";
 import {
   deleteObjectFromStorage,
   generateStorageKey,
@@ -43,9 +44,14 @@ export const mediaService = {
 
   async uploadImage(
     file: Express.Multer.File,
-    category = "general",
-    label?: string | null,
-    altText?: string | null,
+    options?: {
+      category?: string;
+      destinationId?: string | null;
+      destinationSlug?: string | null;
+      isReview?: boolean;
+      label?: string | null;
+      altText?: string | null;
+    },
     actorUserId?: string | null
   ): Promise<MediaAssetDto> {
     if (!file) {
@@ -68,7 +74,34 @@ export const mediaService = {
       );
     }
 
-    const key = generateStorageKey(category, file.originalname);
+    const category = options?.category || "general";
+    const label = options?.label;
+    const altText = options?.altText;
+    const isReview = Boolean(options?.isReview || category === "reviews");
+
+    // Automatically resolve destination if provided
+    let resolvedDestId: string | null = null;
+    let resolvedDestSlug: string | null = null;
+
+    if (options?.destinationId || options?.destinationSlug) {
+      try {
+        const destRes = await query<{ id: string; slug: string }>(
+          `SELECT id, slug FROM destinations WHERE id::text = $1 OR slug = $2 LIMIT 1`,
+          [options.destinationId || "", options.destinationSlug || ""]
+        );
+        if (destRes.rows.length > 0) {
+          resolvedDestId = destRes.rows[0].id;
+          resolvedDestSlug = destRes.rows[0].slug;
+        }
+      } catch (err) {
+        logger.warn({ err }, "Could not resolve destination for media upload");
+      }
+    }
+
+    const key = generateStorageKey(category, file.originalname, {
+      destinationSlug: resolvedDestSlug,
+      isReview
+    });
 
     // 1. Upload to S3
     const uploadResult = await uploadBufferToStorage({
@@ -82,6 +115,7 @@ export const mediaService = {
       const asset = await mediaRepository.createStorageAsset(
         {
           category,
+          destinationId: resolvedDestId,
           label: label || file.originalname,
           altText: altText || label || null,
           storageBucket: uploadResult.bucket,
@@ -94,7 +128,7 @@ export const mediaService = {
       );
 
       logger.info(
-        { mediaId: asset.id, storageKey: key, uploadedBy: actorUserId },
+        { mediaId: asset.id, storageKey: key, destinationId: resolvedDestId, uploadedBy: actorUserId },
         "Media asset created successfully"
       );
 
