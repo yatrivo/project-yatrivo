@@ -1,7 +1,6 @@
 import { authApi, tokenStorage } from "./auth";
 import type { Trip, TripInstance } from "@/data/trips";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+import { API_BASE } from "./baseUrl";
 
 export interface TripListParams {
   status?: "active" | "archived" | "draft" | "published" | "all";

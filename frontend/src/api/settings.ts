@@ -1,6 +1,5 @@
 import { authApi, tokenStorage } from "./auth";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+import { API_BASE } from "./baseUrl";
 
 export interface CancellationRule {
   days: string;

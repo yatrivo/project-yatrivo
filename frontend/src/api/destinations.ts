@@ -1,7 +1,6 @@
 import { authApi, tokenStorage } from "./auth";
 import type { Destination } from "@/data/destinations";
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+import { API_BASE } from "./baseUrl";
 
 export interface DestinationListParams {
   status?: "active" | "archived" | "draft" | "all";

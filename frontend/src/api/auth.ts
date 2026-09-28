@@ -40,7 +40,7 @@ const STORAGE_KEY_ACCESS = "yatrivo_access_token";
 const STORAGE_KEY_REFRESH = "yatrivo_refresh_token";
 const STORAGE_KEY_USER = "yatrivo_admin_user";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+import { API_BASE } from "./baseUrl";
 
 export const tokenStorage = {
   getAccessToken(): string | null {
