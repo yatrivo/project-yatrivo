@@ -12,6 +12,7 @@ import { bookingsRouter } from "../modules/bookings/bookings.routes";
 import { reviewsRouter } from "../modules/reviews/reviews.routes";
 import { contentRouter } from "../modules/content/content.routes";
 import { auditRouter } from "../modules/audit/audit.routes";
+import { dashboardRouter } from "../modules/dashboard/dashboard.routes";
 
 export const apiRouter = Router();
 
@@ -33,7 +34,9 @@ apiRouter.use(bookingsRouter);
 apiRouter.use(reviewsRouter);
 apiRouter.use(contentRouter);
 apiRouter.use(auditRouter);
+apiRouter.use(dashboardRouter);
 apiRouter.use("/media", mediaRouter);
+
 
 // Test routes to verify and demonstrate role authorization middleware
 if (env.NODE_ENV !== "production") {
