@@ -9,8 +9,10 @@ import { reviewsApi } from "@/api/reviews";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
+import { settingsApi, type AllSettings } from "@/api/settings";
 
-export type { TripInstance, AdminUser };
+export type { TripInstance, AdminUser, AllSettings };
+
 
 export type Page =
   | "home" | "destinations" | "destination-detail" | "trips" | "trip-detail"
@@ -217,7 +219,12 @@ interface AppContextType {
   // Reviews & Homepage Featured Reviews
   refreshReviews: () => Promise<void>;
   updateFeaturedReviewIds: (ids: string[]) => Promise<boolean>;
+
+  // Site Settings
+  siteSettings: AllSettings | null;
+  refreshSettings: () => Promise<void>;
 }
+
 
 const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   { id: "faq-1", question: "What makes YATRIVO different from commercial travel agencies?", answer: "Most agents pile 30–40 travelers into big, crowded buses and rush them through commercial viewpoints. YATRIVO designs mindful travel collectives. Our groups are strictly limited (typically 8–12 like-minded active wanderers), our food is organic and sourced from local mountain farms, and we stay in high-quality timber cabins." },
@@ -342,7 +349,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [aboutContent, setAboutContent] = useState("");
   const [termsContent, setTermsContent] = useState("");
   const [privacyContent, setPrivacyContent] = useState("");
+  const [siteSettings, setSiteSettings] = useState<AllSettings | null>(null);
   const [destinations, setDestinations] = useState<Destination[]>(INITIAL_DESTINATIONS);
+
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
   const [tripInstances, setTripInstances] = useState<TripInstance[]>(INITIAL_TRIP_INSTANCES);
   const [reviews, setReviews] = useState<Review[]>(REVIEWS);
@@ -735,13 +744,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [homepageContent]);
 
+  const refreshSettings = useCallback(async () => {
+    try {
+      const s = await settingsApi.getPublicSettings();
+      if (s) {
+        setSiteSettings(s);
+      }
+    } catch (err) {
+      console.warn("Failed to load site settings from backend:", err);
+    }
+  }, []);
+
   useEffect(() => {
     void refreshDestinations();
     void refreshTrips();
     void refreshEnquiries();
     void refreshContent();
     void refreshReviews();
-  }, [refreshDestinations, refreshTrips, refreshEnquiries, refreshContent, refreshReviews, adminLoggedIn]);
+    void refreshSettings();
+  }, [refreshDestinations, refreshTrips, refreshEnquiries, refreshContent, refreshReviews, refreshSettings, adminLoggedIn]);
 
   return (
     <AppContext.Provider value={{
@@ -765,10 +786,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       bookings, setBookings, addBooking,
       refreshContent,
       updateFeaturedReviewIds,
+      siteSettings, refreshSettings,
     }}>
       {children}
     </AppContext.Provider>
   );
+
 }
 
 export function useApp() {

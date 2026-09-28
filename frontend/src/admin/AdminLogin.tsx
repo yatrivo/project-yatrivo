@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Navigate, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import ForgotPasswordModal from "./ForgotPasswordModal";
 
 export default function AdminLogin() {
   const { adminLogin, adminLoggedIn, showToast } = useApp();
@@ -14,6 +15,8 @@ export default function AdminLogin() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [forgotModalOpen, setForgotModalOpen] = useState(false);
+
 
   if (adminLoggedIn) {
     return <Navigate to={returnUrl} replace />;
@@ -75,7 +78,16 @@ export default function AdminLogin() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-[#4a5568] mb-1">Password</label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-sm font-medium text-[#4a5568]">Password</label>
+                <button
+                  type="button"
+                  onClick={() => setForgotModalOpen(true)}
+                  className="text-xs font-semibold text-[#e8622a] hover:text-[#d4541f] transition cursor-pointer"
+                >
+                  Forgot password?
+                </button>
+              </div>
               <div className="relative">
                 <input
                   type={showPw ? "text" : "password"}
@@ -102,6 +114,7 @@ export default function AdminLogin() {
                 </button>
               </div>
             </div>
+
 
             {error && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm flex items-center gap-2">
@@ -143,6 +156,17 @@ export default function AdminLogin() {
           </p>
         </div>
       </div>
+
+      <ForgotPasswordModal
+        isOpen={forgotModalOpen}
+        onClose={() => setForgotModalOpen(false)}
+        initialEmail={email}
+        onSuccess={(newEmail) => {
+          if (newEmail) setEmail(newEmail);
+          showToast("Password reset successfully. You can now log in.", "success");
+        }}
+      />
     </div>
   );
 }
+

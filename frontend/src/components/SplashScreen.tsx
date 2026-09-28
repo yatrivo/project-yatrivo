@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useApp } from "@/context/AppContext";
 import logoImg from "@/imports/logo.png";
 
 interface Props {
@@ -6,7 +7,9 @@ interface Props {
 }
 
 export default function SplashScreen({ onDone }: Props) {
+  const { siteSettings } = useApp();
   const [phase, setPhase] = useState<"logo" | "tagline" | "fade">("logo");
+
 
   useEffect(() => {
     const t1 = setTimeout(() => setPhase("tagline"), 600);
@@ -64,9 +67,10 @@ export default function SplashScreen({ onDone }: Props) {
           }}
         >
           <div className="text-[#e8622a] text-xs tracking-[0.35em] uppercase font-medium">
-            Explore More. Travel Better.
+            {siteSettings?.general?.tagline || "Explore More. Travel Better."}
           </div>
         </div>
+
 
         {/* Loading bar */}
         <div className="mt-4 w-32 h-0.5 bg-white/10 rounded-full overflow-hidden">

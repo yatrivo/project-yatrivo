@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
+import { useApp } from "@/context/AppContext";
 import logoImg from "@/imports/logo.png";
 
 const navLinks: { label: string; href: string }[] = [
@@ -11,8 +12,10 @@ const navLinks: { label: string; href: string }[] = [
 ];
 
 export default function Navbar() {
+  const { siteSettings } = useApp();
   const location = useLocation();
   const pathname = location.pathname;
+
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrollY, setScrollY] = useState(0);
@@ -101,10 +104,11 @@ export default function Navbar() {
                   textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
                 }}
               >
-                EXPLORE MORE. TRAVEL BETTER.
+                {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
               </div>
             </div>
           </Link>
+
 
           {/* Desktop Nav */}
           <nav className="hidden lg:flex items-center gap-0.5">
