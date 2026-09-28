@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { DEFAULT_TERMS_SECTIONS, parseContentSections } from "@/data/contentSections";
 
 export default function TermsPage() {
@@ -9,6 +10,10 @@ export default function TermsPage() {
 
   return (
     <div>
+      <SEO
+        title="Terms & Booking Conditions"
+        description="Official booking terms, cancellation policies, mountain safety protocols, and participant conditions for Yatrivo expeditions in Uttarakhand."
+      />
       <section className="bg-[#0f2922] text-white pt-24 pb-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest mb-3">LEGAL</div>

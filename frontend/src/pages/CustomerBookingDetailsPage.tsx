@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import SEO from "@/components/SEO";
 import {
   bookingsApi,
   BookingResponse,
@@ -125,6 +126,7 @@ export default function CustomerBookingDetailsPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-[#f7f8f5] flex flex-col items-center justify-center p-4">
+        <SEO title="Traveller Information" noindex={true} />
         <div className="w-8 h-8 border-2 border-[#0f2922] border-t-transparent rounded-full animate-spin mb-3" />
         <p className="text-[#718096] font-medium text-xs">Loading booking details...</p>
       </div>
@@ -134,6 +136,7 @@ export default function CustomerBookingDetailsPage() {
   if (error || !booking) {
     return (
       <div className="min-h-screen bg-[#f7f8f5] flex flex-col items-center justify-center p-4">
+        <SEO title="Booking Link Unavailable" noindex={true} />
         <div className="bg-white border border-[#e2e8f0] rounded-2xl p-8 max-w-md w-full text-center shadow-xs">
           <div className="w-12 h-12 bg-red-50 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,6 +162,7 @@ export default function CustomerBookingDetailsPage() {
 
   return (
     <div className="min-h-screen bg-[#f7f8f5] pb-16">
+      <SEO title="Traveller Information" noindex={true} />
       {/* Brand Header */}
       <header className="bg-white border-b border-[#e2e8f0] sticky top-0 z-30 shadow-2xs">
         <div className="max-w-4xl mx-auto px-4 h-16 flex items-center justify-between">

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
 export default function FAQContactPage() {
@@ -16,6 +17,11 @@ export default function FAQContactPage() {
 
   return (
     <div>
+      <SEO
+        title="Frequently Asked Questions & Contact"
+        description="Have questions about weather, fitness levels, high-altitude gear, or customized bookings in Uttarakhand? Connect with the Yatrivo team in Dehradun."
+        keywords="yatrivo contact, uttarakhand travel faq, trekking fitness requirements, mountain cabin bookings, dehradun travel agency"
+      />
       {/* Hero */}
       <section className="relative h-[45vh] min-h-[300px] flex items-end pb-12 overflow-hidden">
         <img

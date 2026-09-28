@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 type Filter = "all" | "treks" | "ski" | "spiritual";
 
@@ -71,6 +72,11 @@ export default function ReviewsPage() {
 
   return (
     <div>
+      <SEO
+        title="Traveler Stories & Reviews"
+        description="Read authentic verified reviews and traveler stories from adventurers who explored Uttarakhand's peaks, sacred trails, and rivers with Yatrivo."
+        keywords="yatrivo reviews, uttarakhand trek reviews, traveler testimonials, chopta tungnath review, kedarnath tour reviews"
+      />
       {/* Hero */}
       <section className="relative h-[45vh] min-h-[300px] flex items-end pb-12 overflow-hidden">
         <img

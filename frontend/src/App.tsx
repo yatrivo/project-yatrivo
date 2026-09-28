@@ -48,10 +48,12 @@ import AdminAnalytics from "@/admin/AdminAnalytics";
 import AdminNotifications from "@/admin/AdminNotifications";
 import AdminSettings from "@/admin/AdminSettings";
 import AdminAuditLogs from "@/admin/AdminAuditLogs";
+import SEO from "@/components/SEO";
 
 function PublicLayout() {
   return (
     <div className="min-h-screen flex flex-col">
+      <SEO />
       <Navbar />
       <ToastContainer />
       <EnquiryModal />
@@ -73,6 +75,7 @@ function ProtectedAdminRoute() {
 
   return (
     <>
+      <SEO title="Yatrivo Admin Portal" noindex={true} />
       <ToastContainer />
       <AdminLayout>
         <Outlet />

@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 type SortKey = "default" | "price-asc" | "price-desc" | "duration";
 
@@ -72,6 +73,11 @@ export default function TripsPage() {
 
   return (
     <div>
+      <SEO
+        title="Curated Himalayan Treks & Expeditions"
+        description="Explore our handcrafted high-altitude treks, sacred pilgrimages, and mountain expeditions across Uttarakhand with Yatrivo."
+        keywords="Uttarakhand treks, Himalayan expeditions, Chopta Tungnath, Kedarnath trek, Auli trip, Chandrashila, adventure travel India"
+      />
       {/* Header */}
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">CHOOSE YOUR EXPEDITION</div>

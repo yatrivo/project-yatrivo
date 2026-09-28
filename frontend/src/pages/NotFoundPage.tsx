@@ -1,9 +1,11 @@
 import { Link } from "react-router-dom";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 export default function NotFoundPage() {
   return (
     <div className="min-h-screen flex flex-col bg-[#f7f8f5]">
+      <SEO title="Page Not Found" noindex={true} />
       <div className="flex-1 flex flex-col items-center justify-center px-4 text-center py-24">
         <div className="w-16 h-16 rounded-2xl bg-[#0f2922] text-[#e8622a] flex items-center justify-center text-3xl font-bold mb-6">
           ?

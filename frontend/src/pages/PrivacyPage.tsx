@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { DEFAULT_PRIVACY_SECTIONS, parseContentSections } from "@/data/contentSections";
 
 export default function PrivacyPage() {
@@ -9,6 +10,10 @@ export default function PrivacyPage() {
 
   return (
     <div>
+      <SEO
+        title="Privacy Policy"
+        description="Learn how Yatrivo collects, protects, and handles your personal information, booking details, and privacy."
+      />
       <section className="bg-[#0f2922] text-white pt-24 pb-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest mb-3">LEGAL</div>

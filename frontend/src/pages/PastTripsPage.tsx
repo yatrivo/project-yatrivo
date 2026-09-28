@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 const Stars = ({ count = 5 }: { count?: number }) => (
   <div className="flex gap-0.5">
@@ -21,6 +22,11 @@ export default function PastTripsPage() {
 
   return (
     <div>
+      <SEO
+        title="Past Himalayan Adventures & Expedition Archives"
+        description="Explore the archives of Yatrivo's completed Himalayan departures, summit photos, trail stats, and explorer stories across Uttarakhand."
+        keywords="past treks, himalayan expedition archives, yatrivo past trips, summit memories"
+      />
       {/* Header */}
       <section className="relative pt-24 pb-16 overflow-hidden">
         <img

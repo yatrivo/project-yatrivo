@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 const features = [
   {
@@ -44,6 +45,11 @@ export default function TravelWithUsPage() {
 
   return (
     <div>
+      <SEO
+        title="Travel With Yatrivo — Mindful Himalayan Travel Collective"
+        description="Small batches (max 12), certified NIM guides, organic mountain meals, and zero-trace trekking. Discover why mindful explorers travel with Yatrivo."
+        keywords="travel with yatrivo, small group himalayan tours, mindful travel collective, ethical trekking uttarakhand"
+      />
       {/* Hero */}
       <section className="relative min-h-[75vh] flex items-center overflow-hidden">
         <img

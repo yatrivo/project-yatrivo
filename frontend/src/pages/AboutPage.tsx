@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { DEFAULT_ABOUT_SECTIONS, parseContentSections } from "@/data/contentSections";
 
 export default function AboutPage() {
@@ -11,6 +12,10 @@ export default function AboutPage() {
 
   return (
     <div>
+      <SEO
+        title="About Our Collective"
+        description="Learn about Yatrivo — our philosophy of mindful mountain travel, local mountain guides, and community conservation across Uttarakhand."
+      />
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[340px] flex items-end pb-12 overflow-hidden">
         <img

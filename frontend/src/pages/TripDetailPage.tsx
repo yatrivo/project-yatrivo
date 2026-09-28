@@ -6,6 +6,7 @@ import { settingsApi, type CancellationRule } from "@/api/settings";
 import type { Trip, TripDestination, TripHighlightCard, TripFaqItem, TripInstance } from "@/data/trips";
 import Footer from "@/components/Footer";
 import SaveButton from "@/components/SaveButton";
+import SEO from "@/components/SEO";
 
 interface DayItem { day: string; title: string; desc: string; open: boolean }
 
@@ -342,22 +343,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
     }
   };
 
-  // SEO & Document title updates
-  useEffect(() => {
-    if (activeTrip?.name) {
-      document.title = activeTrip.seoTitle || `${activeTrip.name} | Yatrivo Himalayan Adventures`;
-    }
-    let metaDesc = document.querySelector('meta[name="description"]');
-    if (!metaDesc) {
-      metaDesc = document.createElement("meta");
-      metaDesc.setAttribute("name", "description");
-      document.head.appendChild(metaDesc);
-    }
-    metaDesc.setAttribute(
-      "content",
-      activeTrip?.seoDescription || activeTrip?.shortDescription || "Curated Himalayan journeys with Yatrivo."
-    );
-  }, [activeTrip?.name, activeTrip?.seoTitle, activeTrip?.seoDescription, activeTrip?.shortDescription]);
+
 
   const [itinerary, setItinerary] = useState<DayItem[]>([
     { day: "Day 1", title: "Dehradun to Chopta Basecamp", desc: "Scenic mountain drive via Devprayag where Alaknanda meets Bhagirathi. Arrive at our pine-wood meadow cabins. Welcome dinner with local Pahadi cuisine. Evening orientation walk.", open: true },
@@ -397,6 +383,13 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
   return (
     <div className="pb-20 md:pb-0">
+      <SEO
+        title={activeTrip?.seoTitle || activeTrip?.name}
+        description={activeTrip?.seoDescription || activeTrip?.shortDescription || activeTrip?.overview}
+        image={activeTrip?.coverImage}
+        keywords={activeTrip?.destinations?.map((d) => d.name).join(", ")}
+        noindex={isAdmin}
+      />
       {/* Admin Mode Bar */}
       {isAdmin && (
         <>

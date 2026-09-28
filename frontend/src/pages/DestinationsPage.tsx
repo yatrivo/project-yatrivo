@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 type SortKey = "recommended" | "name" | "popularity";
 
@@ -53,6 +54,11 @@ export default function DestinationsPage() {
 
   return (
     <div>
+      <SEO
+        title="Uttarakhand Destinations & Valleys"
+        description="From the sacred rapids of Ganga in Rishikesh to the snow-laden slopes of Auli and high alpine quiet of Chopta, discover pristine Uttarakhand destinations with Yatrivo."
+        keywords="Uttarakhand destinations, Chopta, Auli, Kedarnath, Rishikesh, Mussoorie, Kanatal, Chakrata, travel Uttarakhand"
+      />
       {/* Header */}
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">EXPLORE THE SACRED STATE</div>

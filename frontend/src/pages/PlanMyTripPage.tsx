@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useApp, type Enquiry } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 import { enquiriesApi } from "@/api/enquiries";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
@@ -278,6 +279,11 @@ export default function PlanMyTripPage() {
 
   return (
     <div className="min-h-screen bg-[#fafbfa]">
+      <SEO
+        title="Plan Your Custom Himalayan Journey"
+        description="Tell us your mountain travel preferences, dates, and group size. We'll design a personalized Uttarakhand itinerary with certified local guides and premium stays."
+        keywords="custom himalayan itinerary, plan uttarakhand trip, tailor-made trek, private mountain tour, bespoke himalayan expedition"
+      />
       {/* Clean Minimal Header */}
       <div className="bg-[#0f2922] text-white pt-28 sm:pt-32 pb-10 sm:pb-12 px-4 sm:px-6 border-b border-[#1b3d32]">
         <div className="max-w-4xl mx-auto">

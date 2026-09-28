@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestinations";
 import { destinationsApi } from "@/api/destinations";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -88,6 +89,13 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
   return (
     <div>
+      <SEO
+        title={dest?.seoTitle || dest?.name}
+        description={dest?.seoDescription || dest?.description || dest?.tagline}
+        image={dest?.heroImage}
+        keywords={`${dest?.name}, Uttarakhand, ${dest?.category || "valley"}, treks`}
+        noindex={isAdmin}
+      />
       {/* Admin Mode Bar */}
       {isAdmin && (
         <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">

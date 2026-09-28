@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -44,6 +45,7 @@ export default function CompletedTripDetailPage() {
   if (!instance || !trip || !destination) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-[#4a5568]">
+        <SEO title="Trip Not Found" noindex={true} />
         <p className="text-lg">Trip not found.</p>
         <Link
           to="/past-trips"
@@ -62,6 +64,11 @@ export default function CompletedTripDetailPage() {
 
   return (
     <div>
+      <SEO
+        title={`${trip.name} Expedition Recap (${instance.date})`}
+        description={`Read the expedition recap, memories, reviews, and highlights from Yatrivo's ${trip.name} journey in ${destination.name}.`}
+        image={trip.image}
+      />
       {/* Hero */}
       <section className="relative h-[65vh] min-h-[420px] flex items-end pb-10 overflow-hidden">
         <img

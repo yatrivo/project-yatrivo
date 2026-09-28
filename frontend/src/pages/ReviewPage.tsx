@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { mediaApi } from "@/api/media";
 import { reviewsApi, type TokenContextResponse } from "@/api/reviews";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 function StarPicker({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0);
@@ -179,6 +180,7 @@ export default function ReviewPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#fdfdfc]">
+      <SEO title="Submit Trip Review" noindex={true} />
       {/* Hero Banner */}
       <section className="relative pt-24 pb-16 overflow-hidden bg-[#0f2922]">
         <img

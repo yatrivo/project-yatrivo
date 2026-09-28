@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SEO from "@/components/SEO";
 
 const TABS = ["Personal Info", "Saved Trips", "My Enquiries", "Settings"];
 const TAB_KEYS = ["personal", "saved", "enquiries", "settings"];
@@ -42,6 +43,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#f7f8f5]">
+      <SEO title="My Profile" noindex={true} />
       {/* Header banner */}
       <div className="bg-[#0f2922] text-white pt-24 pb-8">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 flex items-center gap-6">
