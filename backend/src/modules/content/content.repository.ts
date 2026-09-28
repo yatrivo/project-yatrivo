@@ -8,10 +8,70 @@ import {
   ContentPage 
 } from "./content.types";
 
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const seedDefaultHomepageConfig = async (): Promise<void> => {
+  const destRows = await query<{ id: string; slug: string }>(`SELECT id, slug FROM destinations LIMIT 5`);
+  const destIds = destRows.rows.map(r => r.id);
+
+  const revRows = await query<{ id: string }>(`SELECT id FROM reviews WHERE status = 'published' LIMIT 3`);
+  const revIds = revRows.rows.map(r => r.id);
+
+  const instRows = await query<{ id: string }>(`SELECT id FROM trip_instances WHERE is_cancelled = false AND starts_on >= CURRENT_DATE LIMIT 2`);
+  const instIds = instRows.rows.map(r => r.id);
+
+  const slides: any[] = [
+    {
+      slideType: "static",
+      imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format",
+      titleOverride: "Explore Uttarakhand",
+      subtitleOverride: "Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+      sortOrder: 0,
+      isActive: true
+    }
+  ];
+
+  for (const [i, instId] of instIds.entries()) {
+    slides.push({
+      slideType: "trip",
+      tripInstanceId: instId,
+      sortOrder: i + 1,
+      isActive: true
+    });
+  }
+
+  await upsertHomepageConfig({
+    heroTitle: "Live Deeply. Travel Boldly.",
+    heroSubtitle: "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+    whyUsTitle: "The Mindful Adventure Movement",
+    whyUsDescription: "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection.",
+    status: "published",
+    slides,
+    featuredDestinationIds: destIds.slice(0, 3),
+    featuredReviewIds: revIds.slice(0, 3),
+    whyUsPoints: [
+      { icon: "🗺️", title: "Handpicked Paths", description: "Carefully charted trails away from tourist crowds.", sortOrder: 0 },
+      { icon: "👥", title: "Youthful Vibe", description: "Small groups, like-minded active adventurers.", sortOrder: 1 },
+      { icon: "🏔️", title: "Himalayan Trust", description: "Certified local guides & sustainable execution.", sortOrder: 2 }
+    ]
+  });
+};
+
 export const getHomepageConfig = async (): Promise<HomepageConfigFull | null> => {
-  const configResult = await query<HomepageConfig>(
+  let configResult = await query<HomepageConfig>(
     `SELECT * FROM homepage_config LIMIT 1`
   );
+  
+  if (configResult.rows.length === 0) {
+    try {
+      await seedDefaultHomepageConfig();
+      configResult = await query<HomepageConfig>(
+        `SELECT * FROM homepage_config LIMIT 1`
+      );
+    } catch (e) {
+      console.warn("Could not seed default homepage config:", e);
+    }
+  }
   
   if (configResult.rows.length === 0) return null;
   
@@ -106,10 +166,10 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
       }
     }
 
-    const heroTitle = data.heroTitle ?? data.hero_title ?? null;
-    const heroSubtitle = data.heroSubtitle ?? data.hero_subtitle ?? null;
-    const whyUsTitle = data.whyUsTitle ?? data.why_us_title ?? null;
-    const whyUsDesc = data.whyUsDescription ?? data.why_us_description ?? data.whyUsDesc ?? null;
+    const heroTitle = data.heroTitle ?? data.hero_title ?? "Live Deeply. Travel Boldly.";
+    const heroSubtitle = data.heroSubtitle ?? data.hero_subtitle ?? "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.";
+    const whyUsTitle = data.whyUsTitle ?? data.why_us_title ?? "The Mindful Adventure Movement";
+    const whyUsDesc = data.whyUsDescription ?? data.why_us_description ?? data.whyUsDesc ?? "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions.";
     const status = data.status ?? "published";
     
     if (configId) {
@@ -137,15 +197,44 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
     if (Array.isArray(incomingSlides)) {
       await client.query(`DELETE FROM homepage_slides WHERE homepage_config_id = $1`, [configId]);
       for (const [index, slide] of incomingSlides.entries()) {
-        const slideType = slide.slideType ?? slide.slide_type ?? "static";
+        let slideType = slide.slideType ?? slide.slide_type ?? "static";
         const rawTripInstId = slide.tripInstanceId ?? slide.trip_instance_id;
-        const tripInstId = typeof rawTripInstId === "string" && rawTripInstId.trim().length > 0 ? rawTripInstId.trim() : null;
+        let tripInstId: string | null = null;
+        if (typeof rawTripInstId === "string" && rawTripInstId.trim().length > 0) {
+          const val = rawTripInstId.trim();
+          if (UUID_REGEX.test(val)) {
+            const check = await client.query(`SELECT id FROM trip_instances WHERE id = $1`, [val]);
+            if (check.rows.length > 0) tripInstId = check.rows[0].id;
+          } else {
+            const check = await client.query(
+              `SELECT ti.id FROM trip_instances ti 
+               JOIN trips t ON ti.trip_id = t.id 
+               WHERE t.slug = $1 OR ('inst-' || t.slug || '-oct') = $1 OR ('inst-' || t.slug || '-nov') = $1
+               ORDER BY ti.starts_on ASC LIMIT 1`,
+              [val]
+            );
+            if (check.rows.length > 0) tripInstId = check.rows[0].id;
+          }
+        }
+
         const rawMediaId = slide.mediaId ?? slide.media_id;
-        const mediaId = typeof rawMediaId === "string" && rawMediaId.trim().length > 0 ? rawMediaId.trim() : null;
+        let mediaId: string | null = null;
+        if (typeof rawMediaId === "string" && rawMediaId.trim().length > 0) {
+          const val = rawMediaId.trim();
+          if (UUID_REGEX.test(val)) {
+            const check = await client.query(`SELECT id FROM media_assets WHERE id = $1`, [val]);
+            if (check.rows.length > 0) mediaId = check.rows[0].id;
+          }
+        }
+
         const imageUrl = slide.imageUrl ?? slide.image_url ?? null;
         const titleOverride = slide.titleOverride ?? slide.title_override ?? slide.title ?? null;
         const subtitleOverride = slide.subtitleOverride ?? slide.subtitle_override ?? slide.subtitle ?? null;
         const isActive = slide.isActive ?? slide.is_active ?? true;
+
+        if (slideType === "trip" && !tripInstId && imageUrl) {
+          slideType = "static";
+        }
 
         await client.query(
           `INSERT INTO homepage_slides (homepage_config_id, slide_type, trip_instance_id, media_id, image_url, title_override, subtitle_override, sort_order, is_active)
@@ -158,14 +247,26 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
     const incomingDestinations = data.featuredDestinationIds ?? data.featuredDestinations;
     if (Array.isArray(incomingDestinations)) {
       await client.query(`DELETE FROM homepage_featured_destinations WHERE homepage_config_id = $1`, [configId]);
-      for (const [index, destId] of incomingDestinations.entries()) {
-        if (typeof destId === "string" && destId.trim().length > 0) {
-          await client.query(
-            `INSERT INTO homepage_featured_destinations (homepage_config_id, destination_id, sort_order)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (homepage_config_id, destination_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
-            [configId, destId.trim(), index]
-          );
+      for (const [index, rawDestId] of incomingDestinations.entries()) {
+        if (typeof rawDestId === "string" && rawDestId.trim().length > 0) {
+          const val = rawDestId.trim();
+          let resolvedDestId: string | null = null;
+          if (UUID_REGEX.test(val)) {
+            const check = await client.query(`SELECT id FROM destinations WHERE id = $1`, [val]);
+            if (check.rows.length > 0) resolvedDestId = check.rows[0].id;
+          } else {
+            const check = await client.query(`SELECT id FROM destinations WHERE slug = $1`, [val]);
+            if (check.rows.length > 0) resolvedDestId = check.rows[0].id;
+          }
+
+          if (resolvedDestId) {
+            await client.query(
+              `INSERT INTO homepage_featured_destinations (homepage_config_id, destination_id, sort_order)
+               VALUES ($1, $2, $3)
+               ON CONFLICT (homepage_config_id, destination_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+              [configId, resolvedDestId, index]
+            );
+          }
         }
       }
     }
@@ -173,14 +274,20 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
     const incomingReviews = data.featuredReviewIds ?? data.featuredReviews;
     if (Array.isArray(incomingReviews)) {
       await client.query(`DELETE FROM homepage_featured_reviews WHERE homepage_config_id = $1`, [configId]);
-      for (const [index, reviewId] of incomingReviews.entries()) {
-        if (typeof reviewId === "string" && reviewId.trim().length > 0) {
-          await client.query(
-            `INSERT INTO homepage_featured_reviews (homepage_config_id, review_id, sort_order)
-             VALUES ($1, $2, $3)
-             ON CONFLICT (homepage_config_id, review_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
-            [configId, reviewId.trim(), index]
-          );
+      for (const [index, rawReviewId] of incomingReviews.entries()) {
+        if (typeof rawReviewId === "string" && rawReviewId.trim().length > 0) {
+          const val = rawReviewId.trim();
+          if (UUID_REGEX.test(val)) {
+            const check = await client.query(`SELECT id FROM reviews WHERE id = $1`, [val]);
+            if (check.rows.length > 0) {
+              await client.query(
+                `INSERT INTO homepage_featured_reviews (homepage_config_id, review_id, sort_order)
+                 VALUES ($1, $2, $3)
+                 ON CONFLICT (homepage_config_id, review_id) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
+                [configId, val, index]
+              );
+            }
+          }
         }
       }
     }
