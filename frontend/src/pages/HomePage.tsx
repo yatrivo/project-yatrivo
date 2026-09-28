@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import logoImg from "@/imports/logo.png";
 
 const Stars = () => (
   <div className="flex gap-0.5">
@@ -12,7 +13,7 @@ const Stars = () => (
 );
 
 export default function HomePage() {
-  const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews, destinations } = useApp();
+  const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews, destinations, siteSettings } = useApp();
   const { heroImages, heroTitle, heroSubtitle, carouselSlides, featuredReviewIds, featuredDestIds, whyUsTitle, whyUsDesc } = homepageContent;
 
   // Featured destinations from context
@@ -50,7 +51,7 @@ export default function HomePage() {
       return {
         imageUrl: trip?.image ?? heroImages[0],
         title: slide.title ?? trip?.name ?? "Upcoming Trip",
-        subtitle: slide.subtitle ?? (inst && trip ? `${inst.displayDate} · ₹${inst.price.toLocaleString("en-IN")}/person` : ""),
+        subtitle: slide.subtitle ?? (trip?.subtitle || ""),
         tripId: trip?.id,
         tripInstanceId: slide.tripInstanceId,
         price: inst?.price,
@@ -82,25 +83,146 @@ export default function HomePage() {
     resetTimer();
   };
 
-  const currentSlide = resolvedSlides[heroIdx] ?? resolvedSlides[0];
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+
+  const minSwipeDistance = 45;
+
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+    if (isLeftSwipe) {
+      goTo((heroIdx + 1) % resolvedSlides.length);
+    } else if (isRightSwipe) {
+      goTo((heroIdx - 1 + resolvedSlides.length) % resolvedSlides.length);
+    }
+  };
 
   return (
     <div>
-      {/* Hero Carousel */}
-      <section className="relative min-h-screen flex items-end pb-24 overflow-hidden">
-        {resolvedSlides.map((slide, i) => (
+      {/* Hero Carousel with Smooth Sliding Track */}
+      <section
+        className="relative h-[82vh] md:h-[84vh] min-h-[500px] md:min-h-[580px] max-h-[840px] overflow-hidden touch-pan-y"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
+        {/* Mobile-Only Center-Top Brand & Tagline */}
+        <div className="md:hidden absolute top-16 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
           <img
-            key={i}
-            src={slide.imageUrl}
-            alt={slide.title}
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${i === heroIdx ? "opacity-100" : "opacity-0"}`}
+            src={logoImg}
+            alt="Yatrivo"
+            className="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] mb-1.5"
           />
-        ))}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+          <div
+            className="text-white font-bold text-base tracking-[0.25em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
+            YATRIVO
+          </div>
+          <div className="text-[#e8622a] text-[9px] tracking-[0.2em] uppercase font-semibold mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
+            {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
+          </div>
+        </div>
+
+        {/* Sliding Track containing all slides */}
+        <div
+          className="flex h-full w-full transition-transform duration-700 ease-out"
+          style={{ transform: `translateX(-${heroIdx * 100}%)` }}
+        >
+          {resolvedSlides.map((slide, i) => (
+            <div
+              key={i}
+              className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden"
+            >
+              {/* Background image */}
+              <img
+                src={slide.imageUrl}
+                alt={slide.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+
+              {/* Shading gradients: gentle top vignette on mobile for logo contrast, dark bottom for text */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/40 md:to-transparent pointer-events-none" />
+
+              {/* Slide text & buttons */}
+              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
+                <h1
+                  className="text-white text-2xl sm:text-5xl md:text-7xl leading-[1.15] sm:leading-[1.05] mb-2 sm:mb-5 max-w-2xl font-normal"
+                  style={{ fontFamily: "var(--font-serif)" }}
+                >
+                  {slide.title.split(". ").map((part, pIdx, arr) => (
+                    <span key={pIdx}>
+                      {part}
+                      {pIdx < arr.length - 1 ? "." : ""}
+                      {pIdx < arr.length - 1 && <br />}
+                    </span>
+                  ))}
+                </h1>
+
+                {slide.subtitle ? (
+                  <p className="text-white/80 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed">
+                    {slide.subtitle}
+                  </p>
+                ) : null}
+
+                {/* Trip-specific info */}
+                {slide.tripId ? (
+                  <>
+                    {(slide.price !== undefined || slide.displayDate) && (
+                      <p className="text-white/90 text-xs sm:text-sm mb-3 sm:mb-6 font-medium">
+                        {slide.price !== undefined && `₹${slide.price.toLocaleString("en-IN")}/person`}
+                        {slide.price !== undefined && slide.displayDate && " · "}
+                        {slide.displayDate}
+                      </p>
+                    )}
+                  </>
+                ) : null}
+
+                {/* Symmetrical Uniform Buttons (Identical dimensions across static & dynamic slides) */}
+                <div className="flex items-center gap-2.5 sm:gap-3 mb-1">
+                  <Link
+                    to={slide.tripId ? `/trips/${slide.tripId}` : "/trips"}
+                    className="w-36 sm:w-44 h-10 sm:h-12 border border-white text-white rounded-full text-xs sm:text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
+                  >
+                    {slide.tripId ? "VIEW TRIP" : "EXPLORE TRIPS"}
+                  </Link>
+
+                  {slide.tripId ? (
+                    <button
+                      onClick={() => openEnquiryModal(slide.tripId!)}
+                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer shrink-0 tracking-wide"
+                    >
+                      INQUIRE NOW →
+                    </button>
+                  ) : (
+                    <Link
+                      to="/plan"
+                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors shrink-0 tracking-wide"
+                    >
+                      PLAN MY TRIP →
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
 
         {/* Dot indicators */}
         {resolvedSlides.length > 1 && (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-10">
+          <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
             {resolvedSlides.map((_, i) => (
               <button
                 key={i}
@@ -111,53 +233,6 @@ export default function HomePage() {
             ))}
           </div>
         )}
-
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-5 max-w-2xl" style={{ fontFamily: "var(--font-serif)" }}>
-            {currentSlide.title.split(". ").map((part, i, arr) => (
-              <span key={i}>{part}{i < arr.length - 1 ? "." : ""}{i < arr.length - 1 && <br />}</span>
-            ))}
-          </h1>
-          <p className="text-white/80 text-base sm:text-lg max-w-xl mb-2 leading-relaxed">
-            {currentSlide.subtitle}
-          </p>
-
-          {/* Trip-specific info + CTA */}
-          {currentSlide.tripId ? (
-            <>
-              {(currentSlide.price !== undefined || currentSlide.displayDate) && (
-                <p className="text-white/90 text-sm mb-6">
-                  {currentSlide.price !== undefined && `₹${currentSlide.price.toLocaleString("en-IN")}/person`}
-                  {currentSlide.price !== undefined && currentSlide.displayDate && " · "}
-                  {currentSlide.displayDate}
-                </p>
-              )}
-            <div className="flex flex-wrap items-center gap-3 mb-1">
-              <Link
-                to={`/trips/${currentSlide.tripId}`}
-                className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all inline-block"
-              >
-                VIEW TRIP
-              </Link>
-              <button
-                onClick={() => openEnquiryModal(currentSlide.tripId!)}
-                className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium flex items-center gap-2 transition-colors cursor-pointer"
-              >
-                INQUIRE NOW →
-              </button>
-            </div>
-            </>
-          ) : (
-            <div className="flex flex-wrap gap-3">
-              <Link to="/trips" className="border border-white text-white px-6 py-3 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all inline-block">
-                EXPLORE PACKAGES
-              </Link>
-              <Link to="/plan" className="bg-[#e8622a] hover:bg-[#d45520] text-white px-6 py-3 rounded-full text-sm font-medium inline-flex items-center gap-2 transition-colors">
-                PLAN MY EXCURSION →
-              </Link>
-            </div>
-          )}
-        </div>
       </section>
 
       {/* Trust Badges */}
