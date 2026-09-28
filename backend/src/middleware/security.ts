@@ -12,10 +12,32 @@ function resolveCorsOrigin(origin: string | undefined, callback: (error: Error |
     return;
   }
 
+  const cleanOrigin = origin.replace(/\/+$/, "");
+
   // Explicit allowed origins from CORS_ORIGIN
-  if (corsOrigins.includes("*") || corsOrigins.includes(origin)) {
+  if (
+    corsOrigins.includes("*") ||
+    corsOrigins.includes(origin) ||
+    corsOrigins.includes(cleanOrigin)
+  ) {
     callback(null, true);
     return;
+  }
+
+  // Allow production domains and subdomains for Yatrivo
+  try {
+    const url = new URL(cleanOrigin);
+    if (
+      url.hostname === "yatrivo.co.in" ||
+      url.hostname.endsWith(".yatrivo.co.in") ||
+      url.hostname === "yatrivo.com" ||
+      url.hostname.endsWith(".yatrivo.com")
+    ) {
+      callback(null, true);
+      return;
+    }
+  } catch {
+    // Invalid URL format
   }
 
   // In non-production environments (development/test), allow LAN/local network access
@@ -28,6 +50,8 @@ function resolveCorsOrigin(origin: string | undefined, callback: (error: Error |
 }
 
 export function registerSecurityMiddleware(app: Express): void {
+  // Trust Render's front-facing reverse proxy (Load Balancer / Cloudflare)
+  app.set("trust proxy", 1);
   app.disable("x-powered-by");
   app.use(helmet());
   app.use(

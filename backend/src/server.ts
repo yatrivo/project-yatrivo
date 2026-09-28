@@ -1,12 +1,12 @@
 import "./config/dns";
-import { env } from "./config/env";
+import { activePort, env } from "./config/env";
 import { logger } from "./config/logger";
 import { closeDatabase } from "./db/postgres";
 import { createApp } from "./app";
 
 const app = createApp();
-const server = app.listen(env.BACKEND_PORT, "0.0.0.0", () => {
-  logger.info({ port: env.BACKEND_PORT, host: "0.0.0.0", version: env.API_VERSION }, "Yatrivo API listening");
+const server = app.listen(activePort, "0.0.0.0", () => {
+  logger.info({ port: activePort, host: "0.0.0.0", version: env.API_VERSION }, "Yatrivo API listening");
 });
 
 async function shutdown(signal: NodeJS.Signals): Promise<void> {

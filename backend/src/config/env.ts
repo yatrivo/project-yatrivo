@@ -14,12 +14,13 @@ const booleanFromEnv = z.preprocess((value) => {
 
 const envSchema = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
+  PORT: z.coerce.number().int().positive().optional(),
   BACKEND_PORT: z.coerce.number().int().positive().default(4000),
   API_VERSION: z.string().regex(/^v\d+$/).default("v1"),
   DATABASE_URL: z.string().min(1, "DATABASE_URL is required"),
   DATABASE_SSL: booleanFromEnv.default(true),
   DB_POOL_MAX: z.coerce.number().int().positive().default(10),
-  CORS_ORIGIN: z.string().default("http://localhost:3000"),
+  CORS_ORIGIN: z.string().default("http://localhost:3000,https://yatrivo.co.in,https://www.yatrivo.co.in"),
   LOG_LEVEL: z.enum(["fatal", "error", "warn", "info", "debug", "trace", "silent"]).default("info"),
   REQUEST_BODY_LIMIT: z.string().default("1mb"),
   UPSTASH_REDIS_REST_URL: z.string().url().optional().or(z.literal("")),
@@ -47,8 +48,10 @@ const envSchema = z.object({
 
 export const env = envSchema.parse(process.env);
 
+export const activePort = env.PORT || env.BACKEND_PORT;
+
 export const corsOrigins = env.CORS_ORIGIN.split(",")
-  .map((origin) => origin.trim())
+  .map((origin) => origin.trim().replace(/\/+$/, ""))
   .filter(Boolean);
 
 export const isProduction = env.NODE_ENV === "production";

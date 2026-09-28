@@ -16,7 +16,7 @@ export function createApp() {
   registerSecurityMiddleware(app);
 
   app.get("/health", (_req, res) => {
-    res.redirect(307, `/api/${env.API_VERSION}/health`);
+    res.status(200).json({ status: "ok", service: "yatrivo-api", version: env.API_VERSION });
   });
 
   app.use(`/api/${env.API_VERSION}`, apiRouter);
