@@ -32,7 +32,7 @@ function Stars({ rating }: { rating: number }) {
 }
 
 export default function AdminReviews() {
-  const { showToast, destinations, trips } = useApp();
+  const { showToast, destinations, trips, homepageContent, updateFeaturedReviewIds } = useApp();
   const [reviewsList, setReviewsList] = useState<ReviewItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<TabValue>("All");
@@ -45,6 +45,55 @@ export default function AdminReviews() {
   const [selectedReview, setSelectedReview] = useState<ReviewItem | null>(null);
   const [moderatingId, setModeratingId] = useState<string | null>(null);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const [modalMenuOpen, setModalMenuOpen] = useState(false);
+
+  // Click-outside listener for the 3-dots menus
+  useEffect(() => {
+    if (!openMenuId && !modalMenuOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest('[data-dropdown="review-actions"]')) {
+        setOpenMenuId(null);
+        setModalMenuOpen(false);
+      }
+    };
+    window.addEventListener("click", handleClickOutside);
+    return () => window.removeEventListener("click", handleClickOutside);
+  }, [openMenuId, modalMenuOpen]);
+
+  const isFeatured = (id: string) => (homepageContent.featuredReviewIds || []).includes(id);
+
+  const handleToggleFeatured = async (review: ReviewItem) => {
+    const current = homepageContent.featuredReviewIds || [];
+    const currentlyFeatured = current.includes(review.id);
+
+    if (!currentlyFeatured) {
+      if (review.status !== "published") {
+        showToast("Only published reviews can be featured on the homepage.", "error");
+        return;
+      }
+      if (current.length >= 3) {
+        showToast("Maximum 3 reviews can be featured on the homepage. Remove one first.", "error");
+        return;
+      }
+      const next = Array.from(new Set([...current, review.id]));
+      const success = await updateFeaturedReviewIds(next);
+      if (success) {
+        showToast(`Added review by ${review.reviewerName} to homepage!`, "success");
+      } else {
+        showToast("Failed to update homepage reviews.", "error");
+      }
+    } else {
+      const next = current.filter((x) => x !== review.id);
+      const success = await updateFeaturedReviewIds(next);
+      if (success) {
+        showToast(`Removed review by ${review.reviewerName} from homepage.`, "info");
+      } else {
+        showToast("Failed to update homepage reviews.", "error");
+      }
+    }
+  };
 
   useEffect(() => {
     if (!selectedReview && !activePhoto) return;
@@ -305,40 +354,124 @@ export default function AdminReviews() {
                         })}
                       </td>
                       <td className="px-4 py-3 whitespace-nowrap">
-                        <span
-                          className={`text-xs font-semibold rounded-full px-2.5 py-0.5 capitalize ${
-                            STATUS_BADGE[r.status] ?? "bg-gray-100 text-gray-700"
-                          }`}
-                        >
-                          {r.status === "pending" ? "Pending Approval" : r.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <span
+                            className={`text-xs font-semibold rounded-full px-2.5 py-0.5 capitalize ${
+                              STATUS_BADGE[r.status] ?? "bg-gray-100 text-gray-700"
+                            }`}
+                          >
+                            {r.status === "pending" ? "Pending Approval" : r.status}
+                          </span>
+                          {isFeatured(r.id) && (
+                            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-50 text-amber-900 border border-amber-300">
+                              ★ Homepage
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1.5 relative" data-dropdown="review-actions">
                           <button
                             onClick={() => setSelectedReview(r)}
                             className="px-2.5 py-1 text-xs font-medium text-[#0f2922] border border-[#e2e8f0] hover:border-[#0f2922] rounded-lg transition cursor-pointer"
                           >
                             Details
                           </button>
-                          {r.status !== "published" && (
+
+                          {/* 3-dots action menu */}
+                          <div className="relative">
                             <button
-                              disabled={moderatingId === r.id}
-                              onClick={() => handleUpdateStatus(r.id, "published")}
-                              className="px-2.5 py-1 text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg transition cursor-pointer disabled:opacity-50"
+                              type="button"
+                              onClick={() => setOpenMenuId(openMenuId === r.id ? null : r.id)}
+                              className="w-7 h-7 flex items-center justify-center text-gray-500 hover:text-[#0f2922] hover:bg-gray-100 rounded-lg transition cursor-pointer"
+                              title="Actions"
                             >
-                              Approve
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                              </svg>
                             </button>
-                          )}
-                          {r.status === "published" && (
-                            <button
-                              disabled={moderatingId === r.id}
-                              onClick={() => handleUpdateStatus(r.id, "hidden")}
-                              className="px-2.5 py-1 text-xs font-medium text-gray-700 border border-gray-300 hover:bg-gray-100 rounded-lg transition cursor-pointer disabled:opacity-50"
-                            >
-                              Hide
-                            </button>
-                          )}
+
+                            {openMenuId === r.id && (
+                              <div className="absolute right-0 top-8 w-52 bg-white border border-[#e2e8f0] rounded-xl shadow-xl z-50 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100">
+                                {isFeatured(r.id) ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      void handleToggleFeatured(r);
+                                    }}
+                                    className="w-full px-3.5 py-2 text-amber-800 hover:bg-amber-50 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                                  >
+                                    <span className="text-amber-500 text-sm">★</span>
+                                    <span>Remove from Homepage</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      void handleToggleFeatured(r);
+                                    }}
+                                    className={`w-full px-3.5 py-2 flex items-center gap-2 font-medium transition cursor-pointer text-left ${
+                                      r.status !== "published"
+                                        ? "text-gray-400 hover:bg-gray-50 cursor-not-allowed"
+                                        : "text-[#0f2922] hover:bg-[#f7f8f5]"
+                                    }`}
+                                  >
+                                    <span className="text-gray-400 text-sm">☆</span>
+                                    <span>Add to Homepage</span>
+                                    {r.status !== "published" && (
+                                      <span className="text-[10px] text-gray-400 ml-auto">(publish first)</span>
+                                    )}
+                                  </button>
+                                )}
+
+                                <div className="h-px bg-[#f0f4f8] my-1" />
+
+                                {r.status !== "published" ? (
+                                  <button
+                                    type="button"
+                                    disabled={moderatingId === r.id}
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      void handleUpdateStatus(r.id, "published");
+                                    }}
+                                    className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                                  >
+                                    <span>✓</span>
+                                    <span>Approve & Publish</span>
+                                  </button>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    disabled={moderatingId === r.id}
+                                    onClick={() => {
+                                      setOpenMenuId(null);
+                                      void handleUpdateStatus(r.id, "hidden");
+                                    }}
+                                    className="w-full px-3.5 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                                  >
+                                    <span>✕</span>
+                                    <span>Hide Review</span>
+                                  </button>
+                                )}
+
+                                <div className="h-px bg-[#f0f4f8] my-1" />
+
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setOpenMenuId(null);
+                                    setSelectedReview(r);
+                                  }}
+                                  className="w-full px-3.5 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                                >
+                                  <span>👁</span>
+                                  <span>View Full Details</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </td>
                     </tr>
@@ -367,18 +500,122 @@ export default function AdminReviews() {
                   </h3>
                   <p className="text-xs text-[#718096] mt-0.5">Submitted by {selectedReview.reviewerName}</p>
                 </div>
-                <button
-                  onClick={() => setSelectedReview(null)}
-                  className="text-gray-400 hover:text-gray-700 p-1 rounded-lg transition cursor-pointer"
-                >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                  </svg>
-                </button>
+                <div className="flex items-center gap-1.5" data-dropdown="review-actions">
+                  {/* 3-dots action menu in modal */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setModalMenuOpen(!modalMenuOpen)}
+                      className="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-[#0f2922] hover:bg-gray-200/60 rounded-lg transition cursor-pointer"
+                      title="More actions"
+                    >
+                      <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                      </svg>
+                    </button>
+
+                    {modalMenuOpen && (
+                      <div className="absolute right-0 top-9 w-52 bg-white border border-[#e2e8f0] rounded-xl shadow-xl z-50 py-1.5 text-xs text-left animate-in fade-in zoom-in-95 duration-100">
+                        {isFeatured(selectedReview.id) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalMenuOpen(false);
+                              void handleToggleFeatured(selectedReview);
+                            }}
+                            className="w-full px-3.5 py-2 text-amber-800 hover:bg-amber-50 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                          >
+                            <span className="text-amber-500 text-sm">★</span>
+                            <span>Remove from Homepage</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setModalMenuOpen(false);
+                              void handleToggleFeatured(selectedReview);
+                            }}
+                            className={`w-full px-3.5 py-2 flex items-center gap-2 font-medium transition cursor-pointer text-left ${
+                              selectedReview.status !== "published"
+                                ? "text-gray-400 hover:bg-gray-50 cursor-not-allowed"
+                                : "text-[#0f2922] hover:bg-[#f7f8f5]"
+                            }`}
+                          >
+                            <span className="text-gray-400 text-sm">☆</span>
+                            <span>Add to Homepage</span>
+                            {selectedReview.status !== "published" && (
+                              <span className="text-[10px] text-gray-400 ml-auto">(publish first)</span>
+                            )}
+                          </button>
+                        )}
+
+                        <div className="h-px bg-[#f0f4f8] my-1" />
+
+                        {selectedReview.status !== "published" ? (
+                          <button
+                            type="button"
+                            disabled={moderatingId === selectedReview.id}
+                            onClick={() => {
+                              setModalMenuOpen(false);
+                              void handleUpdateStatus(selectedReview.id, "published");
+                            }}
+                            className="w-full px-3.5 py-2 text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                          >
+                            <span>✓</span>
+                            <span>Approve & Publish</span>
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={moderatingId === selectedReview.id}
+                            onClick={() => {
+                              setModalMenuOpen(false);
+                              void handleUpdateStatus(selectedReview.id, "hidden");
+                            }}
+                            className="w-full px-3.5 py-2 text-gray-700 hover:bg-gray-100 flex items-center gap-2 font-medium transition cursor-pointer text-left"
+                          >
+                            <span>✕</span>
+                            <span>Hide Review</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setModalMenuOpen(false);
+                      setSelectedReview(null);
+                    }}
+                    className="text-gray-400 hover:text-gray-700 p-1.5 rounded-lg hover:bg-gray-200/60 transition cursor-pointer"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               {/* Body */}
               <div className="p-6 space-y-4 overflow-y-auto flex-1 min-h-0">
+                {/* Homepage Featured Banner (if featured) */}
+                {isFeatured(selectedReview.id) && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs">
+                      <span className="text-amber-500 text-sm">★</span>
+                      <span className="font-bold text-amber-900">Featured on Homepage</span>
+                      <span className="text-amber-700 text-[11px]">(Visible on homepage testimonials)</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => void handleToggleFeatured(selectedReview)}
+                      className="text-xs text-amber-800 hover:text-amber-950 underline font-semibold cursor-pointer"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+
                 {/* Trip & Departure Badge */}
                 <div className="bg-[#f7f8f5] p-3.5 rounded-xl space-y-1.5 text-xs">
                   <div className="flex items-center justify-between">
@@ -458,15 +695,44 @@ export default function AdminReviews() {
                 )}
               </div>
 
-              {/* Footer Actions: strictly Approve/Publish and Hide, NO delete */}
-              <div className="p-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex items-center justify-between shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setSelectedReview(null)}
-                  className="px-4 py-2 border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] transition cursor-pointer"
-                >
-                  Close
-                </button>
+              {/* Footer Actions */}
+              <div className="p-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex items-center justify-between shrink-0 flex-wrap gap-2">
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedReview(null)}
+                    className="px-4 py-2 border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] transition cursor-pointer"
+                  >
+                    Close
+                  </button>
+
+                  {/* Feature on Homepage Action Button */}
+                  {isFeatured(selectedReview.id) ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleToggleFeatured(selectedReview)}
+                      className="px-3.5 py-2 border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                    >
+                      <span className="text-amber-500">★</span>
+                      <span>Remove from Homepage</span>
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={selectedReview.status !== "published"}
+                      onClick={() => void handleToggleFeatured(selectedReview)}
+                      className={`px-3.5 py-2 border rounded-xl text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                        selectedReview.status === "published"
+                          ? "border-amber-300 bg-white hover:bg-amber-50 text-amber-900"
+                          : "border-gray-200 text-gray-400 bg-gray-50 cursor-not-allowed"
+                      }`}
+                      title={selectedReview.status !== "published" ? "Publish review first to feature on homepage" : "Feature on homepage"}
+                    >
+                      <span>☆</span>
+                      <span>Feature on Homepage</span>
+                    </button>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2">
                   {selectedReview.status !== "published" && (

@@ -1,9 +1,14 @@
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import { DEFAULT_ABOUT_SECTIONS, parseContentSections } from "@/data/contentSections";
 
 export default function AboutPage() {
   const { aboutContent } = useApp();
+  const aboutSections = aboutContent && aboutContent.trim().length > 0 
+    ? parseContentSections(aboutContent, DEFAULT_ABOUT_SECTIONS)
+    : null;
+
   return (
     <div>
       {/* Hero */}
@@ -23,11 +28,20 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Admin-editable content override */}
-      {aboutContent && aboutContent.trim().length > 0 && (
-        <section className="py-12 bg-white">
-          <div className="max-w-4xl mx-auto px-4 sm:px-6">
-            <div className="text-[#4a5568] text-sm leading-relaxed whitespace-pre-wrap">{aboutContent}</div>
+      {/* Admin-editable narrative tiles */}
+      {aboutSections && aboutSections.length > 0 && (
+        <section className="py-14 bg-[#f7f8f5] border-b border-[#e2e8f0]">
+          <div className="max-w-4xl mx-auto px-4 sm:px-6 space-y-6">
+            {aboutSections.map((sec, i) => (
+              <div key={i} className="bg-white rounded-2xl border border-[#e2e8f0] p-7 shadow-xs">
+                <h3 className="text-[#0f2922] text-2xl font-bold mb-3" style={{ fontFamily: "var(--font-serif)" }}>
+                  {sec.title}
+                </h3>
+                <p className="text-[#4a5568] text-sm sm:text-base leading-relaxed whitespace-pre-line">
+                  {sec.content}
+                </p>
+              </div>
+            ))}
           </div>
         </section>
       )}

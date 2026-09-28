@@ -12,8 +12,19 @@ const Stars = () => (
 );
 
 export default function HomePage() {
-  const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews } = useApp();
-  const { heroImages, heroTitle, heroSubtitle, carouselSlides, featuredReviewIds } = homepageContent;
+  const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews, destinations } = useApp();
+  const { heroImages, heroTitle, heroSubtitle, carouselSlides, featuredReviewIds, featuredDestIds, whyUsTitle, whyUsDesc } = homepageContent;
+
+  // Featured destinations from context
+  const featuredDestinations = (() => {
+    if (featuredDestIds && featuredDestIds.length > 0) {
+      const list = featuredDestIds
+        .map((id) => destinations.find((d) => d.id === id || d.slug === id))
+        .filter(Boolean) as typeof destinations;
+      if (list.length > 0) return list;
+    }
+    return destinations.slice(0, 3);
+  })();
 
   // Featured reviews from context
   const publishedReviews = reviews.filter((r) => r.status === "published");
@@ -152,11 +163,7 @@ export default function HomePage() {
       {/* Trust Badges */}
       <section className="bg-white border-b border-[#e2e8f0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {[
-            { icon: "🗺️", title: "Handpicked Paths", desc: "Carefully charted trails away from tourist crowds." },
-            { icon: "👥", title: "Youthful Vibe", desc: "Small groups, like-minded active adventurers." },
-            { icon: "🏔️", title: "Himalayan Trust", desc: "Certified local guides & sustainable execution." },
-          ].map((b) => (
+          {homepageContent.whyUsPoints.slice(0, 3).map((b) => (
             <div key={b.title} className="flex items-start gap-3">
               <span className="text-2xl mt-0.5">{b.icon}</span>
               <div>
@@ -181,20 +188,18 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {[
-              { id: "chopta", name: "Chopta Valley", img: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&h=480&fit=crop&auto=format", tag: "ALPINE TREK" },
-              { id: "auli", name: "Auli Slopes", img: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=480&fit=crop&auto=format", tag: "SKI SEASON" },
-              { id: "kedarnath", name: "Kedarnath", img: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=480&fit=crop&auto=format", tag: "SPIRITUAL" },
-            ].map((d) => (
+            {featuredDestinations.map((d) => (
               <Link
                 key={d.id}
-                to={`/destinations/${d.id}`}
+                to={`/destinations/${d.slug || d.id}`}
                 className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
               >
-                <img src={d.img} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
                 <div className="absolute bottom-0 left-0 p-5">
-                  <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wider mb-1">{d.tag}</div>
+                  <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wider mb-1">
+                    {d.category?.toUpperCase() || d.experienceTags?.[0]?.toUpperCase() || "HIMALAYAN DESTINATION"}
+                  </div>
                   <div className="text-white text-xl font-medium" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</div>
                 </div>
               </Link>
@@ -212,9 +217,11 @@ export default function HomePage() {
             </div>
             <div>
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY TRAVELERS LOVE US</div>
-              <h2 className="text-[#0f2922] text-3xl sm:text-4xl md:text-5xl font-bold mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Adventure Movement</h2>
+              <h2 className="text-[#0f2922] text-3xl sm:text-4xl md:text-5xl font-bold mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+                {whyUsTitle || "The Mindful Adventure Movement"}
+              </h2>
               <p className="text-[#4a5568] text-sm leading-relaxed mb-8">
-                We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection.
+                {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
               </p>
               <div className="grid grid-cols-3 gap-6 mb-8">
                 {[

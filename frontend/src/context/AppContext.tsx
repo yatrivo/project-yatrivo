@@ -4,6 +4,8 @@ import { authApi, tokenStorage, type AdminUser } from "@/api/auth";
 import { destinationsApi } from "@/api/destinations";
 import { tripsApi } from "@/api/trips";
 import { enquiriesApi } from "@/api/enquiries";
+import { contentApi } from "@/api/content";
+import { reviewsApi } from "@/api/reviews";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
@@ -208,6 +210,13 @@ interface AppContextType {
   galleryImages: GalleryImage[];
   addGalleryImage: (img: Omit<GalleryImage, "id" | "addedAt">) => void;
   removeGalleryImage: (id: string) => void;
+
+  // Content refresh (from backend)
+  refreshContent: () => Promise<void>;
+
+  // Reviews & Homepage Featured Reviews
+  refreshReviews: () => Promise<void>;
+  updateFeaturedReviewIds: (ids: string[]) => Promise<boolean>;
 }
 
 const DEFAULT_FAQ_ITEMS: FaqItem[] = [
@@ -593,11 +602,146 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshContent = useCallback(async () => {
+    // Load homepage config
+    try {
+      const homepage = await contentApi.getPublicHomepage();
+      if (homepage) {
+        const mappedSlides: CarouselSlide[] = (homepage.slides || []).map((s) => {
+          if (s.slideType === "trip") {
+            return {
+              type: "trip" as const,
+              tripInstanceId: s.tripInstanceId || "",
+              title: s.titleOverride || undefined,
+              subtitle: s.subtitleOverride || undefined,
+            };
+          }
+          return {
+            type: "static" as const,
+            imageUrl: s.imageUrl || "",
+            title: s.titleOverride || "",
+            subtitle: s.subtitleOverride || "",
+          };
+        });
+        setHomepageContent((prev) => ({
+          ...prev,
+          heroTitle: homepage.heroTitle || prev.heroTitle,
+          heroSubtitle: homepage.heroSubtitle || prev.heroSubtitle,
+          whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
+          whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
+          featuredDestIds: homepage.featuredDestinationIds.length > 0 ? homepage.featuredDestinationIds : prev.featuredDestIds,
+          featuredReviewIds: homepage.featuredReviewIds.length > 0 ? homepage.featuredReviewIds : prev.featuredReviewIds,
+          whyUsPoints: (homepage.whyUsPoints || []).length > 0
+            ? homepage.whyUsPoints.map((p) => ({ icon: p.icon || "✨", title: p.title, desc: p.description || "" }))
+            : prev.whyUsPoints,
+          carouselSlides: mappedSlides.length > 0 ? mappedSlides : prev.carouselSlides,
+        }));
+      }
+    } catch (err) {
+      console.warn("Failed to load homepage config from backend:", err);
+    }
+
+    // Load FAQs
+    try {
+      const faqs = await contentApi.getPublicFaqs();
+      if (faqs && faqs.length > 0) {
+        setFaqItems(faqs.map((f) => ({
+          id: f.id,
+          question: f.question,
+          answer: f.answer,
+        })));
+      }
+    } catch (err) {
+      console.warn("Failed to load FAQs from backend:", err);
+    }
+
+    // Load content pages (about, terms, privacy)
+    try {
+      const aboutPage = await contentApi.getPublicContentPage("about");
+      if (aboutPage?.body) setAboutContent(aboutPage.body);
+    } catch (err) {
+      console.warn("Failed to load about page from backend:", err);
+    }
+    try {
+      const termsPage = await contentApi.getPublicContentPage("terms");
+      if (termsPage?.body) setTermsContent(termsPage.body);
+    } catch (err) {
+      console.warn("Failed to load terms page from backend:", err);
+    }
+    try {
+      const privacyPage = await contentApi.getPublicContentPage("privacy");
+      if (privacyPage?.body) setPrivacyContent(privacyPage.body);
+    } catch (err) {
+      console.warn("Failed to load privacy page from backend:", err);
+    }
+  }, []);
+
+  const refreshReviews = useCallback(async () => {
+    try {
+      const res = await reviewsApi.list({ limit: 100 });
+      const items = Array.isArray(res?.reviews) ? res.reviews : [];
+      if (items.length > 0) {
+        setReviews(items.map((r) => ({
+          id: r.id,
+          name: r.reviewerName,
+          tripName: r.tripName || "Himalayan Expedition",
+          destination: r.destinationName || "Uttarakhand",
+          rating: (r.rating || 5) as 1 | 2 | 3 | 4 | 5,
+          text: r.body,
+          date: r.submittedAt ? new Date(r.submittedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Recently",
+          status: r.status,
+        })));
+      }
+    } catch (err) {
+      console.warn("Failed to load reviews from backend:", err);
+    }
+  }, []);
+
+  const updateFeaturedReviewIds = useCallback(async (newIds: string[]): Promise<boolean> => {
+    const uniqueIds = Array.from(new Set(newIds)).slice(0, 3);
+    setHomepageContent((prev) => ({
+      ...prev,
+      featuredReviewIds: uniqueIds,
+    }));
+
+    try {
+      await contentApi.updateHomepageConfig({
+        heroTitle: homepageContent.heroTitle,
+        heroSubtitle: homepageContent.heroSubtitle,
+        whyUsTitle: homepageContent.whyUsTitle,
+        whyUsDescription: homepageContent.whyUsDesc,
+        slides: (homepageContent.carouselSlides || []).map((s, i) => ({
+          slideType: s.type,
+          tripInstanceId: s.type === "trip" ? s.tripInstanceId : undefined,
+          imageUrl: s.type === "static" ? s.imageUrl : undefined,
+          titleOverride: s.title,
+          subtitleOverride: s.subtitle,
+          sortOrder: i,
+          isActive: true
+        })),
+        featuredDestinationIds: homepageContent.featuredDestIds,
+        featuredReviewIds: uniqueIds,
+        whyUsPoints: homepageContent.whyUsPoints.map((p, i) => ({
+          icon: p.icon,
+          title: p.title,
+          description: p.desc,
+          sortOrder: i
+        }))
+      });
+      return true;
+    } catch (err) {
+      console.error("Failed to update homepage reviews:", err);
+      return false;
+    }
+  }, [homepageContent]);
+
   useEffect(() => {
     void refreshDestinations();
     void refreshTrips();
     void refreshEnquiries();
-  }, [refreshDestinations, refreshTrips, refreshEnquiries, adminLoggedIn]);
+    void refreshContent();
+    void refreshReviews();
+  }, [refreshDestinations, refreshTrips, refreshEnquiries, refreshContent, refreshReviews, adminLoggedIn]);
 
   return (
     <AppContext.Provider value={{
@@ -611,7 +755,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       destinations, setDestinations, refreshDestinations,
       trips, setTrips, refreshTrips,
       tripInstances, setTripInstances,
-      reviews, setReviews,
+      reviews, setReviews, refreshReviews,
       homepageContent, setHomepageContent,
       faqItems, setFaqItems,
       aboutContent, setAboutContent,
@@ -619,6 +763,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       privacyContent, setPrivacyContent,
       galleryImages, addGalleryImage, removeGalleryImage,
       bookings, setBookings, addBooking,
+      refreshContent,
+      updateFeaturedReviewIds,
     }}>
       {children}
     </AppContext.Provider>
