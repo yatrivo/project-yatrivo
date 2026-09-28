@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { bookingsRepository } from "./bookings.repository";
 import { AppError } from "../../errors/AppError";
+import { recordAuditLog } from "../audit/audit.service";
 
 const createBookingSchema = z.object({
   enquiryId: z.string().optional().or(z.literal("")),
@@ -116,6 +117,15 @@ export const bookingsController = {
       success: true,
       booking
     });
+
+    await recordAuditLog({
+      req,
+      action: "Created Booking",
+      entityType: "booking",
+      entityId: booking.id,
+      details: `Booking #${booking.bookingNumber || booking.id.slice(0, 8)} created for ${data.primaryContactName} (${data.tripName || data.destinationLabel || "Trip"}) – ${data.travellerCount} traveller(s)`,
+      afterData: { bookingNumber: booking.bookingNumber, status: booking.status, totalAmount: data.totalAmount }
+    });
   },
 
   async list(req: Request, res: Response): Promise<void> {
@@ -197,6 +207,16 @@ export const bookingsController = {
       message: "Traveller details submitted successfully.",
       booking: updated
     });
+
+    await recordAuditLog({
+      req,
+      actorNameSnapshot: `Customer: ${booking.primaryContactName}`,
+      action: "Submitted Traveller Details",
+      entityType: "booking",
+      entityId: booking.id,
+      details: `${parseResult.data.travellers.length} traveller details submitted for Booking #${booking.bookingNumber || booking.id.slice(0, 8)}`,
+      afterData: { travellerCount: parseResult.data.travellers.length }
+    });
   },
 
   async saveTravellersAdmin(req: Request, res: Response): Promise<void> {
@@ -229,6 +249,15 @@ export const bookingsController = {
       message: "Traveller details updated successfully.",
       booking: updated
     });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Travellers",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Updated ${parseResult.data.travellers.length} traveller details for Booking #${updated.bookingNumber || id.slice(0, 8)}`,
+      afterData: { travellerCount: parseResult.data.travellers.length }
+    });
   },
 
   async updateStatus(req: Request, res: Response): Promise<void> {
@@ -259,6 +288,15 @@ export const bookingsController = {
     res.status(200).json({
       success: true,
       booking: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Booking Status",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Booking #${updated.bookingNumber || id.slice(0, 8)} status set to "${parseResult.data.status}"`,
+      afterData: { status: parseResult.data.status }
     });
   },
 
@@ -296,6 +334,15 @@ export const bookingsController = {
     res.status(200).json({
       success: true,
       booking: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Recorded Payment",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Payment of ₹${data.amount.toLocaleString("en-IN")} recorded for Booking #${updated.bookingNumber || id.slice(0, 8)} via ${data.method}`,
+      afterData: { amount: data.amount, method: data.method, paymentStatus: updated.paymentStatus }
     });
   }
 };

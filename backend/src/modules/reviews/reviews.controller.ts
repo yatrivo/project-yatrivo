@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { reviewsService } from "./reviews.service";
 import type { ReviewStatus } from "./reviews.types";
+import { recordAuditLog } from "../audit/audit.service";
 
 export const reviewsController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -57,6 +58,15 @@ export const reviewsController = {
       message: `Review status updated to ${status}.`,
       data: updated
     });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Review Status",
+      entityType: "review",
+      entityId: id,
+      details: `Review #${id.slice(0, 8)} status set to "${status}"`,
+      afterData: { status, moderationNotes }
+    });
   },
 
   async getDepartureOperational(req: Request, res: Response): Promise<void> {
@@ -85,6 +95,14 @@ export const reviewsController = {
       message: `Review requests generated for ${result.sentCount} traveller(s).`,
       data: result
     });
+
+    await recordAuditLog({
+      req,
+      action: "Sent Review Requests",
+      entityType: "trip_instance",
+      entityId: instanceId,
+      details: `Generated review request links for ${result.sentCount} traveller(s)`
+    });
   },
 
   async getReviewRequest(req: Request, res: Response): Promise<void> {
@@ -112,6 +130,16 @@ export const reviewsController = {
       status: "success",
       message: "Thank you! Your review has been submitted and is awaiting approval.",
       data: review
+    });
+
+    await recordAuditLog({
+      req,
+      actorNameSnapshot: reviewerName ? `Customer: ${reviewerName}` : "Customer",
+      action: "Submitted Review",
+      entityType: "review",
+      entityId: review.id,
+      details: `New review submitted by ${reviewerName || "Customer"} (${rating}★)`,
+      afterData: { rating, reviewerName }
     });
   }
 };

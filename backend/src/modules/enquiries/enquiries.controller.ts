@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { enquiriesRepository } from "./enquiries.repository";
 import { AppError } from "../../errors/AppError";
+import { recordAuditLog } from "../audit/audit.service";
 
 const createEnquirySchema = z.object({
   customerName: z.string().trim().min(1, "Name is required").max(255),
@@ -87,6 +88,17 @@ export const enquiriesController = {
       success: true,
       enquiry
     });
+
+    await recordAuditLog({
+      req,
+      actorUserId: actor?.id || null,
+      actorNameSnapshot: actor?.fullName || (data.customerName ? `Customer: ${data.customerName}` : "Website Visitor"),
+      action: actor ? "Created Enquiry" : "Received Enquiry",
+      entityType: "enquiry",
+      entityId: enquiry.id,
+      details: `Enquiry #${enquiry.enquiryNumber || enquiry.id.slice(0, 8)} received from ${data.customerName} (${data.customerPhone}) for ${data.tripName || data.destinationLabel || "Custom Trip"}`,
+      afterData: { enquiryNumber: enquiry.enquiryNumber, status: enquiry.status, source: data.source }
+    });
   },
 
   async list(req: Request, res: Response): Promise<void> {
@@ -141,6 +153,15 @@ export const enquiriesController = {
     );
 
     res.status(200).json({ success: true, enquiry: updated });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Enquiry Status",
+      entityType: "enquiry",
+      entityId: updated.id,
+      details: `Enquiry #${updated.enquiryNumber || id.slice(0, 8)} status set to "${parseResult.data.status}"`,
+      afterData: { status: parseResult.data.status }
+    });
   },
 
   async assign(req: Request, res: Response): Promise<void> {
@@ -174,6 +195,15 @@ export const enquiriesController = {
     );
 
     res.status(200).json({ success: true, enquiry: updated });
+
+    await recordAuditLog({
+      req,
+      action: "Assigned Enquiry",
+      entityType: "enquiry",
+      entityId: updated.id,
+      details: `Enquiry #${updated.enquiryNumber || id.slice(0, 8)} ${assignedToUserId ? "assigned to staff" : "unassigned"}`,
+      afterData: { assignedToUserId }
+    });
   },
 
   async addNote(req: Request, res: Response): Promise<void> {
@@ -202,6 +232,14 @@ export const enquiriesController = {
     );
 
     res.status(201).json({ success: true, note });
+
+    await recordAuditLog({
+      req,
+      action: "Added Enquiry Note",
+      entityType: "enquiry",
+      entityId: id,
+      details: `Internal note added to Enquiry #${id.slice(0, 8)}`
+    });
   },
 
   async deleteNote(req: Request, res: Response): Promise<void> {
@@ -222,6 +260,14 @@ export const enquiriesController = {
     );
 
     res.status(200).json({ success: true, message: "Note deleted" });
+
+    await recordAuditLog({
+      req,
+      action: "Deleted Enquiry Note",
+      entityType: "enquiry",
+      entityId: id,
+      details: `Internal note removed from Enquiry #${id.slice(0, 8)}`
+    });
   },
 
   async recordAction(req: Request, res: Response): Promise<void> {
@@ -252,6 +298,15 @@ export const enquiriesController = {
     );
 
     res.status(200).json({ success: true, enquiry: updated });
+
+    await recordAuditLog({
+      req,
+      action: `Enquiry Action: ${action}`,
+      entityType: "enquiry",
+      entityId: id,
+      details: `Action "${action}" recorded via ${method || "direct"} for Enquiry #${updated.enquiryNumber || id.slice(0, 8)}`,
+      afterData: { action, method, amount, notes }
+    });
   },
 
   async listAdmins(req: Request, res: Response): Promise<void> {

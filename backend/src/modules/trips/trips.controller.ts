@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { tripsService } from "./trips.service";
 import type { TripFilters } from "./trips.types";
+import { recordAuditLog } from "../audit/audit.service";
 
 function checkIsAdmin(req: Request): boolean {
   return Boolean(
@@ -52,6 +53,15 @@ export const tripsController = {
       status: "success",
       data: trip
     });
+
+    await recordAuditLog({
+      req,
+      action: "Created Trip",
+      entityType: "trip",
+      entityId: trip.id,
+      details: `Created trip "${trip.name}" (${trip.category})`,
+      afterData: { name: trip.name, slug: trip.slug, status: trip.status }
+    });
   },
 
   async update(req: Request, res: Response): Promise<void> {
@@ -62,6 +72,15 @@ export const tripsController = {
     res.status(200).json({
       status: "success",
       data: trip
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Trip",
+      entityType: "trip",
+      entityId: trip.id,
+      details: `Updated trip "${trip.name}"`,
+      afterData: { name: trip.name, status: trip.status }
     });
   },
 
@@ -74,6 +93,14 @@ export const tripsController = {
       data: trip,
       message: "Trip archived successfully"
     });
+
+    await recordAuditLog({
+      req,
+      action: "Archived Trip",
+      entityType: "trip",
+      entityId: trip.id,
+      details: `Archived trip "${trip.name}"`
+    });
   },
 
   async unarchive(req: Request, res: Response): Promise<void> {
@@ -84,6 +111,14 @@ export const tripsController = {
       status: "success",
       data: trip,
       message: "Trip unarchived successfully"
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Restored Trip",
+      entityType: "trip",
+      entityId: trip.id,
+      details: `Restored trip "${trip.name}"`
     });
   },
 
@@ -97,6 +132,15 @@ export const tripsController = {
       data: departure,
       message: "Departure added successfully"
     });
+
+    await recordAuditLog({
+      req,
+      action: "Added Trip Departure",
+      entityType: "trip_instance",
+      entityId: departure.id,
+      details: `Added departure (${departure.displayDate || departure.date}) for trip #${tripId.slice(0, 8)}`,
+      afterData: departure
+    });
   },
 
   async updateDeparture(req: Request, res: Response): Promise<void> {
@@ -109,6 +153,15 @@ export const tripsController = {
       data: departure,
       message: "Departure updated successfully"
     });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Trip Departure",
+      entityType: "trip_instance",
+      entityId: departure.id,
+      details: `Updated departure (${departure.displayDate || departure.date})`,
+      afterData: departure
+    });
   },
 
   async deleteDeparture(req: Request, res: Response): Promise<void> {
@@ -118,6 +171,14 @@ export const tripsController = {
     res.status(200).json({
       status: "success",
       message: "Departure deleted successfully"
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Deleted Trip Departure",
+      entityType: "trip_instance",
+      entityId: instanceId,
+      details: `Deleted trip departure #${instanceId.slice(0, 8)}`
     });
   }
 };

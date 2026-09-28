@@ -4,6 +4,7 @@ import type {
   CreateExternalMediaInputValidated,
   MediaQueryValidated
 } from "./media.schemas";
+import { recordAuditLog } from "../audit/audit.service";
 
 export const mediaController = {
   async list(req: Request, res: Response): Promise<void> {
@@ -64,6 +65,15 @@ export const mediaController = {
       message: "Media uploaded successfully",
       data: asset
     });
+
+    await recordAuditLog({
+      req,
+      action: "Uploaded Media",
+      entityType: "media",
+      entityId: asset.id,
+      details: `Uploaded media "${asset.label || asset.url}" (Category: ${category})`,
+      afterData: { category, url: asset.url }
+    });
   },
 
   async createExternal(req: Request, res: Response): Promise<void> {
@@ -73,6 +83,14 @@ export const mediaController = {
     res.status(201).json({
       status: "success",
       data: asset
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Added Media Link",
+      entityType: "media",
+      entityId: asset.id,
+      details: `Added external media link "${asset.url}" (Category: ${input.category})`
     });
   },
 
@@ -84,6 +102,14 @@ export const mediaController = {
       status: "success",
       message: "Media asset deleted successfully",
       data: result
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Deleted Media",
+      entityType: "media",
+      entityId: id,
+      details: `Deleted media asset #${id.slice(0, 8)}`
     });
   }
 };

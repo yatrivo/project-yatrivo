@@ -5,6 +5,7 @@ import type {
   DestinationQueryValidated,
   UpdateDestinationInputValidated
 } from "./destinations.schemas";
+import { recordAuditLog } from "../audit/audit.service";
 
 function checkIsAdmin(req: Request): boolean {
   return Boolean(
@@ -45,6 +46,15 @@ export const destinationsController = {
       status: "success",
       data: destination
     });
+
+    await recordAuditLog({
+      req,
+      action: "Created Destination",
+      entityType: "destination",
+      entityId: destination.id,
+      details: `Created destination "${destination.name}" (${destination.category})`,
+      afterData: { name: destination.name, slug: destination.slug, status: destination.status }
+    });
   },
 
   async update(req: Request, res: Response): Promise<void> {
@@ -60,6 +70,15 @@ export const destinationsController = {
       status: "success",
       data: destination
     });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Destination",
+      entityType: "destination",
+      entityId: destination.id,
+      details: `Updated destination "${destination.name}"`,
+      afterData: { name: destination.name, status: destination.status }
+    });
   },
 
   async archive(req: Request, res: Response): Promise<void> {
@@ -74,6 +93,14 @@ export const destinationsController = {
       message: "Destination archived successfully",
       data: destination
     });
+
+    await recordAuditLog({
+      req,
+      action: "Archived Destination",
+      entityType: "destination",
+      entityId: destination.id,
+      details: `Archived destination "${destination.name}"`
+    });
   },
 
   async unarchive(req: Request, res: Response): Promise<void> {
@@ -87,6 +114,14 @@ export const destinationsController = {
       status: "success",
       message: "Destination restored successfully",
       data: destination
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Restored Destination",
+      entityType: "destination",
+      entityId: destination.id,
+      details: `Restored destination "${destination.name}"`
     });
   }
 };

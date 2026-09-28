@@ -1,6 +1,7 @@
 import type { Request, Response } from "express";
 import { settingsRepository } from "./settings.repository";
 import type { CancellationPolicyData } from "./settings.types";
+import { recordAuditLog } from "../audit/audit.service";
 
 export const settingsController = {
   async getCancellationPolicy(_req: Request, res: Response): Promise<void> {
@@ -25,6 +26,13 @@ export const settingsController = {
       status: "success",
       data: updated,
       message: "Cancellation policy updated successfully"
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Settings",
+      entityType: "setting",
+      details: `Cancellation policy updated (${data.rules.length} tier rules)`
     });
   }
 };
