@@ -28,6 +28,7 @@ import NotFoundPage from "@/pages/NotFoundPage";
 
 // Admin components
 import AdminLogin from "@/admin/AdminLogin";
+import AdminResetPassword from "@/admin/AdminResetPassword";
 import AdminLayout from "@/admin/AdminLayout";
 import AdminDashboard from "@/admin/AdminDashboard";
 import AdminEnquiries from "@/admin/AdminEnquiries";
@@ -118,8 +119,10 @@ export default function App() {
         {/* Public Secure Booking Details Form */}
         <Route path="/booking-details/:token" element={<CustomerBookingDetailsPage />} />
 
-        {/* Admin Login Route */}
+        {/* Admin Auth Routes */}
         <Route path="/admin/login" element={<AdminLogin />} />
+        <Route path="/admin/reset-password" element={<AdminResetPassword />} />
+        <Route path="/admin/forgot-password" element={<Navigate to="/admin/login" replace />} />
 
         {/* Protected Admin Routes */}
         <Route path="/admin" element={<ProtectedAdminRoute />}>

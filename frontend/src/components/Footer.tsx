@@ -59,7 +59,7 @@ export default function Footer() {
           <Link to="/" className="inline-block text-2xl font-bold tracking-widest mb-1 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
             YATRIVO
           </Link>
-          <div className="text-[#e8622a] text-[10px] tracking-widest uppercase font-medium mb-4">{tagline}</div>
+          <div className="text-[#f7f8f5]/85 text-xs sm:text-[13px] font-medium tracking-[0.09em] uppercase mb-4" style={{ fontFamily: "var(--font-sans)" }}>{tagline}</div>
           <p className="text-white/60 text-sm leading-relaxed">
             {siteDescription}
           </p>

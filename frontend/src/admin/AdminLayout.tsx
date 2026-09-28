@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import ForcePasswordChangeModal from "./ForcePasswordChangeModal";
 
 export type AdminPage =
   | "dashboard" | "enquiries" | "enquiry-detail" | "trips" | "trip-editor"
@@ -172,6 +173,9 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
 
   return (
     <div className="flex h-screen bg-[#f7f8f5] overflow-hidden">
+      {/* Forced Password Change Modal for First Login */}
+      <ForcePasswordChangeModal />
+
       {/* Logout Confirmation Modal */}
       {logoutConfirmOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">

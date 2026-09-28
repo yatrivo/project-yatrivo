@@ -51,25 +51,25 @@ export default function TravelWithUsPage() {
           alt="Himalayan landscape"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-r from-black/75 via-black/40 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional-side" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">JOIN THE MOVEMENT</div>
-          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-6 max-w-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-4 text-contrast-subtle">JOIN THE MOVEMENT</div>
+          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-6 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Travel With<br />Yatrivo
           </h1>
-          <p className="text-white/80 text-base sm:text-lg max-w-lg mb-10 leading-relaxed">
+          <p className="text-white/90 text-base sm:text-lg max-w-lg mb-10 leading-relaxed text-contrast-body">
             Small groups, authentic experiences, and deep connection with the Himalayas. No crowded buses, no rushed itineraries — just real adventure with like-minded explorers.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
               to="/trips"
-              className="border border-white text-white px-7 py-3.5 rounded-full text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all"
+              className="btn-glass-outline text-white px-7 py-3.5 rounded-full text-sm font-medium transition-all shrink-0"
             >
               EXPLORE TRIPS
             </Link>
             <Link
               to="/plan"
-              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3.5 rounded-full text-sm font-medium transition-colors"
+              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3.5 rounded-full text-sm font-medium transition-colors btn-primary-elevated shrink-0"
             >
               PLAN MY TRIP →
             </Link>
@@ -108,9 +108,9 @@ export default function TravelWithUsPage() {
             {highlights.map((h) => (
               <Link key={h.id} to="/trips" className="relative rounded-2xl overflow-hidden h-52 group block">
                 <img src={h.img} alt={h.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-4">
-                  <div className="text-white font-medium text-sm" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
+                  <div className="text-white font-medium text-sm text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
                 </div>
               </Link>
             ))}

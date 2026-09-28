@@ -23,11 +23,11 @@ export default function FAQContactPage() {
           alt="Cozy mountain cabin in snow"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">FAQ & CONTACT CORNER</div>
-          <h1 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>We are here to guide you home.</h1>
-          <p className="text-white/75 text-sm sm:text-base max-w-xl leading-relaxed">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">FAQ & CONTACT CORNER</div>
+          <h1 className="text-white text-4xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>We are here to guide you home.</h1>
+          <p className="text-white/90 text-sm sm:text-base max-w-xl leading-relaxed text-contrast-body">
             Have questions about weather, fitness levels, or customized private booking? Connect with our Dehradun team immediately.
           </p>
         </div>

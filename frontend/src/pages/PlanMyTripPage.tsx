@@ -279,15 +279,15 @@ export default function PlanMyTripPage() {
   return (
     <div className="min-h-screen bg-[#fafbfa]">
       {/* Clean Minimal Header */}
-      <div className="bg-[#0f2922] text-white pt-14 pb-8 px-4 sm:px-6 border-b border-[#1b3d32]">
+      <div className="bg-[#0f2922] text-white pt-28 sm:pt-32 pb-10 sm:pb-12 px-4 sm:px-6 border-b border-[#1b3d32]">
         <div className="max-w-4xl mx-auto">
-          <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-widest mb-1.5">
+          <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-widest mb-2 text-contrast-subtle">
             CUSTOM TRIP ENQUIRY
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Plan My Trip
           </h1>
-          <p className="text-white/70 text-xs sm:text-sm mt-1 max-w-lg">
+          <p className="text-white/80 text-xs sm:text-sm mt-1 max-w-lg leading-relaxed text-contrast-body">
             A quick 4-step enquiry form. Pick destinations, choose your package, and request an official itinerary briefing.
           </p>
         </div>

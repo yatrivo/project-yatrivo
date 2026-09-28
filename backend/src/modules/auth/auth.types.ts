@@ -11,6 +11,7 @@ export interface UserRecord {
   role: UserRole;
   status: UserStatus;
   password_hash: string | null;
+  must_change_password?: boolean;
   email_verified_at: string | Date | null;
   phone_verified_at: string | Date | null;
   last_login_at: string | Date | null;
@@ -55,6 +56,7 @@ export interface UserSummary {
   email: string;
   role: UserRole;
   status: UserStatus;
+  mustChangePassword: boolean;
   lastLoginAt: string | null;
 }
 

@@ -123,15 +123,17 @@ export default function HomePage() {
           <img
             src={logoImg}
             alt="Yatrivo"
-            className="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.6)] mb-1.5"
+            className="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] mb-1.5"
           />
           <div
-            className="text-white font-bold text-base tracking-[0.25em] drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]"
+            className="text-white font-bold text-lg sm:text-xl tracking-[0.2em] text-contrast-title"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             YATRIVO
           </div>
-          <div className="text-[#e8622a] text-[9px] tracking-[0.2em] uppercase font-semibold mt-0.5 drop-shadow-[0_1px_3px_rgba(0,0,0,0.7)]">
+          <div
+            className="brand-tagline-light text-[11.5px] sm:text-xs tracking-[0.09em] mt-1 whitespace-nowrap"
+          >
             {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
           </div>
         </div>
@@ -153,13 +155,13 @@ export default function HomePage() {
                 className="absolute inset-0 w-full h-full object-cover"
               />
 
-              {/* Shading gradients: gentle top vignette on mobile for logo contrast, dark bottom for text */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/40 md:to-transparent pointer-events-none" />
+              {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
+              <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
 
               {/* Slide text & buttons */}
               <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
                 <h1
-                  className="text-white text-2xl sm:text-5xl md:text-7xl leading-[1.15] sm:leading-[1.05] mb-2 sm:mb-5 max-w-2xl font-normal"
+                  className="text-white text-2xl sm:text-5xl md:text-7xl leading-[1.15] sm:leading-[1.05] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
                   style={{ fontFamily: "var(--font-serif)" }}
                 >
                   {slide.title.split(". ").map((part, pIdx, arr) => (
@@ -172,7 +174,7 @@ export default function HomePage() {
                 </h1>
 
                 {slide.subtitle ? (
-                  <p className="text-white/80 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed">
+                  <p className="text-white/90 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed text-contrast-body">
                     {slide.subtitle}
                   </p>
                 ) : null}
@@ -181,7 +183,7 @@ export default function HomePage() {
                 {slide.tripId ? (
                   <>
                     {(slide.price !== undefined || slide.displayDate) && (
-                      <p className="text-white/90 text-xs sm:text-sm mb-3 sm:mb-6 font-medium">
+                      <p className="text-white text-xs sm:text-sm mb-3 sm:mb-6 font-medium text-contrast-body">
                         {slide.price !== undefined && `₹${slide.price.toLocaleString("en-IN")}/person`}
                         {slide.price !== undefined && slide.displayDate && " · "}
                         {slide.displayDate}
@@ -194,7 +196,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-2.5 sm:gap-3 mb-1">
                   <Link
                     to={slide.tripId ? `/trips/${slide.tripId}` : "/trips"}
-                    className="w-36 sm:w-44 h-10 sm:h-12 border border-white text-white rounded-full text-xs sm:text-sm font-medium hover:bg-white hover:text-[#0f2922] transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
+                    className="w-36 sm:w-44 h-10 sm:h-12 btn-glass-outline text-white rounded-full text-xs sm:text-sm font-medium transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
                   >
                     {slide.tripId ? "VIEW TRIP" : "EXPLORE TRIPS"}
                   </Link>
@@ -202,14 +204,14 @@ export default function HomePage() {
                   {slide.tripId ? (
                     <button
                       onClick={() => openEnquiryModal(slide.tripId!)}
-                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer shrink-0 tracking-wide"
+                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer shrink-0 tracking-wide btn-primary-elevated"
                     >
                       INQUIRE NOW →
                     </button>
                   ) : (
                     <Link
                       to="/plan"
-                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors shrink-0 tracking-wide"
+                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors shrink-0 tracking-wide btn-primary-elevated"
                     >
                       PLAN MY TRIP →
                     </Link>
@@ -222,12 +224,12 @@ export default function HomePage() {
 
         {/* Dot indicators */}
         {resolvedSlides.length > 1 && (
-          <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex gap-2 z-30">
+          <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-xs">
             {resolvedSlides.map((_, i) => (
               <button
                 key={i}
                 onClick={() => goTo(i)}
-                className={`w-2 h-2 rounded-full transition-all ${i === heroIdx ? "bg-white scale-125" : "bg-white/50 hover:bg-white/80"}`}
+                className={`w-2 h-2 rounded-full transition-all ${i === heroIdx ? "bg-white scale-125 shadow-xs" : "bg-white/50 hover:bg-white/80"}`}
                 aria-label={`Go to slide ${i + 1}`}
               />
             ))}
@@ -270,12 +272,12 @@ export default function HomePage() {
                 className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
               >
                 <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+                <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-5">
-                  <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wider mb-1">
+                  <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wider mb-1 text-contrast-subtle">
                     {d.category?.toUpperCase() || d.experienceTags?.[0]?.toUpperCase() || "HIMALAYAN DESTINATION"}
                   </div>
-                  <div className="text-white text-xl font-medium" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</div>
+                  <div className="text-white text-xl font-medium text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</div>
                 </div>
               </Link>
             ))}

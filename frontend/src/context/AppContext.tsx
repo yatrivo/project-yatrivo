@@ -170,6 +170,7 @@ interface AppContextType {
   adminLoggedIn: boolean;
   adminRole: "superAdmin" | "admin" | null;
   adminUser: AdminUser | null;
+  setAdminUser: Dispatch<SetStateAction<AdminUser | null>>;
   adminLogin: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
   adminLogout: () => Promise<void>;
 
@@ -247,7 +248,7 @@ const SEED_GALLERY_IMAGES: GalleryImage[] = [
   { id: "g10", url: "https://images.unsplash.com/photo-1631377955049-770a6c377bce?w=800&h=600&fit=crop&auto=format", category: "completed-trips", label: "Summit View", addedAt: "2026-01-04" },
 ];
 
-const AppContext = createContext<AppContextType | null>(null);
+export const AppContext = createContext<AppContextType | null>(null);
 
 let toastIdCounter = 0;
 let enquiryIdCounter = 100;
@@ -771,7 +772,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       enquiries, addEnquiry, refreshEnquiries,
       enquiryModalOpen, enquiryTripId, enquiryDepartureId, openEnquiryModal, closeEnquiryModal,
       toasts, showToast,
-      adminLoggedIn, adminRole, adminUser, adminLogin, adminLogout,
+      adminLoggedIn, adminRole, adminUser, setAdminUser, adminLogin, adminLogout,
       splashDone, setSplashDone,
       destinations, setDestinations, refreshDestinations,
       trips, setTrips, refreshTrips,

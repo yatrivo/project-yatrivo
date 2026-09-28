@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useApp, type Enquiry } from "@/context/AppContext";
 import { enquiriesApi } from "@/api/enquiries";
 import { YATRIVO_CONTACT } from "@/constants/contact";
@@ -18,38 +17,51 @@ export default function EnquiryModal() {
   } = useApp();
 
   // Dynamically resolve trip from AppContext by id or slug
-  const foundTrip = trips.find(
+  const cleanTripId = (enquiryTripId || "").trim().toLowerCase();
+  const safeTrips = Array.isArray(trips) ? trips : [];
+  const foundTrip = safeTrips.find(
     (t) =>
-      t.id.toLowerCase() === (enquiryTripId || "").toLowerCase() ||
-      (t.slug && t.slug.toLowerCase() === (enquiryTripId || "").toLowerCase())
+      t &&
+      ((t.id && String(t.id).toLowerCase() === cleanTripId) ||
+       (t.slug && String(t.slug).toLowerCase() === cleanTripId))
   );
 
   const tripName = foundTrip?.name || "Himalayan Expedition";
 
   const destName = (() => {
-    if (foundTrip?.destinations && foundTrip.destinations.length > 0) {
-      return foundTrip.destinations.map((d) => d.name).join(", ");
+    if (Array.isArray(foundTrip?.destinations) && foundTrip.destinations.length > 0) {
+      return foundTrip.destinations
+        .map((d: any) => (typeof d === "string" ? d : d?.name || ""))
+        .filter(Boolean)
+        .join(", ");
     }
     if (foundTrip?.destination) {
-      const d = destinations.find(
+      const safeDests = Array.isArray(destinations) ? destinations : [];
+      const d = safeDests.find(
         (dest) =>
-          dest.id === foundTrip.destination ||
-          dest.slug === foundTrip.destination ||
-          dest.name === foundTrip.destination
+          dest &&
+          (dest.id === foundTrip.destination ||
+           dest.slug === foundTrip.destination ||
+           dest.name === foundTrip.destination)
       );
       return d ? `${d.name}, Uttarakhand` : foundTrip.destination;
     }
     return "Uttarakhand, India";
   })();
 
-  // Resolve upcoming departures for this trip
+  // Resolve upcoming departures for this trip with safe fallbacks
   const availableDepartures = (() => {
-    const fromTrip = foundTrip?.departures || [];
-    const fromInstances = tripInstances.filter(
-      (ti) => ti.tripId === foundTrip?.id || ti.tripId === enquiryTripId
+    const fromTrip = Array.isArray(foundTrip?.departures) ? foundTrip.departures : [];
+    const safeInstances = Array.isArray(tripInstances) ? tripInstances : [];
+    const fromInstances = safeInstances.filter(
+      (ti) =>
+        ti &&
+        (ti.tripId === foundTrip?.id ||
+         ti.tripId === enquiryTripId ||
+         (foundTrip?.slug && ti.tripId === foundTrip.slug))
     );
     const combined = fromTrip.length > 0 ? fromTrip : fromInstances;
-    return combined.filter((d) => d.status === "upcoming");
+    return combined.filter((d) => d && d.status === "upcoming");
   })();
 
   const [selectedDepartureId, setSelectedDepartureId] = useState<string>("");
@@ -73,9 +85,9 @@ export default function EnquiryModal() {
   useEffect(() => {
     if (!enquiryModalOpen) return;
 
-    if (enquiryDepartureId && availableDepartures.some((d) => d.id === enquiryDepartureId)) {
+    if (enquiryDepartureId && availableDepartures.some((d) => d?.id === enquiryDepartureId)) {
       setSelectedDepartureId(enquiryDepartureId);
-    } else if (availableDepartures.length > 0) {
+    } else if (availableDepartures.length > 0 && availableDepartures[0]?.id) {
       setSelectedDepartureId(availableDepartures[0].id);
     } else {
       setSelectedDepartureId("flexible");
@@ -86,14 +98,30 @@ export default function EnquiryModal() {
     setIsSubmitting(false);
   }, [enquiryModalOpen, enquiryDepartureId, enquiryTripId, availableDepartures.length]);
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    if (!enquiryModalOpen || typeof document === "undefined") return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [enquiryModalOpen]);
+
   if (!enquiryModalOpen) return null;
 
-  const selectedDeparture = availableDepartures.find((d) => d.id === selectedDepartureId);
+  // Active departure ID: state or fallback to first available
+  const activeDepartureId =
+    selectedDepartureId ||
+    enquiryDepartureId ||
+    (availableDepartures.length > 0 ? availableDepartures[0]?.id : "flexible");
+
+  const selectedDeparture = availableDepartures.find((d) => d && d.id === activeDepartureId);
   const departureDateLabel = selectedDeparture
     ? selectedDeparture.displayDate || selectedDeparture.date
     : "Flexible / Next available batch";
 
-  const departurePrice = selectedDeparture?.price || foundTrip?.price || 0;
+  const departurePrice = Number(selectedDeparture?.price) || Number(foundTrip?.price) || 0;
   const totalEstimatedPrice = departurePrice * travellers;
 
   const validate = () => {
@@ -113,14 +141,6 @@ export default function EnquiryModal() {
     setSubmittedEnquiry(null);
     setErrors({});
   };
-
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    if (!enquiryModalOpen) return;
-    const orig = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = orig; };
-  }, [enquiryModalOpen]);
 
   // 1. Submit Enquiry (Tracked, saved to PostgreSQL & notifies admin)
   const handleSubmitEnquiry = async (e: React.FormEvent) => {
@@ -186,7 +206,7 @@ export default function EnquiryModal() {
         price: departurePrice
       });
       showToast("Enquiry submitted successfully.", "success");
-    } catch (err: unknown) {
+    } catch {
       // Fallback local submission if offline or backend error
       const mockId = `ENQ-${Date.now().toString().slice(-6)}`;
       const appEnquiry: Enquiry = {
@@ -229,9 +249,9 @@ export default function EnquiryModal() {
     window.open(url, "_blank", "noopener,noreferrer");
   };
 
-  return createPortal(
+  return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden overscroll-contain"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden overscroll-contain animate-fade-in"
       onClick={handleClose}
     >
       <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
@@ -240,7 +260,7 @@ export default function EnquiryModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ background: "var(--forest)" }} className="px-6 pt-6 pb-5 text-white rounded-t-2xl shrink-0">
+        <div style={{ background: "var(--forest, #0f2922)" }} className="px-6 pt-6 pb-5 text-white rounded-t-2xl shrink-0 relative">
           <button
             onClick={handleClose}
             className="absolute top-4 right-4 text-white/60 hover:text-white transition p-1 cursor-pointer"
@@ -255,14 +275,14 @@ export default function EnquiryModal() {
               OFFICIAL ENQUIRY
             </span>
             <span className="text-white/40 text-[10px]">•</span>
-            <span className="text-white/60 text-[11px]">{destName}</span>
+            <span className="text-white/60 text-[11px] truncate max-w-[280px]">{destName}</span>
           </div>
-          <h2 className="text-white text-2xl font-bold leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
+          <h2 className="text-white text-2xl font-bold leading-tight" style={{ fontFamily: "var(--font-serif, serif)" }}>
             {tripName}
           </h2>
           {departurePrice > 0 && (
             <div className="text-emerald-400 text-xs font-medium mt-1">
-              Starting at ₹{departurePrice.toLocaleString("en-IN")} per person
+              Starting at ₹{Number(departurePrice).toLocaleString("en-IN")} per person
             </div>
           )}
         </div>
@@ -277,7 +297,7 @@ export default function EnquiryModal() {
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h3 className="text-[#0f2922] text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif)" }}>
+              <h3 className="text-[#0f2922] text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
                 Enquiry Submitted
               </h3>
               <p className="text-[#4a5568] text-sm max-w-sm mx-auto mb-5 leading-relaxed">
@@ -300,7 +320,7 @@ export default function EnquiryModal() {
               <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
                 <button
                   onClick={handleConnectWhatsApp}
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-sm"
                 >
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
                     <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
@@ -326,13 +346,13 @@ export default function EnquiryModal() {
                 {availableDepartures.length > 0 ? (
                   <div className="space-y-2">
                     <select
-                      value={selectedDepartureId}
+                      value={activeDepartureId}
                       onChange={(e) => setSelectedDepartureId(e.target.value)}
                       className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
                     >
                       {availableDepartures.map((d) => (
                         <option key={d.id} value={d.id}>
-                          {d.displayDate || d.date} — ₹{d.price.toLocaleString("en-IN")} ({d.spotsLeft} spots left)
+                          {d.displayDate || d.date} — ₹{Number(d.price || 0).toLocaleString("en-IN")} ({d.spotsLeft ?? d.spotsTotal ?? 0} spots left)
                           {d.notes ? ` [${d.notes}]` : ""}
                         </option>
                       ))}
@@ -341,17 +361,17 @@ export default function EnquiryModal() {
                     {selectedDeparture && (
                       <div className="bg-[#f7f8f5] border border-[#e2e8f0]/80 rounded-lg px-3 py-2 text-xs flex items-center justify-between">
                         <span className="text-[#4a5568]">
-                          Batch price: <strong>₹{selectedDeparture.price.toLocaleString("en-IN")}</strong> / person
+                          Batch price: <strong>₹{Number(selectedDeparture.price || 0).toLocaleString("en-IN")}</strong> / person
                         </span>
                         <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-semibold border border-emerald-200">
-                          {selectedDeparture.spotsLeft} spots remaining
+                          {selectedDeparture.spotsLeft ?? selectedDeparture.spotsTotal ?? 0} spots remaining
                         </span>
                       </div>
                     )}
                   </div>
                 ) : (
                   <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-xl p-3 text-xs text-[#4a5568] flex items-center justify-between">
-                    <span>Flexible / Next scheduled batch (Base price: ₹{foundTrip?.price?.toLocaleString("en-IN") || "9,999"})</span>
+                    <span>Flexible / Next scheduled batch (Base price: ₹{Number(foundTrip?.price || 9999).toLocaleString("en-IN")})</span>
                     <span className="text-[#e8622a] font-semibold">Flexible Dates</span>
                   </div>
                 )}
@@ -384,7 +404,7 @@ export default function EnquiryModal() {
                   </div>
                   {departurePrice > 0 && (
                     <div className="text-xs text-[#718096] pl-2">
-                      Est. Total: <strong className="text-[#0f2922]">₹{totalEstimatedPrice.toLocaleString("en-IN")}</strong>
+                      Est. Total: <strong className="text-[#0f2922]">₹{Number(totalEstimatedPrice || 0).toLocaleString("en-IN")}</strong>
                     </div>
                   )}
                 </div>
@@ -509,7 +529,6 @@ export default function EnquiryModal() {
           </div>
         )}
       </div>
-    </div>,
-    document.body
+    </div>
   );
 }

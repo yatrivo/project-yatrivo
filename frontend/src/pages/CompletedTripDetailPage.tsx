@@ -69,21 +69,21 @@ export default function CompletedTripDetailPage() {
           alt={trip.name}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <Link
             to="/past-trips"
-            className="inline-flex items-center gap-2 text-white/70 hover:text-white text-sm mb-6 transition-colors"
+            className="inline-flex items-center gap-2 text-white/85 hover:text-white text-sm mb-6 transition-colors text-contrast-subtle font-medium"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Past Trips
           </Link>
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">{destination.name}</div>
-          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">{destination.name}</div>
+          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
           <div className="flex flex-wrap items-center gap-3">
-            <span className="bg-white/20 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full">{instance.displayDate}</span>
-            <span className="bg-[#e8622a] text-white text-sm font-semibold px-4 py-1.5 rounded-full">₹{instance.price.toLocaleString("en-IN")} / person</span>
-            <span className="bg-[#0f2922]/60 backdrop-blur-sm text-white text-sm px-4 py-1.5 rounded-full">{instance.spotsTotal} participants</span>
+            <span className="badge-glass-dark text-white text-sm px-4 py-1.5 rounded-full">{instance.displayDate}</span>
+            <span className="bg-[#e8622a] text-white text-sm font-semibold px-4 py-1.5 rounded-full btn-primary-elevated">₹{instance.price.toLocaleString("en-IN")} / person</span>
+            <span className="badge-glass-dark text-white text-sm px-4 py-1.5 rounded-full">{instance.spotsTotal} participants</span>
           </div>
         </div>
       </section>

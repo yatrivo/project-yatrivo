@@ -27,7 +27,7 @@ export const authRepository = {
     const executor = getExecutor(client);
     const result = await executor.query<UserRecord>(
       `SELECT id, full_name, email, phone, avatar_media_id, role, status,
-              password_hash, email_verified_at, phone_verified_at, last_login_at,
+              password_hash, must_change_password, email_verified_at, phone_verified_at, last_login_at,
               invited_by_user_id, created_at, updated_at
        FROM users
        WHERE email = $1`,
@@ -40,7 +40,7 @@ export const authRepository = {
     const executor = getExecutor(client);
     const result = await executor.query<UserRecord>(
       `SELECT id, full_name, email, phone, avatar_media_id, role, status,
-              password_hash, email_verified_at, phone_verified_at, last_login_at,
+              password_hash, must_change_password, email_verified_at, phone_verified_at, last_login_at,
               invited_by_user_id, created_at, updated_at
        FROM users
        WHERE id = $1`,
@@ -189,11 +189,21 @@ export const authRepository = {
     );
   },
 
+  async invalidatePendingPasswordResetTokens(userId: string, client?: PoolClient): Promise<void> {
+    const executor = getExecutor(client);
+    await executor.query(
+      `UPDATE password_reset_tokens
+       SET consumed_at = NOW()
+       WHERE user_id = $1 AND consumed_at IS NULL`,
+      [userId]
+    );
+  },
+
   async updateUserPassword(userId: string, passwordHash: string, client?: PoolClient): Promise<void> {
     const executor = getExecutor(client);
     await executor.query(
       `UPDATE users
-       SET password_hash = $1, updated_at = NOW()
+       SET password_hash = $1, must_change_password = false, updated_at = NOW()
        WHERE id = $2`,
       [passwordHash, userId]
     );

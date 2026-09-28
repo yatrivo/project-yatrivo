@@ -28,11 +28,11 @@ export default function PastTripsPage() {
           alt="Himalayan mountains"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-[#0f2922]/80 to-[#0f2922]/60" />
+        <div className="absolute inset-0 hero-overlay-compact" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">MEMORIES MADE</div>
-          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>Our Past Adventures</h1>
-          <p className="text-white/75 text-base max-w-2xl mx-auto leading-relaxed">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">MEMORIES MADE</div>
+          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-5 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Our Past Adventures</h1>
+          <p className="text-white/90 text-base max-w-2xl mx-auto leading-relaxed text-contrast-body">
             Every journey we lead becomes a story. Here's a look at the adventures, summits, and moments shared by our past groups. Each trip is proof that travelling with the right people changes everything.
           </p>
         </div>
@@ -73,13 +73,13 @@ export default function PastTripsPage() {
                 >
                   <div className="relative h-52 overflow-hidden">
                     <img src={coverImg} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-3 left-3 bg-[#0f2922]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full">
+                    <div className="absolute top-3 left-3 badge-glass-dark text-white text-xs font-medium px-3 py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+                    <div className="absolute inset-0 card-overlay-bottom" />
                     <div className="absolute bottom-0 left-0 p-4">
-                      <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-0.5">{destLabel}</div>
-                      <div className="text-white font-semibold text-sm leading-snug" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
+                      <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wide mb-0.5 text-contrast-subtle">{destLabel}</div>
+                      <div className="text-white font-semibold text-sm leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                     </div>
                   </div>
                   <div className="p-5">

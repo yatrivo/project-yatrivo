@@ -1,5 +1,7 @@
+import { env } from "../../config/env";
 import { withTransaction } from "../../db/postgres";
 import { AppError } from "../../errors/AppError";
+import { emailService } from "../../services/email/email.service";
 import { authRepository } from "./auth.repository";
 import type {
   AuthTokens,
@@ -27,6 +29,7 @@ function toUserSummary(user: UserRecord): UserSummary {
     email: user.email,
     role: user.role,
     status: user.status,
+    mustChangePassword: Boolean(user.must_change_password),
     lastLoginAt: user.last_login_at ? new Date(user.last_login_at).toISOString() : null
   };
 }
@@ -249,34 +252,46 @@ export const authService = {
     return toUserSummary(user);
   },
 
-  // Future-ready foundation for email-link password reset
+  // Email-link password reset: generate single-use token, invalidate previous, dispatch email
   async requestPasswordReset(email: string, meta?: RequestMeta): Promise<void> {
     const user = await authRepository.findUserByEmail(email);
 
-    // Only allow active administrative users
+    // Only allow active administrative users (super_admin or admin)
     if (user && user.status === "active" && (user.role === "admin" || user.role === "super_admin")) {
       const { token, tokenHash, expiresAt } = generatePasswordResetToken();
-      await authRepository.createPasswordResetToken({
-        userId: user.id,
-        tokenHash,
-        expiresAt
+
+      await withTransaction(async (client) => {
+        // Invalidate any previous unused reset tokens for this user
+        await authRepository.invalidatePendingPasswordResetTokens(user.id, client);
+        await authRepository.createPasswordResetToken(
+          {
+            userId: user.id,
+            tokenHash,
+            expiresAt
+          },
+          client
+        );
+
+        await authRepository.recordAuditLog(
+          {
+            actorUserId: user.id,
+            actorNameSnapshot: user.full_name,
+            action: "auth.password_reset_requested",
+            details: "Password reset link token generated and dispatched via email",
+            ipAddress: meta?.ipAddress
+          },
+          client
+        );
       });
 
-      await authRepository.recordAuditLog({
-        actorUserId: user.id,
-        action: "auth.password_reset_requested",
-        details: "Password reset link token generated",
-        ipAddress: meta?.ipAddress
-      });
-
-      // NOTE: In future scope, dispatch email here:
-      // await mailService.sendPasswordResetEmail(user.email, { token, expiresAt });
-      void token;
+      // Construct reset URL pointing to frontend reset page
+      const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${token}`;
+      await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
     }
-    // Note: Always return cleanly to avoid leaking email existence
+    // Always return cleanly without error to prevent email enumeration attacks
   },
 
-  // Future-ready foundation for completing password reset via token
+  // Complete password reset using verified single-use token
   async resetPasswordWithToken(
     token: string,
     newPassword: string,
@@ -292,19 +307,74 @@ export const authService = {
     const newHash = await hashPassword(newPassword);
 
     await withTransaction(async (client) => {
+      // Updates password_hash and sets must_change_password = false
       await authRepository.updateUserPassword(resetRecord.user_id, newHash, client);
       await authRepository.markPasswordResetTokenConsumed(resetRecord.id, client);
-      // Revoke all existing sessions for security
+      // Revoke all existing sessions/refresh tokens for security
       await authRepository.revokeAllUserRefreshTokens(resetRecord.user_id, client);
       await authRepository.recordAuditLog(
         {
           actorUserId: resetRecord.user_id,
           action: "auth.password_reset_completed",
-          details: "Password reset completed and existing sessions revoked",
+          details: "Password reset completed via email link; active sessions revoked",
           ipAddress: meta?.ipAddress
         },
         client
       );
     });
+  },
+
+  // Authenticated password change (supports first-login forced change and normal change)
+  async changePassword(
+    userId: string,
+    input: { currentPassword?: string; newPassword: string },
+    meta?: RequestMeta
+  ): Promise<UserSummary> {
+    const user = await authRepository.findUserById(userId);
+    if (!user || user.status !== "active") {
+      throw new AppError(401, "UNAUTHORIZED", "User not found or inactive");
+    }
+
+    // If user is not flagged with must_change_password, currentPassword is required
+    if (!user.must_change_password) {
+      if (!input.currentPassword) {
+        throw new AppError(400, "VALIDATION_ERROR", "Current password is required");
+      }
+      const isValid = await comparePassword(input.currentPassword, user.password_hash || "");
+      if (!isValid) {
+        throw new AppError(400, "INVALID_CREDENTIALS", "Current password is incorrect");
+      }
+    } else if (input.currentPassword) {
+      // If must_change_password is true and current password was provided, verify it
+      const isValid = await comparePassword(input.currentPassword, user.password_hash || "");
+      if (!isValid) {
+        throw new AppError(400, "INVALID_CREDENTIALS", "Current initial password is incorrect");
+      }
+    }
+
+    if (input.newPassword.length < 8) {
+      throw new AppError(400, "VALIDATION_ERROR", "New password must be at least 8 characters long");
+    }
+
+    const newHash = await hashPassword(input.newPassword);
+
+    await withTransaction(async (client) => {
+      await authRepository.updateUserPassword(user.id, newHash, client);
+      await authRepository.recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorNameSnapshot: user.full_name,
+          action: "auth.password_changed",
+          details: user.must_change_password
+            ? "Initial password changed on first login"
+            : "Password changed by authenticated admin",
+          ipAddress: meta?.ipAddress
+        },
+        client
+      );
+    });
+
+    const updatedUser = await authRepository.findUserById(userId);
+    return toUserSummary(updatedUser!);
   }
 };

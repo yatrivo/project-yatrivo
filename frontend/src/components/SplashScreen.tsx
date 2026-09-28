@@ -66,7 +66,7 @@ export default function SplashScreen({ onDone }: Props) {
             transform: phase === "logo" ? "translateY(8px)" : "translateY(0)",
           }}
         >
-          <div className="text-[#e8622a] text-xs tracking-[0.35em] uppercase font-medium">
+          <div className="text-[#f7f8f5]/90 text-xs sm:text-sm tracking-[0.1em] uppercase font-medium" style={{ fontFamily: "var(--font-sans)" }}>
             {siteSettings?.general?.tagline || "Explore More. Travel Better."}
           </div>
         </div>

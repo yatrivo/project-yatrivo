@@ -481,39 +481,39 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
           alt={activeTrip?.name ?? "Trip"}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative h-full flex items-end pb-8 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
-                <Link to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-medium">
+              <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-contrast-subtle">
+                <Link to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-semibold">
                   {activeTrip?.category ?? "EXPERIENCE"}
                 </Link>
-                <span className="text-white/40">·</span>
-                <span className="text-white/70 uppercase tracking-wide">{activeTrip?.badge ?? "ADVENTURE"}</span>
+                <span className="text-white/60">·</span>
+                <span className="text-white/90 uppercase tracking-wide font-medium">{activeTrip?.badge ?? "ADVENTURE"}</span>
                 {tripDestinations.map((d) => (
                   <span key={d.id} className="flex items-center gap-1.5">
-                    <span className="text-white/40">·</span>
+                    <span className="text-white/60">·</span>
                     <Link
                       to={isAdmin ? `/admin/destinations/${d.slug || d.id}` : `/destinations/${d.slug || d.id}`}
-                      className="text-white/80 hover:text-white uppercase tracking-wide transition-colors font-medium"
+                      className="text-white/90 hover:text-white uppercase tracking-wide transition-colors font-medium"
                     >
                       {d.name}
                     </Link>
                   </span>
                 ))}
               </div>
-              <h1 className="text-white text-4xl sm:text-5xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>
+              <h1 className="text-white text-4xl sm:text-5xl mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.name ?? "Himalayan Adventure"}
               </h1>
-              <div className="flex flex-wrap gap-5 text-white/80 text-sm">
+              <div className="flex flex-wrap gap-5 text-white/90 text-sm text-contrast-body">
                 <span>{activeTrip?.duration ?? "4 Days / 3 Nights"}</span>
                 <span>Difficulty: {activeTrip?.difficulty ?? "Moderate"}</span>
                 {activeTrip?.startingPoint && <span>Starts from: {activeTrip.startingPoint}</span>}
               </div>
             </div>
             {!isAdmin && (
-              <SaveButton id={tripId} className="w-10 h-10 bg-white/20 hover:bg-white/40 backdrop-blur-sm rounded-full text-white" size={20} />
+              <SaveButton id={tripId} className="w-10 h-10 badge-glass-dark hover:bg-black/60 rounded-full text-white flex items-center justify-center transition-all" size={20} />
             )}
           </div>
         </div>

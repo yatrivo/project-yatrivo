@@ -84,5 +84,46 @@ export const authController = {
       status: "success",
       data: { user }
     });
+  },
+
+  async forgotPassword(req: Request, res: Response): Promise<void> {
+    const input = (res.locals.validated?.body ?? req.body) as { email: string };
+    const meta = extractRequestMeta(req);
+
+    await authService.requestPasswordReset(input.email, meta);
+
+    res.status(200).json({
+      status: "success",
+      message: "If an account with that email exists, a password reset link has been sent."
+    });
+  },
+
+  async resetPassword(req: Request, res: Response): Promise<void> {
+    const input = (res.locals.validated?.body ?? req.body) as { token: string; newPassword: string };
+    const meta = extractRequestMeta(req);
+
+    await authService.resetPasswordWithToken(input.token, input.newPassword, meta);
+
+    res.status(200).json({
+      status: "success",
+      message: "Password has been reset successfully. Please log in with your new password."
+    });
+  },
+
+  async changePassword(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const input = (res.locals.validated?.body ?? req.body) as { currentPassword?: string; newPassword: string };
+    const meta = extractRequestMeta(req);
+
+    const user = await authService.changePassword(req.user.id, input, meta);
+
+    res.status(200).json({
+      status: "success",
+      message: "Password updated successfully",
+      data: { user }
+    });
   }
 };

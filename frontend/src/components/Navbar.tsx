@@ -71,11 +71,11 @@ export default function Navbar() {
   }, [pathname]);
 
   const navBg = transparent
-    ? "bg-transparent"
+    ? "bg-gradient-to-b from-black/80 via-black/45 to-transparent pb-4"
     : "bg-white/95 backdrop-blur-md border-b border-[#e2e8f0]";
 
   const textColor = transparent && !isNonHeroPage ? "text-white" : "text-[#0f2922]";
-  const mutedColor = transparent && !isNonHeroPage ? "text-white/80" : "text-[#4a5568]";
+  const mutedColor = transparent && !isNonHeroPage ? "text-white/85" : "text-[#4a5568]";
 
   return (
     <>
@@ -88,26 +88,24 @@ export default function Navbar() {
           {/* Logo */}
           <Link
             to="/"
-            className={`items-center gap-2 shrink-0 ${
+            className={`items-center gap-2.5 shrink-0 ${
               pathname === "/" ? "hidden md:flex" : "flex"
             }`}
           >
-            <img src={logoImg} alt="Yatrivo" className="h-9 w-9 object-contain" />
+            <img src={logoImg} alt="Yatrivo" className={`h-9 w-9 object-contain ${transparent ? "drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" : ""}`} />
             <div className="block text-left leading-tight">
               <div
-                className={`${textColor} font-bold text-sm tracking-widest transition-colors`}
+                className={`${textColor} font-bold text-base sm:text-[17px] tracking-[0.16em] transition-colors ${transparent && !hidden ? "text-contrast-title" : ""}`}
                 style={{
                   fontFamily: "var(--font-serif)",
-                  textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
                 }}
               >
                 YATRIVO
               </div>
               <div
-                className="text-[#e8622a] text-[9px] tracking-widest uppercase font-medium"
-                style={{
-                  textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.4)" : "none",
-                }}
+                className={`transition-colors text-[10px] md:text-[11px] font-medium tracking-[0.09em] uppercase leading-[1.3] whitespace-nowrap ${
+                  transparent ? "brand-tagline-light" : "brand-tagline-dark"
+                }`}
               >
                 {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
               </div>
@@ -123,8 +121,7 @@ export default function Navbar() {
                 <NavLink
                   key={link.href}
                   to={link.href}
-                  style={{ textShadow: transparent && !hidden ? "0 1px 3px rgba(0,0,0,0.5)" : "none" }}
-                  className={`relative px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`relative px-3 py-1.5 text-sm font-medium transition-colors ${transparent && !hidden ? "text-contrast-subtle" : ""} ${
                     isMatch ? `${textColor} font-semibold` : `${mutedColor} hover:${textColor}`
                   }`}
                 >
@@ -144,7 +141,7 @@ export default function Navbar() {
               to="/plan"
               className={`hidden sm:inline-flex items-center text-sm font-medium px-4 py-2 rounded-full transition-all ${
                 transparent
-                  ? "bg-white text-[#0f2922] hover:bg-white/90"
+                  ? "bg-white text-[#0f2922] hover:bg-white/90 shadow-[0_2px_10px_rgba(0,0,0,0.3)] font-semibold"
                   : "bg-[#0f2922] hover:bg-[#1a4a39] text-white"
               }`}
             >
@@ -153,7 +150,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className={`lg:hidden p-2 ${textColor}`}
+              className={`lg:hidden p-2 ${textColor} ${transparent ? "drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" : ""}`}
               aria-label="Toggle navigation menu"
             >
               {menuOpen ? (

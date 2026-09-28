@@ -4,6 +4,7 @@ export interface AdminUser {
   email: string;
   role: "super_admin" | "admin";
   status: string;
+  mustChangePassword?: boolean;
   lastLoginAt?: string | null;
 }
 
@@ -174,5 +175,74 @@ export const authApi = {
     } finally {
       tokenStorage.clearSession();
     }
+  },
+
+  async forgotPassword(email: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/api/v1/auth/forgot-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body?.error?.message || "Failed to submit password reset request");
+    }
+
+    return body;
+  },
+
+  async resetPassword(token: string, newPassword: string): Promise<{ status: string; message: string }> {
+    const res = await fetch(`${API_BASE}/api/v1/auth/reset-password`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, newPassword })
+    });
+
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body?.error?.message || "Failed to reset password");
+    }
+
+    return body;
+  },
+
+  async changePassword(params: { currentPassword?: string; newPassword: string }): Promise<AdminUser> {
+    const accessToken = tokenStorage.getAccessToken();
+    if (!accessToken) {
+      throw new Error("Authentication required");
+    }
+
+    const res = await fetch(`${API_BASE}/api/v1/auth/change-password`, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${accessToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(params)
+    });
+
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body?.error?.message || "Failed to change password");
+    }
+
+    const updatedUser = body.data?.user;
+    if (updatedUser) {
+      const current = tokenStorage.getUser();
+      if (current) {
+        tokenStorage.saveSession(
+          {
+            accessToken: tokenStorage.getAccessToken() || "",
+            refreshToken: tokenStorage.getRefreshToken() || "",
+            tokenType: "Bearer",
+            expiresIn: 900
+          },
+          { ...current, ...updatedUser }
+        );
+      }
+    }
+
+    return updatedUser;
   }
 };

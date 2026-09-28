@@ -165,7 +165,7 @@ export default function DestinationsPage() {
                 <div className="h-52 overflow-hidden relative">
                   <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   {d.season && (
-                    <span className="absolute top-3 right-3 text-[10px] font-medium tracking-wide uppercase px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white/90 border border-white/15">
+                    <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white">
                       {d.season}
                     </span>
                   )}

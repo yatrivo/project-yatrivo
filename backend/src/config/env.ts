@@ -38,7 +38,11 @@ const envSchema = z.object({
   WHATSAPP_PROVIDER: z.string().optional().or(z.literal("")),
   WHATSAPP_API_BASE_URL: z.string().url().optional().or(z.literal("")),
   WHATSAPP_API_TOKEN: z.string().optional().or(z.literal("")),
-  WHATSAPP_TEMPLATE_NEW_ENQUIRY: z.string().optional().or(z.literal(""))
+  WHATSAPP_TEMPLATE_NEW_ENQUIRY: z.string().optional().or(z.literal("")),
+  EMAIL_API_KEY: z.string().optional().or(z.literal("")),
+  RESEND_API_KEY: z.string().optional().or(z.literal("")),
+  EMAIL_FROM: z.string().default("Yatrivo <noreply@yatrivo.com>"),
+  FRONTEND_URL: z.string().default("http://localhost:3000")
 });
 
 export const env = envSchema.parse(process.env);

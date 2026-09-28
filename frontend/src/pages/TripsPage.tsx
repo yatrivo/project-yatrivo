@@ -181,7 +181,7 @@ export default function TripsPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     {(trip.badge || trip.category) && (
-                      <span className="absolute top-3 left-3 text-[10px] font-medium tracking-wide uppercase px-2.5 py-0.5 rounded-full bg-black/40 backdrop-blur-md text-white/90 border border-white/15">
+                      <span className="absolute top-3 left-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white">
                         {trip.badge || trip.category}
                       </span>
                     )}

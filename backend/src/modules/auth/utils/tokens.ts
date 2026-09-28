@@ -92,7 +92,7 @@ export function generatePasswordResetToken(): {
 } {
   const token = crypto.randomBytes(32).toString("hex");
   const tokenHash = hashToken(token);
-  // Default password reset link validity: 1 hour
-  const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+  // Default password reset link validity: 20 minutes (within 15-30m security requirement)
+  const expiresAt = new Date(Date.now() + 20 * 60 * 1000);
   return { token, tokenHash, expiresAt };
 }

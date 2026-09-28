@@ -125,17 +125,17 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           alt={dest.name}
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/15 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-8">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
-              <p className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">Uttarakhand, India</p>
-              <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-2" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
-              <p className="text-white/80 text-base">{dest.tagline} · Best: {dest.season}</p>
+              <p className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">Uttarakhand, India</p>
+              <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
+              <p className="text-white/90 text-base text-contrast-body">{dest.tagline} · Best: {dest.season}</p>
               {dest.experienceTags && dest.experienceTags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {dest.experienceTags.map((tag) => (
-                    <span key={tag} className="text-xs bg-white/20 backdrop-blur-sm text-white px-2.5 py-1 rounded-full font-medium">
+                    <span key={tag} className="text-xs badge-glass-dark text-white px-3 py-1 rounded-full font-medium">
                       {tag}
                     </span>
                   ))}
@@ -146,7 +146,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
               <div className="flex items-center gap-3 shrink-0">
                 <button
                   onClick={() => document.getElementById("packages")?.scrollIntoView({ behavior: "smooth" })}
-                  className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer"
+                  className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer btn-primary-elevated"
                 >
                   Explore Packages
                 </button>

@@ -1,11 +1,32 @@
 import { Router } from "express";
+import { rateLimit } from "../../middleware/rateLimit";
 import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
 import { authController } from "./auth.controller";
 import { authenticate } from "./auth.middleware";
-import { loginSchema, logoutSchema, refreshTokenSchema } from "./auth.schemas";
+import {
+  changePasswordSchema,
+  forgotPasswordSchema,
+  loginSchema,
+  logoutSchema,
+  refreshTokenSchema,
+  resetPasswordSchema
+} from "./auth.schemas";
 
 export const authRouter = Router();
+
+// Rate limiters for security sensitive auth endpoints (5 attempts per 15 minutes)
+const forgotPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many password reset requests. Please wait 15 minutes before trying again."
+});
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many password reset attempts. Please wait 15 minutes before trying again."
+});
 
 // Public auth endpoints (Admin and Super Admin access only)
 authRouter.post(
@@ -26,6 +47,21 @@ authRouter.post(
   asyncHandler(authController.logout)
 );
 
+// One-time email-link password reset endpoints
+authRouter.post(
+  "/auth/forgot-password",
+  forgotPasswordLimiter,
+  validate({ body: forgotPasswordSchema }),
+  asyncHandler(authController.forgotPassword)
+);
+
+authRouter.post(
+  "/auth/reset-password",
+  resetPasswordLimiter,
+  validate({ body: resetPasswordSchema }),
+  asyncHandler(authController.resetPassword)
+);
+
 // Protected auth endpoints
 authRouter.post(
   "/auth/revoke-all",
@@ -39,13 +75,11 @@ authRouter.get(
   asyncHandler(authController.me)
 );
 
-// ---------------------------------------------------------------------------
-// Future Extension Mounts:
-// When enabled, these endpoints integrate directly with authService without
-// altering the core authentication and authorization architecture:
-//
-// authRouter.post("/auth/forgot-password", validate({ body: forgotPasswordSchema }), asyncHandler(...));
-// authRouter.post("/auth/reset-password", validate({ body: resetPasswordSchema }), asyncHandler(...));
-// authRouter.get("/auth/google", asyncHandler(...));
-// authRouter.get("/auth/google/callback", asyncHandler(...));
-// ---------------------------------------------------------------------------
+// Authenticated password change (supports first-login forced change and normal change)
+authRouter.post(
+  "/auth/change-password",
+  authenticate,
+  validate({ body: changePasswordSchema }),
+  asyncHandler(authController.changePassword)
+);
+

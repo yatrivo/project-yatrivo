@@ -18,11 +18,11 @@ export default function AboutPage() {
           alt="Hikers on Himalayan trail"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">OUR STORY & MANIFESTO</div>
-          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>We are Yatrivo.<br />Born in Dehradun.</h1>
-          <p className="text-white/75 text-sm sm:text-base max-w-xl leading-relaxed">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">OUR STORY & MANIFESTO</div>
+          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>We are Yatrivo.<br />Born in Dehradun.</h1>
+          <p className="text-white/90 text-sm sm:text-base max-w-xl leading-relaxed text-contrast-body">
             We are Uttarakhand's premium travel collective. We started to bridge the gap between heavy commercial bus tours and high-risk, unguided exploration.
           </p>
         </div>
@@ -125,15 +125,15 @@ export default function AboutPage() {
           alt="Forest light through trees"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-[#0f2922]/80" />
+        <div className="absolute inset-0 bg-[#0f2922]/85" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Let's Plan Your Mountain Excursion</h2>
-          <p className="text-white/70 text-base mb-8">
+          <h2 className="text-white text-4xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Let's Plan Your Mountain Excursion</h2>
+          <p className="text-white/85 text-base mb-8 text-contrast-body">
             Step off the tourist trail. Explore Uttarakhand with local safety, certified guides, and small youthful groups.
           </p>
           <Link
             to="/plan"
-            className="inline-block bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
+            className="inline-block bg-white text-[#0f2922] font-semibold px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide shadow-[0_3px_12px_rgba(0,0,0,0.3)]"
           >
             START PLANNING NOW
           </Link>

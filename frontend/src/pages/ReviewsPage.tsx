@@ -78,11 +78,11 @@ export default function ReviewsPage() {
           alt="Group of travelers around campfire in mountains"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/25 to-transparent" />
+        <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">AUTHENTIC TESTIMONIALS</div>
-          <h1 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Wanderers Speak From Their Hearts</h1>
-          <p className="text-white/75 text-sm sm:text-base max-w-xl leading-relaxed">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">AUTHENTIC TESTIMONIALS</div>
+          <h1 className="text-white text-4xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Wanderers Speak From Their Hearts</h1>
+          <p className="text-white/90 text-sm sm:text-base max-w-xl leading-relaxed text-contrast-body">
             Over 15,000 active, youthful explorers have experienced the pristine Himalayas with our mindful travel collective. Read their honest, verified stories.
           </p>
         </div>

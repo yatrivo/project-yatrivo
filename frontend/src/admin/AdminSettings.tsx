@@ -6,6 +6,7 @@ import {
   type CancellationRule,
   type AllSettings,
 } from "@/api/settings";
+import { authApi } from "@/api/auth";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 
 type SubNav = "general" | "contact" | "social" | "cancellation" | "security";
@@ -175,8 +176,10 @@ export default function AdminSettings() {
 
     setPasswordLoading(true);
     try {
-      // Simulate credential verification & password change flow
-      await new Promise((r) => setTimeout(r, 800));
+      await authApi.changePassword({
+        currentPassword: oldPassword,
+        newPassword
+      });
 
       showToast("Password changed successfully! Please log in with your new credentials.", "success");
       
@@ -185,8 +188,7 @@ export default function AdminSettings() {
       setNewPassword("");
       setConfirmPassword("");
 
-      // Log out and redirect to login as specified:
-      // "enter old password, new password enter new password again then submit. and log out. and login again with the new password."
+      // Log out and redirect to login as specified
       await adminLogout();
       navigate("/admin/login?changed=true", { replace: true });
     } catch (err: unknown) {
@@ -197,11 +199,9 @@ export default function AdminSettings() {
     }
   };
 
-  const handleForgotSuccess = async () => {
+  const handleForgotSuccess = () => {
     setForgotModalOpen(false);
-    showToast("Password reset successfully. Please log in with your new password.", "success");
-    await adminLogout();
-    navigate("/admin/login?reset=true", { replace: true });
+    showToast("Password reset link sent to your email.", "info");
   };
 
   const updateRule = (index: number, field: keyof CancellationRule, val: string) => {
