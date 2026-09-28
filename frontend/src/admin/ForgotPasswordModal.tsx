@@ -8,6 +8,8 @@ interface ForgotPasswordModalProps {
   onSuccess?: () => void;
 }
 
+const COOLDOWN_KEY = "yatrivo_reset_cooldown_until";
+
 export default function ForgotPasswordModal({
   isOpen,
   onClose,
@@ -18,6 +20,43 @@ export default function ForgotPasswordModal({
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState("");
+  const [cooldown, setCooldown] = useState(0);
+
+  // Check persisted cooldown from localStorage on open / mount
+  useEffect(() => {
+    const checkCooldown = () => {
+      try {
+        const untilStr = localStorage.getItem(COOLDOWN_KEY);
+        if (untilStr) {
+          const until = parseInt(untilStr, 10);
+          const remaining = Math.max(0, Math.ceil((until - Date.now()) / 1000));
+          setCooldown(remaining);
+        }
+      } catch {
+        // Ignore localStorage error
+      }
+    };
+
+    checkCooldown();
+  }, [isOpen]);
+
+  // Ticker for 1-second interval cooldown
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const interval = setInterval(() => {
+      setCooldown((prev) => {
+        if (prev <= 1) {
+          try {
+            localStorage.removeItem(COOLDOWN_KEY);
+          } catch {}
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [cooldown]);
 
   useEffect(() => {
     if (isOpen) {
@@ -32,6 +71,7 @@ export default function ForgotPasswordModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (cooldown > 0) return;
     setError("");
     const cleanEmail = email.trim().toLowerCase();
 
@@ -43,6 +83,12 @@ export default function ForgotPasswordModal({
     setLoading(true);
     try {
       await authApi.forgotPassword(cleanEmail);
+      // Set 60-second cooldown on this device
+      const expiry = Date.now() + 60000;
+      try {
+        localStorage.setItem(COOLDOWN_KEY, expiry.toString());
+      } catch {}
+      setCooldown(60);
       setSubmitted(true);
       if (onSuccess) {
         onSuccess();
@@ -50,6 +96,14 @@ export default function ForgotPasswordModal({
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to process request. Please try again.";
       setError(msg);
+      const match = msg.match(/wait (\d+) second/i);
+      if (match) {
+        const secs = parseInt(match[1], 10);
+        setCooldown(secs);
+        try {
+          localStorage.setItem(COOLDOWN_KEY, (Date.now() + secs * 1000).toString());
+        } catch {}
+      }
     } finally {
       setLoading(false);
     }
@@ -85,7 +139,7 @@ export default function ForgotPasswordModal({
                 Reset Admin Password
               </h3>
               <p className="text-sm text-[#718096] mt-1 mb-6">
-                Enter your registered admin email address. We'll send you a secure, one-time link valid for 20 minutes to reset your password.
+                Enter your registered admin email address. We'll send you a secure link valid for 20 minutes. If a link was requested recently, the same link will be resent.
               </p>
 
               <form onSubmit={handleSubmit} className="space-y-4">
@@ -115,14 +169,16 @@ export default function ForgotPasswordModal({
 
                 <button
                   type="submit"
-                  disabled={loading}
-                  className="w-full bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                  disabled={loading || cooldown > 0}
+                  className="w-full bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium py-3 rounded-xl transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                       Sending Reset Link...
                     </>
+                  ) : cooldown > 0 ? (
+                    `Resend available in ${cooldown}s`
                   ) : (
                     "Send Password Reset Link"
                   )}
@@ -138,16 +194,16 @@ export default function ForgotPasswordModal({
               </div>
 
               <h3 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                Reset Link Dispatched
+                Reset Link Sent
               </h3>
               <p className="text-sm text-[#718096] mt-2 mb-3">
-                If an administrator account exists for:
+                A password reset link has been sent to your verified administrator email:
               </p>
               <div className="bg-[#f7f8f5] px-3 py-1.5 rounded-lg text-xs font-semibold text-[#0f2922] inline-block mb-4">
                 {email}
               </div>
               <p className="text-xs text-[#718096] mb-6 leading-relaxed">
-                A secure password reset link has been dispatched to your inbox. For security reasons, this link is single-use and will expire in <strong className="text-[#0f2922]">20 minutes</strong>.
+                Please check your inbox and click the reset button to set your new password. This link is valid for <strong className="text-[#0f2922]">20 minutes</strong>.
               </p>
 
               <div className="space-y-2">
@@ -158,13 +214,19 @@ export default function ForgotPasswordModal({
                 >
                   Return to Sign In
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setSubmitted(false)}
-                  className="text-xs text-[#718096] hover:text-[#0f2922] transition pt-2 block mx-auto cursor-pointer"
-                >
-                  Didn't receive an email? Send again
-                </button>
+                {cooldown > 0 ? (
+                  <p className="text-xs text-[#718096] pt-2 text-center">
+                    You can request another link in <span className="font-semibold text-[#0f2922]">{cooldown}s</span>
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setSubmitted(false)}
+                    className="text-xs text-[#718096] hover:text-[#0f2922] transition pt-2 block mx-auto cursor-pointer underline"
+                  >
+                    Didn't receive an email? Send again
+                  </button>
+                )}
               </div>
             </div>
           )}

@@ -55,6 +55,23 @@ export class ResendEmailProvider implements EmailProvider {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        // If domain is unverified and we didn't already send from onboarding@resend.dev, fallback automatically
+        if (
+          response.status === 403 &&
+          typeof data?.message === "string" &&
+          data.message.includes("domain is not verified") &&
+          !from.includes("onboarding@resend.dev")
+        ) {
+          logger.warn(
+            { unverifiedFrom: from },
+            "Custom domain not verified on Resend. Falling back to 'Yatrivo <onboarding@resend.dev>' for development testing."
+          );
+          return this.send({
+            ...payload,
+            from: "Yatrivo <onboarding@resend.dev>"
+          });
+        }
+
         const errorMsg = data?.message || `HTTP ${response.status}: Failed to send email via Resend`;
         logger.error({ error: errorMsg, to: payload.to }, "Resend email delivery failed");
         return {

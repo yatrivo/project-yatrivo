@@ -103,6 +103,14 @@ export const tokenStorage = {
   }
 };
 
+async function parseJsonSafe(res: Response): Promise<any> {
+  try {
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
 export const authApi = {
   async login(credentials: { email: string; password: string }): Promise<LoginResponse["data"]> {
     const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
@@ -111,9 +119,9 @@ export const authApi = {
       body: JSON.stringify(credentials)
     });
 
-    const body = await res.json();
+    const body = await parseJsonSafe(res);
     if (!res.ok) {
-      const message = body?.error?.message || "Invalid email or password";
+      const message = body?.error?.message || (res.status >= 500 ? "Backend server is unreachable. Please verify the backend is running on port 4000." : "Invalid email or password");
       throw new Error(message);
     }
 
@@ -128,7 +136,7 @@ export const authApi = {
       body: JSON.stringify({ refreshToken })
     });
 
-    const body = await res.json();
+    const body = await parseJsonSafe(res);
     if (!res.ok) {
       tokenStorage.clearSession();
       throw new Error(body?.error?.message || "Session expired");
@@ -147,7 +155,7 @@ export const authApi = {
       }
     });
 
-    const body = await res.json();
+    const body = await parseJsonSafe(res);
     if (!res.ok) {
       throw new Error(body?.error?.message || "Unauthorized");
     }
@@ -184,9 +192,9 @@ export const authApi = {
       body: JSON.stringify({ email })
     });
 
-    const body = await res.json();
+    const body = await parseJsonSafe(res);
     if (!res.ok) {
-      throw new Error(body?.error?.message || "Failed to submit password reset request");
+      throw new Error(body?.error?.message || (res.status >= 500 ? "Backend server is unreachable. Please verify the backend is running on port 4000." : "Failed to submit password reset request"));
     }
 
     return body;
@@ -199,9 +207,9 @@ export const authApi = {
       body: JSON.stringify({ token, newPassword })
     });
 
-    const body = await res.json();
+    const body = await parseJsonSafe(res);
     if (!res.ok) {
-      throw new Error(body?.error?.message || "Failed to reset password");
+      throw new Error(body?.error?.message || (res.status >= 500 ? "Backend server is unreachable. Please verify the backend is running on port 4000." : "Failed to reset password"));
     }
 
     return body;

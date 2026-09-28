@@ -35,6 +35,9 @@ export interface PasswordResetTokenRecord {
   id: string;
   user_id: string;
   token_hash: string;
+  raw_token?: string | null;
+  last_sent_at?: string | Date | null;
+  ip_address?: string | null;
   expires_at: string | Date;
   consumed_at: string | Date | null;
   created_at: string | Date;

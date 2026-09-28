@@ -252,12 +252,67 @@ export const authService = {
     return toUserSummary(user);
   },
 
-  // Email-link password reset: generate single-use token, invalidate previous, dispatch email
+  // Email-link password reset: reuse active valid token within 20m, apply 1m cooldown
   async requestPasswordReset(email: string, meta?: RequestMeta): Promise<void> {
+    // Check IP-based cooldown first to prevent brute-force flooding
+    if (meta?.ipAddress) {
+      const recentIpReset = await authRepository.findRecentResetByIp(meta.ipAddress);
+      if (recentIpReset) {
+        const lastSentTime = recentIpReset.last_sent_at
+          ? new Date(recentIpReset.last_sent_at).getTime()
+          : new Date(recentIpReset.created_at).getTime();
+        const elapsedMs = Date.now() - lastSentTime;
+        if (elapsedMs < 60_000) {
+          const remainingSeconds = Math.ceil((60_000 - elapsedMs) / 1000);
+          throw new AppError(
+            429,
+            "RATE_LIMITED",
+            `Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"} before requesting another reset email.`
+          );
+        }
+      }
+    }
+
     const user = await authRepository.findUserByEmail(email);
 
-    // Only allow active administrative users (super_admin or admin)
-    if (user && user.status === "active" && (user.role === "admin" || user.role === "super_admin")) {
+    // Verify that the email actually exists for an active administrator
+    if (!user || user.status !== "active" || (user.role !== "admin" && user.role !== "super_admin")) {
+      throw new AppError(
+        404,
+        "ADMIN_NOT_FOUND",
+        "No active administrator account was found with this email address."
+      );
+    }
+
+    // 1. Check if an active, unconsumed token already exists within its 20-minute window
+    const activeToken = await authRepository.findActivePasswordResetToken(user.id);
+
+      if (activeToken) {
+        // Check 1-minute (60 seconds) cooldown based on last_sent_at or created_at
+        const lastSentTime = activeToken.last_sent_at
+          ? new Date(activeToken.last_sent_at).getTime()
+          : new Date(activeToken.created_at).getTime();
+        const elapsedMs = Date.now() - lastSentTime;
+
+        if (elapsedMs < 60_000) {
+          const remainingSeconds = Math.ceil((60_000 - elapsedMs) / 1000);
+          throw new AppError(
+            429,
+            "RATE_LIMITED",
+            `Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"} before requesting another reset email.`
+          );
+        }
+
+        // If the active token has raw_token available, reuse the EXACT SAME link until it expires!
+        if (activeToken.raw_token) {
+          await authRepository.touchPasswordResetTokenSent(activeToken.id);
+          const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${activeToken.raw_token}`;
+          await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
+          return;
+        }
+      }
+
+      // 2. If no active unexpired token exists (or legacy row without raw_token), generate a new 20-minute token
       const { token, tokenHash, expiresAt } = generatePasswordResetToken();
 
       await withTransaction(async (client) => {
@@ -267,7 +322,9 @@ export const authService = {
           {
             userId: user.id,
             tokenHash,
-            expiresAt
+            rawToken: token,
+            expiresAt,
+            ipAddress: meta?.ipAddress
           },
           client
         );
@@ -287,8 +344,6 @@ export const authService = {
       // Construct reset URL pointing to frontend reset page
       const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${token}`;
       await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
-    }
-    // Always return cleanly without error to prevent email enumeration attacks
   },
 
   // Complete password reset using verified single-use token

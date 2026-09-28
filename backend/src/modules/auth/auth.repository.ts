@@ -154,24 +154,62 @@ export const authRepository = {
     params: {
       userId: string;
       tokenHash: string;
+      rawToken: string;
       expiresAt: Date;
+      ipAddress?: string | null;
     },
     client?: PoolClient
   ): Promise<PasswordResetTokenRecord> {
     const executor = getExecutor(client);
     const result = await executor.query<PasswordResetTokenRecord>(
-      `INSERT INTO password_reset_tokens (user_id, token_hash, expires_at)
-       VALUES ($1, $2, $3)
-       RETURNING id, user_id, token_hash, expires_at, consumed_at, created_at`,
-      [params.userId, params.tokenHash, params.expiresAt]
+      `INSERT INTO password_reset_tokens (user_id, token_hash, raw_token, expires_at, last_sent_at, ip_address)
+       VALUES ($1, $2, $3, $4, NOW(), $5)
+       RETURNING id, user_id, token_hash, raw_token, expires_at, last_sent_at, ip_address, consumed_at, created_at`,
+      [params.userId, params.tokenHash, params.rawToken, params.expiresAt, params.ipAddress || null]
     );
     return result.rows[0];
+  },
+
+  async findActivePasswordResetToken(userId: string, client?: PoolClient): Promise<PasswordResetTokenRecord | null> {
+    const executor = getExecutor(client);
+    const result = await executor.query<PasswordResetTokenRecord>(
+      `SELECT id, user_id, token_hash, raw_token, expires_at, last_sent_at, ip_address, consumed_at, created_at
+       FROM password_reset_tokens
+       WHERE user_id = $1 AND consumed_at IS NULL AND expires_at > NOW()
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+    return result.rows[0] || null;
+  },
+
+  async findRecentResetByIp(ipAddress: string, client?: PoolClient): Promise<PasswordResetTokenRecord | null> {
+    const executor = getExecutor(client);
+    const result = await executor.query<PasswordResetTokenRecord>(
+      `SELECT id, user_id, token_hash, raw_token, expires_at, last_sent_at, ip_address, consumed_at, created_at
+       FROM password_reset_tokens
+       WHERE ip_address = $1 AND created_at > NOW() - INTERVAL '2 minutes'
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [ipAddress]
+    );
+    return result.rows[0] || null;
+  },
+
+  async touchPasswordResetTokenSent(id: string, client?: PoolClient): Promise<void> {
+    const executor = getExecutor(client);
+    await executor.query(
+      `UPDATE password_reset_tokens
+       SET last_sent_at = NOW()
+       WHERE id = $1`,
+      [id]
+    );
   },
 
   async findPasswordResetTokenByHash(tokenHash: string, client?: PoolClient): Promise<PasswordResetTokenRecord | null> {
     const executor = getExecutor(client);
     const result = await executor.query<PasswordResetTokenRecord>(
-      `SELECT id, user_id, token_hash, expires_at, consumed_at, created_at
+      `SELECT id, user_id, token_hash, raw_token, expires_at, last_sent_at, ip_address, consumed_at, created_at
        FROM password_reset_tokens
        WHERE token_hash = $1`,
       [tokenHash]
