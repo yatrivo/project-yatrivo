@@ -37,7 +37,11 @@ export const auditRepository = {
   },
 
   async findMany(params: AuditLogQuery): Promise<{ rows: AuditLogRecord[]; total: number }> {
-    const conditions: string[] = [];
+    const conditions: string[] = [
+      // Exclude developer/technical token refresh noise from system logs
+      `action NOT IN ('auth.token_refreshed', 'auth.token_reuse_detected', 'Session Refreshed')`,
+      `(details IS NULL OR details NOT ILIKE '%token rotated%')`
+    ];
     const values: unknown[] = [];
     let paramIndex = 1;
 

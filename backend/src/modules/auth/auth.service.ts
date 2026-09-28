@@ -197,16 +197,6 @@ export const authService = {
         },
         client
       );
-      await authRepository.recordAuditLog(
-        {
-          actorUserId: user.id,
-          actorNameSnapshot: user.full_name,
-          action: "auth.token_refreshed",
-          details: "Token rotated successfully",
-          ipAddress: meta.ipAddress
-        },
-        client
-      );
     });
 
     return {

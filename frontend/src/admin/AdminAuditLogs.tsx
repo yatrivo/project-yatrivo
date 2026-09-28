@@ -17,12 +17,12 @@ const ENTITY_OPTIONS = [
   { value: "content_page", label: "Legal Pages" },
   { value: "setting", label: "Settings" },
   { value: "media", label: "Media" },
-  { value: "auth", label: "Authentication" }
+  { value: "auth", label: "Admin Logins & Access" }
 ];
 
 function getActionBadgeStyle(action: string): string {
   const act = action.toLowerCase();
-  if (act.includes("created") || act.includes("published") || act.includes("confirmed") || act.includes("restored") || act.includes("success")) {
+  if (act.includes("created") || act.includes("published") || act.includes("confirmed") || act.includes("restored") || act.includes("login")) {
     return "bg-[#e8f5e9] text-[#2e7d32] border border-[#c8e6c9]";
   }
   if (act.includes("updated") || act.includes("assigned") || act.includes("reorder") || act.includes("submitted")) {
@@ -31,7 +31,7 @@ function getActionBadgeStyle(action: string): string {
   if (act.includes("enquiry") || act.includes("payment") || act.includes("note") || act.includes("requests")) {
     return "bg-[#fff8e1] text-[#f57f17] border border-[#ffe082]";
   }
-  if (act.includes("deleted") || act.includes("archived") || act.includes("failed") || act.includes("forbidden")) {
+  if (act.includes("deleted") || act.includes("archived") || act.includes("failed") || act.includes("forbidden") || act.includes("logout")) {
     return "bg-[#ffebee] text-[#c62828] border border-[#ffcdd2]";
   }
   return "bg-[#f0f9f4] text-[#0f2922] border border-[#d8ebe3]";

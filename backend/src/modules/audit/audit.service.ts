@@ -43,20 +43,44 @@ function formatDate(isoString: string): string {
 function formatAuditLog(row: AuditLogRecord): FormattedAuditLog {
   const actorName = row.actor_name_snapshot || (row.actor_user_id ? "Admin User" : "System / Guest");
   
-  // Format action text for clean readability if needed (e.g. 'auth.login_success' -> 'Admin Login')
   let displayAction = row.action;
-  if (displayAction === "auth.login_success") displayAction = "Admin Login";
-  else if (displayAction === "auth.login_failed") displayAction = "Login Failed";
-  else if (displayAction === "auth.login_forbidden") displayAction = "Login Forbidden";
-  else if (displayAction === "auth.token_refreshed") displayAction = "Session Refreshed";
-  else if (displayAction === "auth.logout") displayAction = "Admin Logout";
+  let entityType = row.entity_type;
+
+  if (displayAction === "auth.login_success") {
+    displayAction = "Admin Login";
+    if (!entityType) entityType = "auth";
+  } else if (displayAction === "auth.login_failed") {
+    displayAction = "Login Failed";
+    if (!entityType) entityType = "auth";
+  } else if (displayAction === "auth.login_forbidden") {
+    displayAction = "Login Forbidden";
+    if (!entityType) entityType = "auth";
+  } else if (displayAction === "auth.logout") {
+    displayAction = "Admin Logout";
+    if (!entityType) entityType = "auth";
+  } else if (displayAction === "auth.revoke_all_sessions") {
+    displayAction = "Revoked All Sessions";
+    if (!entityType) entityType = "auth";
+  } else if (displayAction === "destination.created") {
+    displayAction = "Created Destination";
+    if (!entityType) entityType = "destination";
+  } else if (displayAction === "destination.updated") {
+    displayAction = "Updated Destination";
+    if (!entityType) entityType = "destination";
+  } else if (displayAction === "destination.archived") {
+    displayAction = "Archived Destination";
+    if (!entityType) entityType = "destination";
+  } else if (displayAction === "destination.unarchived") {
+    displayAction = "Restored Destination";
+    if (!entityType) entityType = "destination";
+  }
 
   return {
     id: row.id,
     userId: row.actor_user_id,
     user: actorName,
     action: displayAction,
-    entityType: row.entity_type,
+    entityType,
     entityId: row.entity_id,
     details: row.details || "",
     beforeData: row.before_data,
