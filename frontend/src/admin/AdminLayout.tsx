@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link, NavLink, useLocation, useNavigate, Outlet } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import ForcePasswordChangeModal from "./ForcePasswordChangeModal";
+import logoImg from "@/imports/logo.png";
 
 export type AdminPage =
   | "dashboard" | "enquiries" | "enquiry-detail" | "trips" | "trip-editor"
@@ -73,14 +74,12 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
           onClick={() => setCollapsed(false)}
           title="Expand sidebar"
         >
-          <div className="w-9 h-9 rounded-xl bg-[#e8622a] flex items-center justify-center shrink-0 group-hover:ring-2 group-hover:ring-white/30 transition">
-            <span className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
-          </div>
+          <img src={logoImg} alt="Yatrivo" className="w-8 h-8 object-contain group-hover:scale-105 transition-transform" />
         </div>
       ) : (
         <div className="p-4 border-b border-[#1a3d31] flex items-center gap-3">
-          <Link to="/admin/dashboard" className="w-9 h-9 rounded-xl bg-[#e8622a] flex items-center justify-center shrink-0">
-            <span className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
+          <Link to="/admin/dashboard" className="shrink-0 flex items-center">
+            <img src={logoImg} alt="Yatrivo" className="w-8 h-8 object-contain hover:scale-105 transition-transform" />
           </Link>
           <div className="flex-1 min-w-0">
             <Link to="/admin/dashboard" className="text-white font-bold text-base leading-tight block hover:text-[#7aab95] transition" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</Link>
@@ -151,8 +150,8 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
               <div className="text-white text-xs font-semibold truncate">
                 {adminUser?.fullName || (isSuperAdmin ? "Super Admin" : "Admin")}
               </div>
-              <div className="text-[#7aab95] text-xs truncate max-w-[140px]" title={adminUser?.email || "admin@yatrivo.com"}>
-                {adminUser?.email || "admin@yatrivo.com"}
+              <div className="text-[#7aab95] text-xs truncate max-w-[140px]" title={adminUser?.email || ""}>
+                {adminUser?.email || ""}
               </div>
             </div>
           </div>

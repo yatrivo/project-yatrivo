@@ -39,25 +39,3 @@ apiRouter.use(dashboardRouter);
 apiRouter.use(usersRouter);
 apiRouter.use("/media", mediaRouter);
 
-
-// Test routes to verify and demonstrate role authorization middleware
-if (env.NODE_ENV !== "production") {
-  apiRouter.get(
-    "/test/admin-only",
-    authenticate,
-    requireAdmin,
-    (req, res) => {
-      res.json({ message: "Admin access granted", user: req.user });
-    }
-  );
-
-  apiRouter.get(
-    "/test/super-admin-only",
-    authenticate,
-    requireSuperAdmin,
-    (req, res) => {
-      res.json({ message: "Super Admin access granted", user: req.user });
-    }
-  );
-}
-

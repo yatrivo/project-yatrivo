@@ -14,7 +14,7 @@ const Stars = () => (
 
 export default function HomePage() {
   const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews, destinations, siteSettings } = useApp();
-  const { heroImages, heroTitle, heroSubtitle, carouselSlides, featuredReviewIds, featuredDestIds, whyUsTitle, whyUsDesc } = homepageContent;
+  const { heroImages, carouselSlides, featuredReviewIds, featuredDestIds, whyUsTitle, whyUsDesc } = homepageContent;
 
   // Featured destinations from context
   const featuredDestinations = (() => {
@@ -41,7 +41,7 @@ export default function HomePage() {
 
   // Build resolved slides for the carousel
   const resolvedSlides = (() => {
-    const raw = (carouselSlides && carouselSlides.length > 0) ? carouselSlides : heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: heroTitle, subtitle: heroSubtitle }));
+    const raw = (carouselSlides && carouselSlides.length > 0) ? carouselSlides : heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" }));
     return raw.map((slide) => {
       if (slide.type === "static") {
         return { imageUrl: slide.imageUrl, title: slide.title, subtitle: slide.subtitle, tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };

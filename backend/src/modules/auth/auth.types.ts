@@ -46,7 +46,7 @@ export interface PasswordResetTokenRecord {
 export interface UserAuthIdentityRecord {
   id: string;
   user_id: string;
-  provider: "password" | "phone_otp" | "google";
+  provider: "password" | "google";
   provider_subject: string | null;
   provider_email: string | null;
   created_at: string | Date;

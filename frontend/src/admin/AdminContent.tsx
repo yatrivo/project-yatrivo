@@ -31,10 +31,8 @@ type AddSlideMode = null | "trip" | "static";
 
 function HeroTab() {
   const { homepageContent, setHomepageContent, showToast, tripInstances, trips, refreshContent } = useApp();
-  const [heroTitle, setHeroTitle] = useState(homepageContent.heroTitle);
-  const [heroSubtitle, setHeroSubtitle] = useState(homepageContent.heroSubtitle);
   const [slides, setSlides] = useState<CarouselSlide[]>(
-    homepageContent.carouselSlides ?? homepageContent.heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: homepageContent.heroTitle, subtitle: homepageContent.heroSubtitle }))
+    homepageContent.carouselSlides ?? homepageContent.heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" }))
   );
   const [addMode, setAddMode] = useState<AddSlideMode>(null);
   const [saving, setSaving] = useState(false);
@@ -73,8 +71,6 @@ function HeroTab() {
       });
 
       await contentApi.updateHomepageConfig({
-        heroTitle,
-        heroSubtitle,
         whyUsTitle: homepageContent.whyUsTitle,
         whyUsDescription: homepageContent.whyUsDesc,
         slides: apiSlides,
@@ -88,7 +84,7 @@ function HeroTab() {
         })),
       });
 
-      setHomepageContent({ ...homepageContent, heroTitle, heroSubtitle, carouselSlides: slides });
+      setHomepageContent({ ...homepageContent, carouselSlides: slides });
       await refreshContent();
       showToast("Hero content saved.", "success");
     } catch (err) {
@@ -162,14 +158,9 @@ function HeroTab() {
 
   return (
     <div className="space-y-5">
-      <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Hero Section</h3>
       <div>
-        <label className="block text-sm font-medium text-[#4a5568] mb-1">Default Hero Title</label>
-        <input value={heroTitle} onChange={(e) => setHeroTitle(e.target.value)} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-      </div>
-      <div>
-        <label className="block text-sm font-medium text-[#4a5568] mb-1">Default Hero Subtitle</label>
-        <textarea value={heroSubtitle} onChange={(e) => setHeroSubtitle(e.target.value)} rows={3} className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] resize-none" />
+        <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Hero Section</h3>
+        <p className="text-sm text-[#718096] mt-1">Manage the hero carousel slides displayed on the public homepage.</p>
       </div>
 
       {/* Carousel Slides */}
@@ -340,8 +331,6 @@ function FeaturedTab() {
     setSaving(true);
     try {
       await contentApi.updateHomepageConfig({
-        heroTitle: homepageContent.heroTitle,
-        heroSubtitle: homepageContent.heroSubtitle,
         whyUsTitle: homepageContent.whyUsTitle,
         whyUsDescription: homepageContent.whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => {
@@ -415,8 +404,6 @@ function WhyUsTab() {
     setSaving(true);
     try {
       await contentApi.updateHomepageConfig({
-        heroTitle: homepageContent.heroTitle,
-        heroSubtitle: homepageContent.heroSubtitle,
         whyUsTitle,
         whyUsDescription: whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => {

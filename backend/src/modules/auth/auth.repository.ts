@@ -266,7 +266,7 @@ export const authRepository = {
   async createIdentity(
     params: {
       userId: string;
-      provider: "password" | "phone_otp" | "google";
+      provider: "password" | "google";
       providerSubject?: string | null;
       providerEmail?: string | null;
     },

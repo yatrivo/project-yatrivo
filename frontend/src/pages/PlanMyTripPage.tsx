@@ -38,14 +38,9 @@ export default function PlanMyTripPage() {
 
   const [stepErrors, setStepErrors] = useState<Record<string, string>>({});
 
-  // 1. Available active destinations (filtered to exclude test items)
+  // 1. Available active destinations
   const activeDestinations = useMemo(() => {
-    return destinations.filter(
-      (d) =>
-        d.status !== "archived" &&
-        !d.name.toLowerCase().includes("media e2e") &&
-        !d.name.toLowerCase().includes("test")
-    );
+    return destinations.filter((d) => d.status !== "archived");
   }, [destinations]);
 
   // Toggle destination selection (multi-select on Step 1)

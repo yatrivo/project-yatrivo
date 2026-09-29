@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, useSearchParams, Navigate, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import ForgotPasswordModal from "./ForgotPasswordModal";
+import logoImg from "@/imports/logo.png";
 
 export default function AdminLogin() {
   const { adminLogin, adminLoggedIn, showToast } = useApp();
@@ -52,10 +53,8 @@ export default function AdminLogin() {
       <div className="w-full max-w-md">
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
-            <div className="w-10 h-10 rounded-xl bg-[#e8622a] flex items-center justify-center group-hover:ring-2 group-hover:ring-white/30 transition">
-              <span className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
-            </div>
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-2 group">
+            <img src={logoImg} alt="Yatrivo" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
             <span className="text-white text-2xl font-bold" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</span>
           </Link>
           <p className="text-[#a3bfb5] text-sm">Travel Admin Panel</p>
@@ -73,7 +72,7 @@ export default function AdminLogin() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="yatrivo3@gmail.com"
+                placeholder="admin@yatrivo.com"
                 className="w-full border border-[#e2e8f0] rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:border-[#0f2922] transition"
               />
             </div>
@@ -150,10 +149,6 @@ export default function AdminLogin() {
             </Link>
             <span>Authorized access</span>
           </div>
-
-          <p className="text-center text-xs text-[#718096] mt-4">
-            Super Admin: <span className="font-mono bg-gray-100 px-1 rounded text-[#0f2922]">yatrivo3@gmail.com</span>
-          </p>
         </div>
       </div>
 

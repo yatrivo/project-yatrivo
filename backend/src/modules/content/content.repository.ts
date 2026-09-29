@@ -41,8 +41,6 @@ export const seedDefaultHomepageConfig = async (): Promise<void> => {
   }
 
   await upsertHomepageConfig({
-    heroTitle: "Live Deeply. Travel Boldly.",
-    heroSubtitle: "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
     whyUsTitle: "The Mindful Adventure Movement",
     whyUsDescription: "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection.",
     status: "published",
@@ -166,8 +164,8 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
       }
     }
 
-    const heroTitle = data.heroTitle ?? data.hero_title ?? "Live Deeply. Travel Boldly.";
-    const heroSubtitle = data.heroSubtitle ?? data.hero_subtitle ?? "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.";
+    const heroTitle = data.heroTitle ?? data.hero_title ?? null;
+    const heroSubtitle = data.heroSubtitle ?? data.hero_subtitle ?? null;
     const whyUsTitle = data.whyUsTitle ?? data.why_us_title ?? "The Mindful Adventure Movement";
     const whyUsDesc = data.whyUsDescription ?? data.why_us_description ?? data.whyUsDesc ?? "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions.";
     const status = data.status ?? "published";

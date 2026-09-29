@@ -1,7 +1,7 @@
 export interface HomepageConfig {
   id?: string;
-  hero_title: string | null;
-  hero_subtitle: string | null;
+  hero_title?: string | null;
+  hero_subtitle?: string | null;
   why_us_title: string | null;
   why_us_description: string | null;
   status: string | null;

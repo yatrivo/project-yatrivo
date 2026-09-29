@@ -89,8 +89,8 @@ export type CarouselSlide =
 
 export interface HomepageContent {
   heroImages: string[];
-  heroTitle: string;
-  heroSubtitle: string;
+  heroTitle?: string;
+  heroSubtitle?: string;
   featuredDestIds: string[];
   whyUsTitle: string;
   whyUsDesc: string;
@@ -635,8 +635,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
         });
         setHomepageContent((prev) => ({
           ...prev,
-          heroTitle: homepage.heroTitle || prev.heroTitle,
-          heroSubtitle: homepage.heroSubtitle || prev.heroSubtitle,
           whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
           whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
           featuredDestIds: homepage.featuredDestinationIds.length > 0 ? homepage.featuredDestinationIds : prev.featuredDestIds,
@@ -716,8 +714,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     try {
       await contentApi.updateHomepageConfig({
-        heroTitle: homepageContent.heroTitle,
-        heroSubtitle: homepageContent.heroSubtitle,
         whyUsTitle: homepageContent.whyUsTitle,
         whyUsDescription: homepageContent.whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => ({

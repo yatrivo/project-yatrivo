@@ -8,8 +8,6 @@ export const getPublicHomepage = async (_req: Request, res: Response): Promise<v
     res.status(200).json({
       status: "success",
       data: {
-        heroTitle: "Live Deeply. Travel Boldly.",
-        heroSubtitle: "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
         whyUsTitle: "The Mindful Adventure Movement",
         whyUsDescription: "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions.",
         slides: [],

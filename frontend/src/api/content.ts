@@ -25,8 +25,8 @@ export interface WhyUsPointApi {
 
 export interface HomepageConfigApi {
   id?: string;
-  heroTitle: string;
-  heroSubtitle: string;
+  heroTitle?: string | null;
+  heroSubtitle?: string | null;
   whyUsTitle: string;
   whyUsDescription: string;
   slides: CarouselSlideApi[];
