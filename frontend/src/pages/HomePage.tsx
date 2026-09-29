@@ -258,7 +258,7 @@ export default function HomePage() {
           <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
             <div>
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">CURATED HIMALAYAN WONDERS</div>
-              <h2 className="text-[#0f2922] text-3xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Destinations that Stir the Soul</h2>
+              <h2 className="section-heading text-[#0f2922]">Destinations that Stir the Soul</h2>
             </div>
             <Link to="/destinations" className="border border-[#0f2922] text-[#0f2922] text-sm px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0 inline-block">
               VIEW ALL DESTINATIONS
@@ -277,7 +277,7 @@ export default function HomePage() {
                   <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wider mb-1 text-contrast-subtle">
                     {d.category?.toUpperCase() || d.experienceTags?.[0]?.toUpperCase() || "HIMALAYAN DESTINATION"}
                   </div>
-                  <div className="text-white text-xl font-medium text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{d.name}</div>
+                  <div className="text-white card-title text-contrast-title font-medium">{d.name}</div>
                 </div>
               </Link>
             ))}
@@ -294,7 +294,7 @@ export default function HomePage() {
             </div>
             <div>
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY TRAVELERS LOVE US</div>
-              <h2 className="text-[#0f2922] text-3xl sm:text-4xl md:text-5xl font-bold mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+              <h2 className="section-heading text-[#0f2922] mb-5">
                 {whyUsTitle || "The Mindful Adventure Movement"}
               </h2>
               <p className="text-[#4a5568] text-sm leading-relaxed mb-8">
@@ -326,7 +326,7 @@ export default function HomePage() {
       {/* Testimonials */}
       <section className="py-16 bg-[#f7f8f5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="text-[#0f2922] text-3xl sm:text-4xl text-center mb-10" style={{ fontFamily: "var(--font-serif)" }}>Wanderers Speak From Their Hearts</h2>
+          <h2 className="section-heading text-[#0f2922] text-center mb-10">Wanderers Speak From Their Hearts</h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
             {featuredReviews.map((r) => (
               <div key={r.id} className="bg-white rounded-2xl p-6 border border-[#e2e8f0]">
@@ -345,7 +345,7 @@ export default function HomePage() {
         <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=600&fit=crop&auto=format" alt="Forest mountain path" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Travel Better?</h2>
+          <h2 className="section-heading text-white mb-4">Ready to Travel Better?</h2>
           <p className="text-white/70 text-base mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
           <Link
             to="/plan"

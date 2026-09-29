@@ -81,7 +81,7 @@ export default function TripsPage() {
       {/* Header */}
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">CHOOSE YOUR EXPEDITION</div>
-        <h1 className="text-[#0f2922] text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Curated Himalayan Experiences</h1>
+        <h1 className="page-heading text-[#0f2922] mb-4">Curated Himalayan Experiences</h1>
         <p className="text-[#4a5568] text-sm sm:text-base max-w-xl leading-relaxed">
           No crowded buses, no rushed tourist traps. Enjoy small active explorer groups, pristine wood cabins, and deep connection with nature.
         </p>

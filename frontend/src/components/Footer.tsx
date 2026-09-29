@@ -67,7 +67,7 @@ export default function Footer() {
 
         {/* Popular Spots */}
         <div>
-          <h4 className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">POPULAR SPOTS</h4>
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">POPULAR SPOTS</div>
           <ul className="space-y-2.5">
             {[
               { label: "Chopta", dest: "chopta" },
@@ -91,7 +91,7 @@ export default function Footer() {
 
         {/* Connect */}
         <div>
-          <h4 className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">CONNECT WITH US</h4>
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-4">CONNECT WITH US</div>
           <div className="space-y-2.5 mb-4">
             {[
               { label: "Travel With Us", path: "/travel-with-us" },

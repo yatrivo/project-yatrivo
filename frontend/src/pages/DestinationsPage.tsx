@@ -62,7 +62,7 @@ export default function DestinationsPage() {
       {/* Header */}
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">EXPLORE THE SACRED STATE</div>
-        <h1 className="text-[#0f2922] text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Our Curated Havens in Uttarakhand</h1>
+        <h1 className="page-heading text-[#0f2922] mb-4">Our Curated Havens in Uttarakhand</h1>
         <p className="text-[#4a5568] text-sm sm:text-base max-w-2xl leading-relaxed">
           From the sacred rapids of Ganga in Rishikesh to the snow-laden slopes of Auli and high alpine quiet of Chopta, discover pristine landscapes curated specifically for active, youthful souls.
         </p>
