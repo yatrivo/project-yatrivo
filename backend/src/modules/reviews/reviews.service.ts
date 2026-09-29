@@ -90,7 +90,7 @@ export const reviewsService = {
     }
 
     const createdRequests: ReviewRequestDto[] = [];
-    const siteUrl = env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",")[0].trim() : "http://localhost:3000";
+    const siteUrl = env.FRONTEND_URL || (env.CORS_ORIGIN ? env.CORS_ORIGIN.split(",")[0].trim() : "http://localhost:3000");
 
     for (const targetId of bookingIds) {
       const traveller = departure.enrolledTravellers.find(

@@ -5,8 +5,49 @@ import type { Express } from "express";
 import { corsOrigins, env, isProduction } from "../config/env";
 import { AppError } from "../errors/AppError";
 
+/**
+ * Checks if a given hostname is a localhost/loopback address.
+ * Permitted in both development and production (e.g. for administrative testing or local testing against production API).
+ */
+function isLocalhost(hostname: string): boolean {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "[::1]" ||
+    hostname === "::1"
+  );
+}
+
+/**
+ * Checks if a given hostname belongs to the legitimate Yatrivo production domain.
+ * Only yatrivo.co.in and its subdomains are allowed.
+ */
+function isLegitimateProductionDomain(hostname: string): boolean {
+  return (
+    hostname === "yatrivo.co.in" ||
+    hostname.endsWith(".yatrivo.co.in")
+  );
+}
+
+/**
+ * Checks if a given hostname belongs to a private local area network (RFC 1918 / mDNS).
+ * Used only during development/testing for accessing from mobile/tablet devices on the same Wi-Fi.
+ */
+function isPrivateLan(hostname: string): boolean {
+  // 192.168.0.0/16
+  if (/^192\.168\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  // 10.0.0.0/8
+  if (/^10\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  // 172.16.0.0/12 (172.16.0.0 - 172.31.255.255)
+  if (/^172\.(1[6-9]|2\d|3[0-1])\.\d{1,3}\.\d{1,3}$/.test(hostname)) return true;
+  // .local mDNS hostnames
+  if (hostname.endsWith(".local")) return true;
+
+  return false;
+}
+
 function resolveCorsOrigin(origin: string | undefined, callback: (error: Error | null, allow?: boolean) => void): void {
-  // Allow requests without Origin header (e.g. mobile apps, curl, server-to-server)
+  // Allow requests without Origin header (e.g. mobile apps, curl, server-to-server, cron jobs)
   if (!origin) {
     callback(null, true);
     return;
@@ -14,39 +55,48 @@ function resolveCorsOrigin(origin: string | undefined, callback: (error: Error |
 
   const cleanOrigin = origin.replace(/\/+$/, "");
 
-  // Explicit allowed origins from CORS_ORIGIN
+  let originUrl: URL;
+  try {
+    originUrl = new URL(cleanOrigin);
+  } catch {
+    callback(new AppError(403, "CORS_ORIGIN_DENIED", `Invalid origin '${origin}'`));
+    return;
+  }
+
+  const hostname = originUrl.hostname.toLowerCase();
+
+  // 1. Always allow localhost / loopback on any port (supported in both dev and production)
+  if (isLocalhost(hostname)) {
+    callback(null, true);
+    return;
+  }
+
+  // 2. Allow only the legitimate Yatrivo production domain: yatrivo.co.in and its subdomains
+  if (isLegitimateProductionDomain(hostname)) {
+    callback(null, true);
+    return;
+  }
+
+  // 3. Explicit allowed origins from CORS_ORIGIN environment variable (wildcards disallowed in production)
+  const allowedConfigOrigins = isProduction
+    ? corsOrigins.filter((o) => o !== "*")
+    : corsOrigins;
+
   if (
-    corsOrigins.includes("*") ||
-    corsOrigins.includes(origin) ||
-    corsOrigins.includes(cleanOrigin)
+    allowedConfigOrigins.includes(origin) ||
+    allowedConfigOrigins.includes(cleanOrigin)
   ) {
     callback(null, true);
     return;
   }
 
-  // Allow production domains and subdomains for Yatrivo
-  try {
-    const url = new URL(cleanOrigin);
-    if (
-      url.hostname === "yatrivo.co.in" ||
-      url.hostname.endsWith(".yatrivo.co.in") ||
-      url.hostname === "yatrivo.com" ||
-      url.hostname.endsWith(".yatrivo.com")
-    ) {
-      callback(null, true);
-      return;
-    }
-  } catch {
-    // Invalid URL format
-  }
-
-  // In non-production environments (development/test), allow LAN/local network access
-  if (!isProduction) {
+  // 4. In development/testing ONLY: allow verified LAN / local Wi-Fi private IP access
+  if (!isProduction && isPrivateLan(hostname)) {
     callback(null, true);
     return;
   }
 
-  callback(new AppError(403, "CORS_ORIGIN_DENIED", `Origin '${origin}' is not allowed`));
+  callback(new AppError(403, "CORS_ORIGIN_DENIED", `Origin '${origin}' is not allowed by CORS policy`));
 }
 
 export function registerSecurityMiddleware(app: Express): void {

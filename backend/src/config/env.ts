@@ -50,11 +50,17 @@ export const env = envSchema.parse(process.env);
 
 export const activePort = env.PORT || env.BACKEND_PORT;
 
+export const isProduction = env.NODE_ENV === "production";
+
 export const corsOrigins = env.CORS_ORIGIN.split(",")
   .map((origin) => origin.trim().replace(/\/+$/, ""))
-  .filter(Boolean);
-
-export const isProduction = env.NODE_ENV === "production";
+  .filter((origin) => {
+    if (!origin) return false;
+    if (isProduction && origin === "*") {
+      return false; // Wildcard strictly disallowed in production
+    }
+    return true;
+  });
 export const isRedisConfigured = Boolean(env.UPSTASH_REDIS_REST_URL && env.UPSTASH_REDIS_REST_TOKEN);
 export const isJwtConfigured = Boolean(env.JWT_ACCESS_TOKEN_SECRET && env.JWT_REFRESH_TOKEN_SECRET);
 export const isStorageConfigured = Boolean(
