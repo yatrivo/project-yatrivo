@@ -161,7 +161,7 @@ export default function HomePage() {
               {/* Slide text & buttons */}
               <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
                 <h1
-                  className="text-white text-2xl sm:text-5xl md:text-7xl leading-[1.15] sm:leading-[1.05] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
+                  className="text-white text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.02] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
                   style={{ fontFamily: "var(--font-serif)" }}
                 >
                   {slide.title.split(". ").map((part, pIdx, arr) => (
