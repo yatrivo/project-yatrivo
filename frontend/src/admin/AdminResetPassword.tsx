@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { authApi } from "@/api/auth";
+import logoImg from "@/imports/logo.png";
 
 export default function AdminResetPassword() {
   const [searchParams] = useSearchParams();
@@ -51,10 +52,8 @@ export default function AdminResetPassword() {
       <div className="w-full max-w-md">
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <Link to="/" className="inline-flex items-center gap-2 mb-2 group">
-            <div className="w-10 h-10 rounded-xl bg-[#e8622a] flex items-center justify-center group-hover:ring-2 group-hover:ring-white/30 transition">
-              <span className="text-white font-bold text-lg" style={{ fontFamily: "var(--font-serif, serif)" }}>Y</span>
-            </div>
+          <Link to="/" className="inline-flex items-center gap-2.5 mb-2 group">
+            <img src={logoImg} alt="Yatrivo" className="w-10 h-10 object-contain group-hover:scale-105 transition-transform" />
             <span className="text-white text-2xl font-bold" style={{ fontFamily: "var(--font-serif, serif)" }}>Yatrivo</span>
           </Link>
           <p className="text-[#a3bfb5] text-sm">Administrator Account Recovery</p>

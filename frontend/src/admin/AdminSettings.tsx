@@ -384,8 +384,7 @@ export default function AdminSettings() {
                         <thead className="bg-[#f7f8f5] text-[#4a5568] text-xs uppercase font-medium border-b border-[#e2e8f0]">
                           <tr>
                             <th className="px-4 py-3 text-left">Days Before Travel</th>
-                            <th className="px-4 py-3 text-left w-28">Refund %</th>
-                            <th className="px-4 py-3 text-left">Note / Terms</th>
+                            <th className="px-4 py-3 text-left w-36">Refund %</th>
                             <th className="px-3 py-3 w-10 text-center"></th>
                           </tr>
                         </thead>
@@ -397,23 +396,17 @@ export default function AdminSettings() {
                                   value={row.days}
                                   onChange={(e) => updateRule(i, "days", e.target.value)}
                                   className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:border-[#0f2922]"
-                                  placeholder="e.g. 30+ days before"
+                                  placeholder="e.g. 15+ days before departure"
                                 />
                               </td>
                               <td className="px-3 py-2.5">
                                 <input
                                   value={row.refund}
                                   onChange={(e) => updateRule(i, "refund", e.target.value)}
-                                  className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#e8622a] focus:outline-none focus:border-[#0f2922]"
-                                  placeholder="e.g. 100%"
-                                />
-                              </td>
-                              <td className="px-3 py-2.5">
-                                <input
-                                  value={row.note}
-                                  onChange={(e) => updateRule(i, "note", e.target.value)}
-                                  className="w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#718096] focus:outline-none focus:border-[#0f2922]"
-                                  placeholder="e.g. Full refund less processing fee"
+                                  className={`w-full border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs font-semibold focus:outline-none focus:border-[#0f2922] ${
+                                    parseInt(row.refund) >= 90 ? "text-emerald-600" : "text-[#e8622a]"
+                                  }`}
+                                  placeholder="e.g. 90%"
                                 />
                               </td>
                               <td className="px-2 py-2.5 text-center">
