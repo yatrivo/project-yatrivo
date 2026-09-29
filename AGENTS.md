@@ -67,3 +67,17 @@ Rules:
 - If graphify-out/wiki/index.md exists, navigate it instead of reading raw files
 - For cross-module "how does X relate to Y" questions, prefer `graphify query "<question>"`, `graphify path "<A>" "<B>"`, or `graphify explain "<concept>"` over grep — these traverse the graph's EXTRACTED + INFERRED edges instead of scanning files
 - After modifying code files in this session, run `graphify update .` to keep the graph current (AST-only, no API cost)
+
+## Agent Conduct Rules
+
+These rules govern agent behavior and must be followed unconditionally.
+
+### Git Operations
+- **Never run `git add`, `git commit`, `git push`, `git stash`, or any other git write operation autonomously.**
+- Only run read-only git commands (e.g. `git status`, `git diff`, `git log`) if directly relevant to a task.
+- Git staging and committing is exclusively the user's responsibility. Do not do it unless the user explicitly asks in that specific message.
+
+### Environment Files
+- **Never read `.env`, `.env.local`, `.env.production`, `.env.development`, or any other environment variable files.**
+- These files contain secrets (API keys, database credentials, tokens) and must not be opened, printed, or inspected.
+- If environment variable values are needed to complete a task, ask the user to provide only the specific value required — do not read the file yourself.
