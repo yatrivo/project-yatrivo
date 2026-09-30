@@ -3,8 +3,10 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestinations";
 import { destinationsApi } from "@/api/destinations";
+import { clientCache } from "@/utils/clientCache";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import ProgressiveImage from "@/components/ProgressiveImage";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -68,7 +70,9 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
         activities: form.activities,
         experienceTags: form.experienceTags,
       });
-      await refreshDestinations();
+      clientCache.invalidate("destinations:active");
+      clientCache.invalidate("homepage:content");
+      await refreshDestinations({ bypassCache: true });
       setIsEditing(false);
       showToast(`${form.name} updated successfully.`, "success");
     } catch (err: unknown) {
@@ -128,10 +132,12 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
       {/* Hero with Single Cover Image */}
       <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
-        <img
+        <ProgressiveImage
           src={dest.image}
           alt={dest.name}
-          className="absolute inset-0 w-full h-full object-cover"
+          className="w-full h-full object-cover"
+          containerClassName="absolute inset-0 w-full h-full"
+          priority={true}
         />
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-8">
@@ -256,11 +262,12 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   {dest.gallery.map((img, i) => (
                     <div key={i} className="h-56 rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm hover:shadow-md transition group">
-                      <img
+                      <ProgressiveImage
                         src={img}
                         alt={`${dest.name} Gallery ${i + 1}`}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
+                        containerClassName="w-full h-full relative"
+                        priority={false}
                       />
                     </div>
                   ))}

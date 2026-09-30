@@ -11,6 +11,7 @@ import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
 import { settingsApi, type AllSettings } from "@/api/settings";
+import { clientCache } from "@/utils/clientCache";
 
 export type { TripInstance, AdminUser, AllSettings };
 
@@ -110,9 +111,8 @@ export interface GalleryImage {
 
 const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
   heroImages: [],
-  heroTitle: "Live Deeply. Travel Boldly.",
-  heroSubtitle:
-    "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+  heroTitle: "",
+  heroSubtitle: "",
   featuredDestIds: ["chopta", "auli", "kedarnath"],
   whyUsTitle: "The Mindful Adventure Movement",
   whyUsDesc:
@@ -168,16 +168,17 @@ interface AppContextType {
   // Data
   destinations: Destination[];
   setDestinations: Dispatch<SetStateAction<Destination[]>>;
-  refreshDestinations: () => Promise<void>;
+  refreshDestinations: (options?: { bypassCache?: boolean }) => Promise<void>;
   trips: Trip[];
   setTrips: Dispatch<SetStateAction<Trip[]>>;
-  refreshTrips: () => Promise<void>;
+  refreshTrips: (options?: { bypassCache?: boolean }) => Promise<void>;
   tripInstances: TripInstance[];
   setTripInstances: Dispatch<SetStateAction<TripInstance[]>>;
   reviews: Review[];
   setReviews: Dispatch<SetStateAction<Review[]>>;
   homepageContent: HomepageContent;
   setHomepageContent: Dispatch<SetStateAction<HomepageContent>>;
+  clientCache: typeof clientCache;
 
   // Bookings
   bookings: Booking[];
@@ -202,7 +203,7 @@ interface AppContextType {
   removeGalleryImage: (id: string) => void;
 
   // Content refresh (from backend)
-  refreshContent: () => Promise<void>;
+  refreshContent: (options?: { bypassCache?: boolean }) => Promise<void>;
 
   // Reviews & Homepage Featured Reviews
   refreshReviews: () => Promise<void>;
@@ -210,12 +211,12 @@ interface AppContextType {
 
   // Site Settings
   siteSettings: AllSettings | null;
-  refreshSettings: () => Promise<void>;
+  refreshSettings: (options?: { bypassCache?: boolean }) => Promise<void>;
 
   // Site Assets (static page images managed via admin)
   siteAssets: SiteAssetsMap;
   setSiteAssets: Dispatch<SetStateAction<SiteAssetsMap>>;
-  refreshSiteAssets: () => Promise<void>;
+  refreshSiteAssets: (options?: { bypassCache?: boolean }) => Promise<void>;
 }
 
 
@@ -331,19 +332,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [aboutContent, setAboutContent] = useState("");
   const [termsContent, setTermsContent] = useState("");
   const [privacyContent, setPrivacyContent] = useState("");
-  const [siteSettings, setSiteSettings] = useState<AllSettings | null>(null);
+  const [siteSettings, setSiteSettings] = useState<AllSettings | null>(() => clientCache.get<AllSettings>("site_settings"));
   const [siteAssets, setSiteAssets] = useState<SiteAssetsMap>(() =>
+    clientCache.get<SiteAssetsMap>("site_assets") ||
     DEFAULT_SITE_ASSET_SLOTS.reduce((acc, slot) => {
       acc[slot.assetKey] = slot;
       return acc;
     }, {} as SiteAssetsMap)
   );
-  const [destinations, setDestinations] = useState<Destination[]>(INITIAL_DESTINATIONS);
+  const [destinations, setDestinations] = useState<Destination[]>(() => clientCache.get<Destination[]>("destinations:active") || INITIAL_DESTINATIONS);
 
-  const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
-  const [tripInstances, setTripInstances] = useState<TripInstance[]>(INITIAL_TRIP_INSTANCES);
+  const [trips, setTrips] = useState<Trip[]>(() => clientCache.get<Trip[]>("trips:published") || INITIAL_TRIPS);
+  const [tripInstances, setTripInstances] = useState<TripInstance[]>(() => {
+    const cachedTrips = clientCache.get<Trip[]>("trips:published");
+    if (cachedTrips) {
+      const instances = cachedTrips.flatMap((t) => t.departures || []);
+      if (instances.length > 0) return instances;
+    }
+    return INITIAL_TRIP_INSTANCES;
+  });
   const [reviews, setReviews] = useState<Review[]>(REVIEWS);
-  const [homepageContent, setHomepageContent] = useState<HomepageContent>(DEFAULT_HOMEPAGE_CONTENT);
+  const [homepageContent, setHomepageContent] = useState<HomepageContent>(() => clientCache.get<HomepageContent>("homepage:content") || DEFAULT_HOMEPAGE_CONTENT);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(SEED_GALLERY_IMAGES);
   const [bookings, setBookings] = useState<Booking[]>([
     { id: "BK001", customerName: "Rahul Sharma", customerPhone: "+91 98765 43210", destination: "Chopta", tripName: "Chopta Tungnath Trek", tripDate: "Oct 15, 2026", travellers: [{ name: "Rahul Sharma", age: "28", gender: "Male" }, { name: "Anjali Sharma", age: "26", gender: "Female" }], totalAmount: "₹17,000", paymentStatus: "Paid", status: "Confirmed", bookingDate: "2026-09-10" },
@@ -522,27 +531,70 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setGalleryImages((prev) => prev.filter((g) => g.id !== id));
   }, []);
 
-  const refreshDestinations = useCallback(async () => {
+  const refreshDestinations = useCallback(async (options?: { bypassCache?: boolean }) => {
     try {
-      const data = await destinationsApi.list({ includeArchived: tokenStorage.hasTokens() });
-      if (data.destinations && data.destinations.length > 0) {
-        setDestinations(data.destinations);
+      const hasAuth = tokenStorage.hasTokens();
+      const shouldBypass = options?.bypassCache || hasAuth;
+
+      const dests = await clientCache.fetchWithCache(
+        "destinations:active",
+        async () => {
+          const res = await destinationsApi.list({ includeArchived: hasAuth });
+          return res.destinations || [];
+        },
+        {
+          staleTimeMs: 5 * 60 * 1000,
+          maxAgeMs: 30 * 60 * 1000,
+          bypassCache: shouldBypass,
+          onRevalidate: (fresh) => {
+            if (fresh && fresh.length > 0) {
+              setDestinations(fresh);
+            }
+          }
+        }
+      );
+
+      if (dests && dests.length > 0) {
+        setDestinations(dests);
       }
     } catch (err) {
       console.warn("Failed to load destinations from backend:", err);
     }
   }, []);
 
-  const refreshTrips = useCallback(async () => {
+  const refreshTrips = useCallback(async (options?: { bypassCache?: boolean }) => {
     try {
       const hasAuth = tokenStorage.hasTokens();
-      const data = await tripsApi.list({
-        includeArchived: hasAuth,
-        status: hasAuth ? "all" : "published"
-      });
-      if (data.trips && Array.isArray(data.trips)) {
-        setTrips(data.trips);
-        const instances = data.trips.flatMap((t) => t.departures || []);
+      const shouldBypass = options?.bypassCache || hasAuth;
+
+      const tripsData = await clientCache.fetchWithCache(
+        "trips:published",
+        async () => {
+          const res = await tripsApi.list({
+            includeArchived: hasAuth,
+            status: hasAuth ? "all" : "published"
+          });
+          return res.trips || [];
+        },
+        {
+          staleTimeMs: 5 * 60 * 1000,
+          maxAgeMs: 30 * 60 * 1000,
+          bypassCache: shouldBypass,
+          onRevalidate: (freshTrips) => {
+            if (freshTrips && Array.isArray(freshTrips)) {
+              setTrips(freshTrips);
+              const instances = freshTrips.flatMap((t) => t.departures || []);
+              if (instances.length > 0) {
+                setTripInstances(instances);
+              }
+            }
+          }
+        }
+      );
+
+      if (tripsData && Array.isArray(tripsData)) {
+        setTrips(tripsData);
+        const instances = tripsData.flatMap((t) => t.departures || []);
         if (instances.length > 0) {
           setTripInstances(instances);
         }
@@ -599,38 +651,60 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshContent = useCallback(async () => {
+  const applyHomepageConfig = useCallback((homepage: Awaited<ReturnType<typeof contentApi.getPublicHomepage>>) => {
+    if (!homepage) return;
+    const mappedSlides: CarouselSlide[] = (homepage.slides || []).map((s) => {
+      if (s.slideType === "trip") {
+        return {
+          type: "trip" as const,
+          tripInstanceId: s.tripInstanceId || "",
+          title: s.titleOverride || undefined,
+          subtitle: s.subtitleOverride || undefined,
+        };
+      }
+      return {
+        type: "static" as const,
+        imageUrl: s.imageUrl || "",
+        title: s.titleOverride || "",
+        subtitle: s.subtitleOverride || "",
+      };
+    });
+    setHomepageContent((prev) => ({
+      ...prev,
+      whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
+      whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
+      featuredDestIds: homepage.featuredDestinationIds && homepage.featuredDestinationIds.length > 0
+        ? homepage.featuredDestinationIds
+        : prev.featuredDestIds,
+      featuredReviewIds: homepage.featuredReviewIds && homepage.featuredReviewIds.length > 0
+        ? homepage.featuredReviewIds
+        : prev.featuredReviewIds,
+      whyUsPoints: (homepage.whyUsPoints || []).length > 0
+        ? homepage.whyUsPoints.map((p) => ({ icon: p.icon || "✨", title: p.title, desc: p.description || "" }))
+        : prev.whyUsPoints,
+      carouselSlides: mappedSlides.length > 0 ? mappedSlides : prev.carouselSlides,
+    }));
+  }, []);
+
+  const refreshContent = useCallback(async (options?: { bypassCache?: boolean }) => {
+    const shouldBypass = options?.bypassCache || tokenStorage.hasTokens();
+
     // Load homepage config
     try {
-      const homepage = await contentApi.getPublicHomepage();
-      if (homepage) {
-        const mappedSlides: CarouselSlide[] = (homepage.slides || []).map((s) => {
-          if (s.slideType === "trip") {
-            return {
-              type: "trip" as const,
-              tripInstanceId: s.tripInstanceId || "",
-              title: s.titleOverride || undefined,
-              subtitle: s.subtitleOverride || undefined,
-            };
+      const homepage = await clientCache.fetchWithCache(
+        "homepage:content",
+        () => contentApi.getPublicHomepage(),
+        {
+          staleTimeMs: 5 * 60 * 1000,
+          maxAgeMs: 30 * 60 * 1000,
+          bypassCache: shouldBypass,
+          onRevalidate: (fresh) => {
+            if (fresh) applyHomepageConfig(fresh);
           }
-          return {
-            type: "static" as const,
-            imageUrl: s.imageUrl || "",
-            title: s.titleOverride || "",
-            subtitle: s.subtitleOverride || "",
-          };
-        });
-        setHomepageContent((prev) => ({
-          ...prev,
-          whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
-          whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
-          featuredDestIds: homepage.featuredDestinationIds.length > 0 ? homepage.featuredDestinationIds : prev.featuredDestIds,
-          featuredReviewIds: homepage.featuredReviewIds.length > 0 ? homepage.featuredReviewIds : prev.featuredReviewIds,
-          whyUsPoints: (homepage.whyUsPoints || []).length > 0
-            ? homepage.whyUsPoints.map((p) => ({ icon: p.icon || "✨", title: p.title, desc: p.description || "" }))
-            : prev.whyUsPoints,
-          carouselSlides: mappedSlides.length > 0 ? mappedSlides : prev.carouselSlides,
-        }));
+        }
+      );
+      if (homepage) {
+        applyHomepageConfig(homepage);
       }
     } catch (err) {
       console.warn("Failed to load homepage config from backend:", err);
@@ -721,6 +795,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           sortOrder: i
         }))
       });
+      clientCache.invalidate("homepage:content");
       return true;
     } catch (err) {
       console.error("Failed to update homepage reviews:", err);
@@ -728,9 +803,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [homepageContent]);
 
-  const refreshSettings = useCallback(async () => {
+  const refreshSettings = useCallback(async (options?: { bypassCache?: boolean }) => {
     try {
-      const s = await settingsApi.getPublicSettings();
+      const shouldBypass = options?.bypassCache || tokenStorage.hasTokens();
+      const s = await clientCache.fetchWithCache(
+        "site_settings",
+        () => settingsApi.getPublicSettings(),
+        {
+          staleTimeMs: 10 * 60 * 1000,
+          maxAgeMs: 30 * 60 * 1000,
+          bypassCache: shouldBypass,
+          onRevalidate: (fresh) => {
+            if (fresh) setSiteSettings(fresh);
+          }
+        }
+      );
       if (s) {
         setSiteSettings(s);
       }
@@ -739,9 +826,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const refreshSiteAssets = useCallback(async () => {
+  const refreshSiteAssets = useCallback(async (options?: { bypassCache?: boolean }) => {
     try {
-      const assets = await siteAssetsApi.getAll();
+      const shouldBypass = options?.bypassCache || tokenStorage.hasTokens();
+      const assets = await clientCache.fetchWithCache(
+        "site_assets",
+        () => siteAssetsApi.getAll(),
+        {
+          staleTimeMs: 10 * 60 * 1000,
+          maxAgeMs: 30 * 60 * 1000,
+          bypassCache: shouldBypass,
+          onRevalidate: (fresh) => {
+            if (fresh && Object.keys(fresh).length > 0) {
+              setSiteAssets(fresh);
+            }
+          }
+        }
+      );
       if (assets && Object.keys(assets).length > 0) {
         setSiteAssets(assets);
       }
@@ -784,6 +885,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateFeaturedReviewIds,
       siteSettings, refreshSettings,
       siteAssets, setSiteAssets, refreshSiteAssets,
+      clientCache,
     }}>
       {children}
     </AppContext.Provider>

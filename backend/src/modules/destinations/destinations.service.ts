@@ -24,15 +24,20 @@ async function invalidateDestinationCaches(id: string, slug?: string): Promise<v
   if (!redis.configured) return;
 
   try {
-    const keysToDelete = [
+    const keysToDelete = new Set<string>([
+      "destinations:list:active",
       "destinations:list:public",
-      `destination:${id}`
-    ];
+      "destinations:featured",
+      `destination:${id}`,
+      `destination:${id.toLowerCase()}`
+    ]);
     if (slug) {
-      keysToDelete.push(`destination:${slug}`);
+      keysToDelete.add(`destination:${slug}`);
+      keysToDelete.add(`destination:${slug.toLowerCase()}`);
     }
 
-    await Promise.all(keysToDelete.map((key) => redis.del(key)));
+    await Promise.all(Array.from(keysToDelete).map((key) => redis.del(key)));
+    logger.info({ id, slug, invalidatedKeys: Array.from(keysToDelete) }, "Destination Redis caches invalidated");
   } catch (error) {
     logger.warn({ error, id }, "Failed to invalidate destination Redis cache");
   }
@@ -55,11 +60,11 @@ export const destinationsService = {
       !filters.search &&
       (!filters.offset || filters.offset === 0);
 
-    const cacheKey = "destinations:list:public";
+    const cacheKey = "destinations:list:active";
 
     if (isSimplePublicList && redis.configured) {
       try {
-        const cached = await redis.get(cacheKey);
+        const cached = await redis.get(cacheKey) || await redis.get("destinations:list:public");
         if (cached) {
           return JSON.parse(cached);
         }
@@ -72,7 +77,7 @@ export const destinationsService = {
 
     if (isSimplePublicList && redis.configured && result.destinations.length > 0) {
       try {
-        await redis.set(cacheKey, JSON.stringify(result), 1800); // 30 mins TTL
+        await redis.set(cacheKey, JSON.stringify(result), 900); // 15 mins TTL
       } catch (error) {
         logger.warn({ error }, "Redis write error for destinations list");
       }
@@ -85,11 +90,12 @@ export const destinationsService = {
     idOrSlug: string,
     isAdmin = false
   ): Promise<DestinationDto> {
-    const cacheKey = `destination:${idOrSlug}`;
+    const normalizedKey = idOrSlug.toLowerCase();
+    const cacheKey = `destination:${normalizedKey}`;
 
     if (!isAdmin && redis.configured) {
       try {
-        const cached = await redis.get(cacheKey);
+        const cached = await redis.get(cacheKey) || await redis.get(`destination:${idOrSlug}`);
         if (cached) {
           return JSON.parse(cached);
         }
@@ -110,7 +116,7 @@ export const destinationsService = {
 
     if (!isAdmin && dest.status === "active" && redis.configured) {
       try {
-        await redis.set(cacheKey, JSON.stringify(dest), 3600); // 1 hour TTL
+        await redis.set(cacheKey, JSON.stringify(dest), 1800); // 30 mins TTL
       } catch (error) {
         logger.warn({ error, idOrSlug }, "Redis write error for destination");
       }

@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import ProgressiveImage from "@/components/ProgressiveImage";
 
 type SortKey = "recommended" | "name" | "popularity";
 
@@ -161,7 +162,7 @@ export default function DestinationsPage() {
       {/* Cards Grid */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sorted.map((d) => (
+          {sorted.map((d, idx) => (
             <Link
               key={d.id}
               to={`/destinations/${d.slug || d.id}`}
@@ -169,7 +170,13 @@ export default function DestinationsPage() {
             >
               <div>
                 <div className="h-52 overflow-hidden relative">
-                  <img src={d.image} alt={d.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <ProgressiveImage
+                    src={d.image}
+                    alt={d.name}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                    containerClassName="w-full h-full relative"
+                    priority={idx < 2}
+                  />
                   {d.season && (
                     <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white">
                       {d.season}

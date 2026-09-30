@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Destination, UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import { destinationsApi } from "@/api/destinations";
 import MediaPicker from "@/components/MediaPicker";
+import { clientCache } from "@/utils/clientCache";
 
 export interface DestFormData {
   name: string;
@@ -614,7 +615,9 @@ export default function AdminDestinations() {
         experienceTags: form.experienceTags,
       });
 
-      await refreshDestinations();
+      clientCache.invalidate("destinations:active");
+      clientCache.invalidate("homepage:content");
+      await refreshDestinations({ bypassCache: true });
       setModalMode(null);
       showToast(`${created.name} added successfully.`, "success");
     } catch (err: unknown) {
@@ -646,7 +649,9 @@ export default function AdminDestinations() {
         experienceTags: form.experienceTags,
       });
 
-      await refreshDestinations();
+      clientCache.invalidate("destinations:active");
+      clientCache.invalidate("homepage:content");
+      await refreshDestinations({ bypassCache: true });
       setModalMode(null);
       setEditingDest(null);
       showToast(`${updated.name} updated successfully.`, "success");
@@ -663,7 +668,9 @@ export default function AdminDestinations() {
     setIsArchiving(true);
     try {
       await destinationsApi.archive(archiveTarget.id);
-      await refreshDestinations();
+      clientCache.invalidate("destinations:active");
+      clientCache.invalidate("homepage:content");
+      await refreshDestinations({ bypassCache: true });
       showToast(`${archiveTarget.name} has been archived.`, "info");
       setArchiveTarget(null);
     } catch (err: unknown) {
@@ -679,7 +686,9 @@ export default function AdminDestinations() {
     setIsUnarchiving(true);
     try {
       await destinationsApi.unarchive(unarchiveTarget.id);
-      await refreshDestinations();
+      clientCache.invalidate("destinations:active");
+      clientCache.invalidate("homepage:content");
+      await refreshDestinations({ bypassCache: true });
       showToast(`${unarchiveTarget.name} restored to active.`, "success");
       setUnarchiveTarget(null);
     } catch (err: unknown) {

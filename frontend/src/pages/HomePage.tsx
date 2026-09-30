@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SiteImage from "@/components/SiteImage";
+import ProgressiveImage from "@/components/ProgressiveImage";
 import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 import logoImg from "@/imports/logo.png";
 
@@ -23,8 +24,8 @@ export default function HomePage() {
     featuredDestIds = [],
     whyUsTitle = "",
     whyUsDesc = "",
-    heroTitle = "Live Deeply. Travel Boldly.",
-    heroSubtitle = "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+    heroTitle = "",
+    heroSubtitle = "",
   } = homepageContent || {};
 
   // Featured destinations from context
@@ -58,13 +59,13 @@ export default function HomePage() {
 
     const mapped = raw.map((slide) => {
       if (slide.type === "static") {
-        return { imageUrl: slide.imageUrl || "", title: slide.title || "Explore Uttarakhand", subtitle: slide.subtitle || "", tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };
+        return { imageUrl: slide.imageUrl || "", title: slide.title || "", subtitle: slide.subtitle || "", tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };
       }
       const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
       const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
       return {
         imageUrl: trip?.image || heroImages[0] || "",
-        title: slide.title || trip?.name || "Upcoming Trip",
+        title: slide.title || trip?.name || "",
         subtitle: slide.subtitle || trip?.shortDescription || trip?.overview || "",
         tripId: trip?.id,
         tripInstanceId: slide.tripInstanceId,
@@ -75,17 +76,7 @@ export default function HomePage() {
 
     if (mapped.length > 0) return mapped;
 
-    return [
-      {
-        imageUrl: "",
-        title: heroTitle || "Live Deeply. Travel Boldly.",
-        subtitle: heroSubtitle || "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
-        tripId: undefined,
-        tripInstanceId: undefined,
-        price: undefined,
-        displayDate: undefined,
-      }
-    ];
+    return [];
   })();
 
   const [heroIdx, setHeroIdx] = useState(0);
@@ -171,45 +162,54 @@ export default function HomePage() {
           className="flex h-full w-full transition-transform duration-700 ease-out"
           style={{ transform: `translateX(-${heroIdx * 100}%)` }}
         >
-          {resolvedSlides.map((slide, i) => (
-            <div
-              key={i}
-              className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden"
-            >
-              {/* Background image */}
-              {slide.imageUrl ? (
-                <img
-                  src={slide.imageUrl}
-                  alt={slide.title}
-                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-                />
-              ) : (
-                <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
-              )}
+          {resolvedSlides.length === 0 ? (
+            <div className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
+            </div>
+          ) : (
+            resolvedSlides.map((slide, i) => (
+              <div
+                key={i}
+                className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden"
+              >
+                {/* Background image */}
+                {slide.imageUrl ? (
+                  <img
+                    src={slide.imageUrl}
+                    alt={slide.title || "Yatrivo"}
+                    loading="eager"
+                    decoding="async"
+                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
+                )}
 
-              {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
-              <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
+                {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
+                <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
 
-              {/* Slide text & buttons */}
-              <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
-                <h1
-                  className="text-white text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.02] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
-                  style={{ fontFamily: "var(--font-serif)" }}
-                >
-                  {(slide.title || "Live Deeply. Travel Boldly.").split(". ").map((part, pIdx, arr) => (
-                    <span key={pIdx}>
-                      {part}
-                      {pIdx < arr.length - 1 ? "." : ""}
-                      {pIdx < arr.length - 1 && <br />}
-                    </span>
-                  ))}
-                </h1>
+                {/* Slide text & buttons */}
+                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
+                  {slide.title ? (
+                    <h1
+                      className="text-white text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.02] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
+                      style={{ fontFamily: "var(--font-serif)" }}
+                    >
+                      {slide.title.split(". ").map((part, pIdx, arr) => (
+                        <span key={pIdx}>
+                          {part}
+                          {pIdx < arr.length - 1 ? "." : ""}
+                          {pIdx < arr.length - 1 && <br />}
+                        </span>
+                      ))}
+                    </h1>
+                  ) : null}
 
-                {slide.subtitle ? (
-                  <p className="text-white/90 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed text-contrast-body">
-                    {slide.subtitle}
-                  </p>
-                ) : null}
+                  {slide.subtitle ? (
+                    <p className="text-white/90 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed text-contrast-body">
+                      {slide.subtitle}
+                    </p>
+                  ) : null}
 
                 {/* Trip-specific info */}
                 {slide.tripId ? (
@@ -251,7 +251,7 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-          ))}
+          )))}
         </div>
 
         {/* Dot indicators */}
@@ -303,13 +303,13 @@ export default function HomePage() {
                 to={`/destinations/${d.slug || d.id}`}
                 className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
               >
-                {d.image ? (
-                  <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#0f2922] via-[#1a4a39] to-[#0f2922] flex items-center justify-center">
-                    <span className="text-white/20 text-3xl">🏔️</span>
-                  </div>
-                )}
+                <ProgressiveImage
+                  src={d.image}
+                  alt={d.name}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  containerClassName="absolute inset-0 w-full h-full"
+                  priority={false}
+                />
                 <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-5">
                   <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wider mb-1 text-contrast-subtle">

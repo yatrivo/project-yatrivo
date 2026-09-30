@@ -1,8 +1,23 @@
 import type { Request, Response } from "express";
 import * as contentRepo from "./content.repository";
 import { recordAuditLog } from "../audit/audit.service";
+import { redis } from "../../cache/redis";
+import { logger } from "../../config/logger";
 
 export const getPublicHomepage = async (_req: Request, res: Response): Promise<void> => {
+  const cacheKey = "content:homepage:public";
+  if (redis.configured) {
+    try {
+      const cached = await redis.get(cacheKey);
+      if (cached) {
+        res.status(200).json({ status: "success", data: JSON.parse(cached) });
+        return;
+      }
+    } catch (err) {
+      logger.warn({ err }, "Redis read error for homepage content, falling back to DB");
+    }
+  }
+
   const config = await contentRepo.getHomepageConfig();
   if (!config) {
     res.status(200).json({
@@ -20,6 +35,15 @@ export const getPublicHomepage = async (_req: Request, res: Response): Promise<v
     });
     return;
   }
+
+  if (redis.configured) {
+    try {
+      await redis.set(cacheKey, JSON.stringify(config), 900); // 15 mins TTL
+    } catch (err) {
+      logger.warn({ err }, "Redis write error for homepage content");
+    }
+  }
+
   res.status(200).json({ status: "success", data: config });
 };
 
@@ -61,6 +85,21 @@ export const getHomepageConfig = async (_req: Request, res: Response): Promise<v
 export const updateHomepageConfig = async (req: Request, res: Response): Promise<void> => {
   await contentRepo.upsertHomepageConfig(req.body);
   const config = await contentRepo.getHomepageConfig();
+
+  if (redis.configured) {
+    try {
+      await Promise.all([
+        redis.del("content:homepage:public"),
+        redis.del("destinations:featured"),
+        redis.del("destinations:list:active"),
+        redis.del("destinations:list:public"),
+      ]);
+      logger.info("Homepage and featured destinations Redis cache invalidated");
+    } catch (err) {
+      logger.warn({ err }, "Failed to invalidate homepage Redis cache");
+    }
+  }
+
   res.status(200).json({ status: "success", data: config });
 
   await recordAuditLog({
