@@ -43,12 +43,11 @@ export default function HomePage() {
   const publishedReviews = reviews.filter((r) => r.status === "published");
   const featuredReviews = (() => {
     if (featuredReviewIds && featuredReviewIds.length > 0) {
-      const ordered = featuredReviewIds
+      return featuredReviewIds
         .map((id) => publishedReviews.find((r) => r.id === id))
         .filter(Boolean) as typeof publishedReviews;
-      return ordered.length > 0 ? ordered : publishedReviews.slice(0, 3);
     }
-    return publishedReviews.slice(0, 3);
+    return [];
   })();
 
   // Build resolved slides for the carousel
@@ -163,14 +162,14 @@ export default function HomePage() {
           style={{ transform: `translateX(-${heroIdx * 100}%)` }}
         >
           {resolvedSlides.length === 0 ? (
-            <div className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden">
+            <div className="relative w-full h-full shrink-0 flex items-end pb-8 sm:pb-10 md:pb-12 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
             </div>
           ) : (
             resolvedSlides.map((slide, i) => (
               <div
                 key={i}
-                className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden"
+                className="relative w-full h-full shrink-0 flex items-end pb-8 sm:pb-10 md:pb-12 overflow-hidden"
               >
                 {/* Background image */}
                 {slide.imageUrl ? (
@@ -193,7 +192,7 @@ export default function HomePage() {
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
                   {slide.title ? (
                     <h1
-                      className="text-white text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.02] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
+                      className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
                       style={{ fontFamily: "var(--font-serif)" }}
                     >
                       {slide.title.split(". ").map((part, pIdx, arr) => (
@@ -207,7 +206,7 @@ export default function HomePage() {
                   ) : null}
 
                   {slide.subtitle ? (
-                    <p className="text-white/90 text-xs sm:text-base md:text-lg max-w-xl mb-2 sm:mb-4 leading-relaxed text-contrast-body">
+                    <p className="text-white/90 text-xs sm:text-sm md:text-[15px] max-w-lg mb-1.5 sm:mb-2.5 leading-relaxed text-contrast-body line-clamp-2">
                       {slide.subtitle}
                     </p>
                   ) : null}
@@ -216,7 +215,7 @@ export default function HomePage() {
                 {slide.tripId ? (
                   <>
                     {(slide.price !== undefined || slide.displayDate) && (
-                      <p className="text-white text-xs sm:text-sm mb-3 sm:mb-6 font-medium text-contrast-body">
+                      <p className="text-white text-[11px] sm:text-xs md:text-sm mb-2.5 sm:mb-3.5 font-medium text-contrast-body">
                         {slide.price !== undefined && `₹${slide.price.toLocaleString("en-IN")}/person`}
                         {slide.price !== undefined && slide.displayDate && " · "}
                         {slide.displayDate}
@@ -225,11 +224,11 @@ export default function HomePage() {
                   </>
                 ) : null}
 
-                {/* Symmetrical Uniform Buttons (Identical dimensions across static & dynamic slides) */}
-                <div className="flex items-center gap-2.5 sm:gap-3 mb-1">
+                {/* Symmetrical Uniform Buttons */}
+                <div className="flex items-center gap-2 sm:gap-2.5 mb-1">
                   <Link
                     to={slide.tripId ? `/trips/${slide.tripId}` : "/trips"}
-                    className="w-36 sm:w-44 h-10 sm:h-12 btn-glass-outline text-white rounded-full text-xs sm:text-sm font-medium transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
+                    className="w-32 sm:w-36 h-9 sm:h-10 btn-glass-outline text-white rounded-full text-xs font-medium transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
                   >
                     {slide.tripId ? "VIEW TRIP" : "EXPLORE TRIPS"}
                   </Link>
@@ -237,14 +236,14 @@ export default function HomePage() {
                   {slide.tripId ? (
                     <button
                       onClick={() => openEnquiryModal(slide.tripId!)}
-                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors cursor-pointer shrink-0 tracking-wide btn-primary-elevated"
+                      className="w-32 sm:w-36 h-9 sm:h-10 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 tracking-wide btn-primary-elevated"
                     >
                       INQUIRE NOW →
                     </button>
                   ) : (
                     <Link
                       to="/plan"
-                      className="w-36 sm:w-44 h-10 sm:h-12 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs sm:text-sm font-medium flex items-center justify-center gap-1.5 sm:gap-2 transition-colors shrink-0 tracking-wide btn-primary-elevated"
+                      className="w-32 sm:w-36 h-9 sm:h-10 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shrink-0 tracking-wide btn-primary-elevated"
                     >
                       PLAN MY TRIP →
                     </Link>
@@ -328,7 +327,7 @@ export default function HomePage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="rounded-2xl overflow-hidden h-80 md:h-96 relative">
+            <div className="hidden md:block rounded-2xl overflow-hidden h-80 md:h-96 relative">
               <SiteImage
                 assetKey={SITE_ASSET_KEYS.HOME_WHY_US_IMAGE}
                 alt="Travelers around campfire"
@@ -343,18 +342,6 @@ export default function HomePage() {
               <p className="text-[#4a5568] text-sm leading-relaxed mb-8">
                 {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
               </p>
-              <div className="grid grid-cols-3 gap-6 mb-8">
-                {[
-                  { val: "15,000+", label: "Happy Explorers" },
-                  { val: "4.9 / 5", label: "Google & Trustpilot" },
-                  { val: "100%", label: "Himalayan Sourced" },
-                ].map((s) => (
-                  <div key={s.label}>
-                    <div className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif)" }}>{s.val}</div>
-                    <div className="text-[#4a5568] text-xs mt-1">{s.label}</div>
-                  </div>
-                ))}
-              </div>
               <Link
                 to="/travel-with-us"
                 className="border border-[#0f2922] text-[#0f2922] text-sm px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium inline-block"
@@ -367,21 +354,23 @@ export default function HomePage() {
       </section>
 
       {/* Testimonials */}
-      <section className="py-16 bg-[#f7f8f5]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <h2 className="section-heading text-[#0f2922] text-center mb-10">Wanderers Speak From Their Hearts</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-            {featuredReviews.map((r) => (
-              <div key={r.id} className="bg-white rounded-2xl p-6 border border-[#e2e8f0]">
-                <Stars />
-                <p className="text-[#4a5568] text-sm leading-relaxed mt-4 mb-5 italic">"{r.text}"</p>
-                <div className="text-[#0f2922] font-medium text-sm">{r.name}</div>
-                <div className="text-[#e8622a] text-xs mt-0.5">{r.tripName}</div>
-              </div>
-            ))}
+      {featuredReviews.length > 0 && (
+        <section className="py-16 bg-[#f7f8f5]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6">
+            <h2 className="section-heading text-[#0f2922] text-center mb-10">Wanderers Speak From Their Hearts</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+              {featuredReviews.map((r) => (
+                <div key={r.id} className="bg-white rounded-2xl p-6 border border-[#e2e8f0]">
+                  <Stars />
+                  <p className="text-[#4a5568] text-sm leading-relaxed mt-4 mb-5 italic">"{r.text}"</p>
+                  <div className="text-[#0f2922] font-medium text-sm">{r.name}</div>
+                  <div className="text-[#e8622a] text-xs mt-0.5">{r.tripName}</div>
+                </div>
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* CTA Banner */}
       <section className="relative py-24 overflow-hidden">

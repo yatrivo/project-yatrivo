@@ -26,7 +26,7 @@ export default function Footer() {
   const address = siteSettings?.contact?.address || "Rajpur Road, Dehradun,\nUttarakhand, 248001";
   const contactEmail = siteSettings?.contact?.contactEmail || "hello@yatrivo.com";
   const phone = siteSettings?.contact?.phone || "+91 98765 43210";
-  const whatsapp = siteSettings?.contact?.whatsapp;
+  const whatsapp = siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp;
 
   const socialLinks = [
     {
@@ -97,7 +97,6 @@ export default function Footer() {
               { label: "Travel With Us", path: "/travel-with-us" },
               { label: "Past Trips", path: "/past-trips" },
               { label: "About Us", path: "/about" },
-              { label: "Reviews", path: "/reviews" },
               { label: "FAQ & Contact", path: "/faq" },
             ].map((l) => (
               <div key={l.path}>

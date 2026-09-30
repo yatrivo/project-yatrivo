@@ -108,9 +108,9 @@ export default function App() {
           <Route path="/plan" element={<PlanMyTripPage />} />
           <Route path="/plan-trip" element={<Navigate to="/plan" replace />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/reviews" element={<ReviewsPage />} />
-          <Route path="/reviews/new" element={<ReviewPage />} />
-          <Route path="/review" element={<ReviewPage />} />
+          <Route path="/reviews" element={<Navigate to="/" replace />} />
+          <Route path="/reviews/*" element={<Navigate to="/" replace />} />
+          <Route path="/review" element={<Navigate to="/" replace />} />
           <Route path="/faq" element={<FAQContactPage />} />
           <Route path="/contact" element={<Navigate to="/faq" replace />} />
           <Route path="/terms" element={<TermsPage />} />
@@ -146,7 +146,7 @@ export default function App() {
           <Route path="bookings" element={<AdminBookings />} />
           <Route path="bookings/:id" element={<AdminBookingDetail />} />
           <Route path="users" element={<AdminUsers />} />
-          <Route path="reviews" element={<AdminReviews />} />
+          <Route path="reviews" element={<Navigate to="/admin/dashboard" replace />} />
           <Route path="media" element={<AdminMedia />} />
           <Route path="content" element={<AdminContent />} />
           {/* Unlinked/hidden for now:

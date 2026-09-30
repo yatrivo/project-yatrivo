@@ -138,7 +138,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
   const isAdmin = Boolean(adminMode || location.pathname.startsWith("/admin/"));
-  const { pageParams, openEnquiryModal, trips, destinations, tripInstances, showToast, refreshTrips } = useApp();
+  const { pageParams, openEnquiryModal, trips, destinations, tripInstances, showToast, refreshTrips, siteSettings } = useApp();
 
   const currentSlug = slug || pageParams.tripId || "chopta-trek";
   const initialTrip = trips.find(
@@ -204,7 +204,8 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
   const handleChatWhatsApp = () => {
     const text = `Hi Yatrivo! I'm interested in the ${activeTrip?.name || "Himalayan"} trip (${activeTrip?.duration || ""}). Could you please share more details?`;
-    window.open(YATRIVO_CONTACT.getWhatsAppUrl(text), "_blank", "noopener,noreferrer");
+    const targetWa = siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp;
+    window.open(YATRIVO_CONTACT.getWhatsAppUrl(text, targetWa), "_blank", "noopener,noreferrer");
   };
 
   // Resolve destinations

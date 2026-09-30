@@ -13,7 +13,8 @@ export default function EnquiryModal() {
     showToast,
     trips,
     destinations,
-    tripInstances
+    tripInstances,
+    siteSettings
   } = useApp();
 
   // Dynamically resolve trip from AppContext by id or slug
@@ -245,7 +246,8 @@ export default function EnquiryModal() {
       (message.trim() ? `\n\nNotes: ${message.trim()}` : "") +
       `\n\n(Sent from Yatrivo Website)`;
 
-    const url = YATRIVO_CONTACT.getWhatsAppUrl(prefilledText);
+    const targetWa = siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp;
+    const url = YATRIVO_CONTACT.getWhatsAppUrl(prefilledText, targetWa);
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

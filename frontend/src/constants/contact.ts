@@ -6,8 +6,9 @@ export const YATRIVO_CONTACT = {
   supportHours: "9:00 AM – 9:00 PM IST daily",
   
   // Direct WhatsApp link generator
-  getWhatsAppUrl(customMessage?: string) {
+  getWhatsAppUrl(customMessage?: string, targetPhone?: string) {
     const text = customMessage || "Hi Yatrivo! I have an inquiry about your Himalayan trips and departures.";
-    return `https://wa.me/${this.whatsappNumber}?text=${encodeURIComponent(text)}`;
+    const cleanNumber = (targetPhone || this.whatsappNumber).replace(/\D/g, "");
+    return `https://wa.me/${cleanNumber}?text=${encodeURIComponent(text)}`;
   }
 };

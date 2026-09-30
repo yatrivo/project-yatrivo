@@ -154,7 +154,7 @@ const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
     { icon: "👥", title: "Youthful Vibe", desc: "Small groups, like-minded active adventurers." },
     { icon: "🏔️", title: "Himalayan Trust", desc: "Certified local guides & sustainable execution." },
   ],
-  featuredReviewIds: ["r1", "r2", "r3"],
+  featuredReviewIds: [],
   carouselSlides: DEFAULT_CAROUSEL_SLIDES,
 };
 
@@ -715,10 +715,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         heroSubtitle: homepage.heroSubtitle || prev.heroSubtitle,
         whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
         whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
-        featuredDestIds: homepage.featuredDestinationIds && homepage.featuredDestinationIds.length > 0
+        featuredDestIds: Array.isArray(homepage.featuredDestinationIds)
           ? homepage.featuredDestinationIds
           : prev.featuredDestIds,
-        featuredReviewIds: homepage.featuredReviewIds && homepage.featuredReviewIds.length > 0
+        featuredReviewIds: Array.isArray(homepage.featuredReviewIds)
           ? homepage.featuredReviewIds
           : prev.featuredReviewIds,
         whyUsPoints: (homepage.whyUsPoints || []).length > 0
@@ -795,18 +795,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const res = await reviewsApi.list({ limit: 100 });
       const items = Array.isArray(res?.reviews) ? res.reviews : [];
-      if (items.length > 0) {
-        setReviews(items.map((r) => ({
-          id: r.id,
-          name: r.reviewerName,
-          tripName: r.tripName || "Himalayan Expedition",
-          destination: r.destinationName || "Uttarakhand",
-          rating: (r.rating || 5) as 1 | 2 | 3 | 4 | 5,
-          text: r.body,
-          date: r.submittedAt ? new Date(r.submittedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Recently",
-          status: r.status,
-        })));
-      }
+      setReviews(items.map((r) => ({
+        id: r.id,
+        name: r.reviewerName,
+        tripName: r.tripName || "Himalayan Expedition",
+        destination: r.destinationName || "Uttarakhand",
+        rating: (r.rating || 5) as 1 | 2 | 3 | 4 | 5,
+        text: r.body,
+        date: r.submittedAt ? new Date(r.submittedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Recently",
+        status: r.status,
+      })));
     } catch (err) {
       console.warn("Failed to load reviews from backend:", err);
     }
@@ -814,10 +812,15 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateFeaturedReviewIds = useCallback(async (newIds: string[]): Promise<boolean> => {
     const uniqueIds = Array.from(new Set(newIds)).slice(0, 3);
-    setHomepageContent((prev) => ({
-      ...prev,
-      featuredReviewIds: uniqueIds,
-    }));
+    setHomepageContent((prev) => {
+      const next: HomepageContent = {
+        ...prev,
+        featuredReviewIds: uniqueIds,
+      };
+      clientCache.set("homepage:content", next);
+      return next;
+    });
+    clientCache.invalidate("homepage:api_config");
 
     try {
       await contentApi.updateHomepageConfig({
@@ -842,6 +845,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         }))
       });
       clientCache.invalidate("homepage:content");
+      clientCache.invalidate("homepage:api_config");
       return true;
     } catch (err) {
       console.error("Failed to update homepage reviews:", err);

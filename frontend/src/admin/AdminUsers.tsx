@@ -152,7 +152,7 @@ function AddAdminModal({ onClose, onSuccess }: AddAdminModalProps) {
                 onChange={(e) => setRole(e.target.value as "admin" | "super_admin")}
                 className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white"
               >
-                <option value="admin">Operations Admin</option>
+                <option value="admin">Admin</option>
                 <option value="super_admin">Super Admin</option>
               </select>
             </div>
@@ -436,13 +436,13 @@ export default function AdminUsers() {
                       <td className="px-5 py-3.5 text-[#4a5568]">{admin.email}</td>
                       <td className="px-5 py-3.5">
                         <span
-                          className={`text-xs font-semibold rounded-full px-2.5 py-1 ${
+                          className={`text-xs font-semibold rounded-full px-2.5 py-1 whitespace-nowrap ${
                             admin.role === "super_admin"
                               ? "bg-orange-100 text-orange-800"
                               : "bg-emerald-100 text-emerald-800"
                           }`}
                         >
-                          {admin.role === "super_admin" ? "Super Admin" : "Operations Admin"}
+                          {admin.role === "super_admin" ? "Super Admin" : "Admin"}
                         </span>
                       </td>
                       <td className="px-5 py-3.5">

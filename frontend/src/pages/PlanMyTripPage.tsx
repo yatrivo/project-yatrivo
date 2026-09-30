@@ -7,7 +7,7 @@ import { enquiriesApi } from "@/api/enquiries";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
 export default function PlanMyTripPage() {
-  const { addEnquiry, trips, destinations, tripInstances, showToast } = useApp();
+  const { addEnquiry, trips, destinations, tripInstances, showToast, siteSettings } = useApp();
 
   // Current step in the 4-step discovery enquiry flow (1-based: 1, 2, 3, 4, 5 for success)
   const [step, setStep] = useState<number>(1);
@@ -261,7 +261,8 @@ export default function PlanMyTripPage() {
       (message.trim() ? `\n\nNotes: ${message.trim()}` : "") +
       `\n\n(Sent via Yatrivo Plan My Trip)`;
 
-    const url = YATRIVO_CONTACT.getWhatsAppUrl(prefilledText);
+    const targetWa = siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp;
+    const url = YATRIVO_CONTACT.getWhatsAppUrl(prefilledText, targetWa);
     window.open(url, "_blank", "noopener,noreferrer");
   };
 

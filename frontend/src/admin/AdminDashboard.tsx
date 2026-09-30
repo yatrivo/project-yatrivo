@@ -351,7 +351,7 @@ export default function AdminDashboard({ setAdminPage }: Props = {}) {
             { label: "Add Trip", icon: "🏔️", path: "/admin/trips/new", page: "trip-editor" as AdminPage },
             { label: "Add Destination", icon: "📍", path: "/admin/destinations", page: "destinations" as AdminPage },
             { label: "View Enquiries", icon: "📋", path: "/admin/enquiries", page: "enquiries" as AdminPage },
-            { label: "Manage Reviews", icon: "⭐", path: "/admin/reviews", page: "reviews" as AdminPage },
+            { label: "Manage Departures", icon: "📅", path: "/admin/trip-instances", page: "trip-instances" as AdminPage },
           ].map((action) => (
             <Link
               key={action.label}

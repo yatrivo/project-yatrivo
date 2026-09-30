@@ -541,7 +541,6 @@ export default function AdminDestinations() {
   const navigate = useNavigate();
   const { destinations, refreshDestinations, showToast } = useApp();
   const [search, setSearch] = useState("");
-  const [tagFilter, setTagFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "archived">("all");
   const [modalMode, setModalMode] = useState<"add" | "edit" | null>(null);
   const [editingDest, setEditingDest] = useState<Destination | null>(null);
@@ -562,7 +561,6 @@ export default function AdminDestinations() {
 
     return destinations
       .filter((d) => {
-        const matchesTag = tagFilter === "All" || d.experienceTags?.includes(tagFilter);
         const matchesSearch =
           !q ||
           d.name.toLowerCase().includes(q) ||
@@ -574,7 +572,7 @@ export default function AdminDestinations() {
         if (statusFilter === "active") matchesStatus = !isArchived;
         if (statusFilter === "archived") matchesStatus = isArchived;
 
-        return matchesTag && matchesSearch && matchesStatus;
+        return matchesSearch && matchesStatus;
       })
       .sort((a, b) => {
         const aArchived = a.status === "archived" ? 1 : 0;
@@ -584,7 +582,7 @@ export default function AdminDestinations() {
         }
         return (a.sortOrder || 0) - (b.sortOrder || 0);
       });
-  }, [destinations, search, tagFilter, statusFilter]);
+  }, [destinations, search, statusFilter]);
 
   const activeCount = useMemo(
     () => destinations.filter((d) => d.status !== "archived").length,
@@ -797,20 +795,6 @@ export default function AdminDestinations() {
               className="w-full pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm focus:outline-none focus:border-[#0f2922]"
             />
           </div>
-
-          {/* Travel Interest / Experience Tag Filter */}
-          <select
-            value={tagFilter}
-            onChange={(e) => setTagFilter(e.target.value)}
-            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#4a5568]"
-          >
-            <option value="All">All Experiences</option>
-            {UTTARAKHAND_EXPERIENCE_TAGS.map((tag) => (
-              <option key={tag} value={tag}>
-                {tag}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Status quick tabs */}

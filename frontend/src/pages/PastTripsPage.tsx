@@ -5,15 +5,6 @@ import SEO from "@/components/SEO";
 import SiteImage from "@/components/SiteImage";
 import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 
-const Stars = ({ count = 5 }: { count?: number }) => (
-  <div className="flex gap-0.5">
-    {Array.from({ length: 5 }).map((_, i) => (
-      <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill={i < count ? "#f59e0b" : "#e2e8f0"}>
-        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-      </svg>
-    ))}
-  </div>
-);
 
 export default function PastTripsPage() {
   const { tripInstances, trips, destinations } = useApp();
@@ -46,21 +37,6 @@ export default function PastTripsPage() {
         </div>
       </section>
 
-      {/* Stats bar */}
-      <section className="bg-white border-b border-[#e2e8f0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-3 gap-6 text-center">
-          {[
-            { val: "15,000+", label: "Happy Explorers" },
-            { val: "200+", label: "Trips Completed" },
-            { val: "4.9 / 5", label: "Average Rating" },
-          ].map((s) => (
-            <div key={s.label}>
-              <div className="text-2xl sm:text-3xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif)" }}>{s.val}</div>
-              <div className="text-[#4a5568] text-xs sm:text-sm mt-1">{s.label}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* Past Trips Grid */}
       <section className="py-16 bg-[#f7f8f5]">
@@ -90,24 +66,9 @@ export default function PastTripsPage() {
                       <div className="text-white font-semibold text-sm leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                     </div>
                   </div>
-                  <div className="p-5">
-                    <div className="flex items-center justify-between mb-3">
-                      <Stars count={5} />
-                      <span className="text-[#4a5568] text-xs">{inst.displayDate}</span>
-                    </div>
-                    {inst.notes ? (
-                      <p className="text-[#4a5568] text-sm leading-relaxed italic mb-3">"{inst.notes}"</p>
-                    ) : (
-                      <p className="text-[#4a5568] text-sm leading-relaxed mb-3">
-                        {trip.shortDescription ||
-                          (typeof trip.highlights?.[0] === "string"
-                            ? trip.highlights[0]
-                            : (trip.highlights?.[0] as any)?.value
-                            ? `${(trip.highlights[0] as any).label}: ${(trip.highlights[0] as any).value}`
-                            : trip.overview?.slice(0, 110) || "")}
-                      </p>
-                    )}
-                    <div className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</div>
+                  <div className="px-4 py-3.5 flex items-center justify-between border-t border-[#f0f4f2]">
+                    <span className="text-[#718096] text-xs font-medium">{inst.displayDate}</span>
+                    <span className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</span>
                   </div>
                 </Link>
               );

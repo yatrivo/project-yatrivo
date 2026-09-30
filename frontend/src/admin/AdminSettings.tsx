@@ -7,6 +7,7 @@ import {
   type AllSettings,
 } from "@/api/settings";
 import { authApi } from "@/api/auth";
+import { clientCache } from "@/utils/clientCache";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 
 type SubNav = "general" | "contact" | "social" | "cancellation" | "security";
@@ -91,10 +92,13 @@ export default function AdminSettings() {
         }
         if (data.contact) {
           if (data.contact.phone) setPhone(data.contact.phone);
-          if (data.contact.whatsapp) setWhatsapp(data.contact.whatsapp);
+          const activeWa = data.contact.inquiryWhatsapp || data.contact.whatsapp;
+          if (activeWa) {
+            setWhatsapp(activeWa);
+            setInquiryWhatsapp(activeWa);
+          }
           if (data.contact.contactEmail) setContactEmail(data.contact.contactEmail);
           if (data.contact.address) setAddress(data.contact.address);
-          if (data.contact.inquiryWhatsapp) setInquiryWhatsapp(data.contact.inquiryWhatsapp);
         }
         if (data.social) {
           if (data.social.instagram) setInstagram(data.social.instagram);
@@ -122,14 +126,16 @@ export default function AdminSettings() {
         await refreshSettings();
         showToast("General settings updated successfully!", "success");
       } else if (subNav === "contact") {
+        const activeWhatsapp = (inquiryWhatsapp || whatsapp).trim();
         await settingsApi.updateSetting("contact", {
           phone,
-          whatsapp,
+          whatsapp: activeWhatsapp,
           contactEmail,
           address,
-          inquiryWhatsapp,
+          inquiryWhatsapp: activeWhatsapp,
         });
-        await refreshSettings();
+        clientCache.invalidate("site_settings");
+        await refreshSettings({ bypassCache: true });
         showToast("Contact details updated successfully!", "success");
       } else if (subNav === "social") {
         await settingsApi.updateSetting("social", {
@@ -314,7 +320,14 @@ export default function AdminSettings() {
                       Public Website Contact
                     </h3>
                     <Field label="Contact Phone Number" value={phone} onChange={setPhone} />
-                    <Field label="Public WhatsApp Number" value={whatsapp} onChange={setWhatsapp} />
+                    <Field
+                      label="Public WhatsApp Number"
+                      value={whatsapp}
+                      onChange={(val) => {
+                        setWhatsapp(val);
+                        setInquiryWhatsapp(val);
+                      }}
+                    />
                     <Field label="Contact Email" value={contactEmail} onChange={setContactEmail} type="email" />
                     <div>
                       <label className="block text-sm font-medium text-[#4a5568] mb-1">Physical Address</label>
@@ -328,11 +341,18 @@ export default function AdminSettings() {
                   </section>
 
                   <div className="border-t border-[#e2e8f0] pt-5 space-y-4">
-                    <h3 className="text-sm font-semibold text-[#0f2922]">Inquiry Notification WhatsApp</h3>
+                    <h3 className="text-sm font-semibold text-[#0f2922]">Inquiry & Direct WhatsApp Contact</h3>
                     <p className="text-xs text-[#718096] -mt-2">
-                      Internal phone number that receives instant customer inquiry notifications (e.g. your operations team).
+                      WhatsApp number used for direct enquiry/DM buttons across the website and displayed in the footer.
                     </p>
-                    <Field label="Notification WhatsApp Number" value={inquiryWhatsapp} onChange={setInquiryWhatsapp} />
+                    <Field
+                      label="Notification WhatsApp Number"
+                      value={inquiryWhatsapp}
+                      onChange={(val) => {
+                        setInquiryWhatsapp(val);
+                        setWhatsapp(val);
+                      }}
+                    />
                   </div>
                 </>
               )}

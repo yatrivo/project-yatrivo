@@ -60,7 +60,7 @@ export default function TravelWithUsPage() {
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 hero-overlay-directional-side" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 w-full">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-4 text-contrast-subtle">JOIN THE MOVEMENT</div>
           <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-6 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Travel With<br />Yatrivo
@@ -93,12 +93,12 @@ export default function TravelWithUsPage() {
             <h2 className="text-[#0f2922] text-3xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>The Yatrivo Difference</h2>
             <p className="text-[#4a5568] text-sm mt-3 max-w-xl mx-auto text-center">Every detail is thoughtfully designed to give you a safe, immersive, and genuinely memorable Himalayan experience.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
             {features.map((f) => (
-              <div key={f.title} className="bg-[#f7f8f5] rounded-2xl p-6 border border-[#e2e8f0]">
-                <div className="text-3xl mb-4">{f.icon}</div>
-                <h3 className="text-[#0f2922] font-semibold mb-2">{f.title}</h3>
-                <p className="text-[#4a5568] text-sm leading-relaxed">{f.desc}</p>
+              <div key={f.title} className="bg-[#f7f8f5] rounded-xl p-4 sm:p-5 border border-[#e2e8f0]">
+                <div className="text-2xl mb-2.5">{f.icon}</div>
+                <h3 className="text-[#0f2922] text-sm sm:text-[15px] font-semibold mb-1.5">{f.title}</h3>
+                <p className="text-[#4a5568] text-xs sm:text-[13px] leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -158,10 +158,10 @@ export default function TravelWithUsPage() {
                       {inst.spotsTotal} participants
                     </div>
                   </div>
-                  <div className="p-4">
-                    <div className="text-[#e8622a] text-xs font-medium uppercase tracking-wide mb-1">{destLabel}</div>
-                    <h3 className="text-[#0f2922] font-semibold mb-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
-                    <div className="text-[#4a5568] text-xs">{inst.displayDate}</div>
+                  <div className="px-3.5 py-2.5">
+                    <div className="text-[#e8622a] text-[10px] sm:text-[11px] font-medium uppercase tracking-wider mb-1">{destLabel}</div>
+                    <h3 className="text-[#0f2922] text-sm sm:text-base font-semibold mb-1 group-hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
+                    <div className="text-[#718096] text-[11px] sm:text-xs">{inst.displayDate}</div>
                   </div>
                 </Link>
               );

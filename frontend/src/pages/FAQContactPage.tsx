@@ -11,10 +11,10 @@ export default function FAQContactPage() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
 
   const phone = siteSettings?.contact?.phone || YATRIVO_CONTACT.phone;
-  const whatsapp = siteSettings?.contact?.whatsapp || YATRIVO_CONTACT.phone;
+  const whatsapp = siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp || YATRIVO_CONTACT.phone;
   const contactEmail = siteSettings?.contact?.contactEmail || YATRIVO_CONTACT.email;
   const address = siteSettings?.contact?.address || YATRIVO_CONTACT.officeAddress;
-  const whatsappDigits = (siteSettings?.contact?.whatsapp || YATRIVO_CONTACT.whatsappNumber).replace(/\D/g, "");
+  const whatsappDigits = (siteSettings?.contact?.inquiryWhatsapp || siteSettings?.contact?.whatsapp || YATRIVO_CONTACT.whatsappNumber).replace(/\D/g, "");
 
 
   return (

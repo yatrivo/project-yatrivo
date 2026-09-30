@@ -669,7 +669,6 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
   const { trips, setTrips, tripInstances, setTripInstances, showToast, destinations, refreshTrips } = useApp();
 
   const [search, setSearch] = useState("");
-  const [destFilter, setDestFilter] = useState("All");
   const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft" | "archived">("all");
   const [viewMode, setViewMode] = useState<"card" | "table">("card");
 
@@ -696,16 +695,6 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
     .filter((t) => {
       const q = search.trim().toLowerCase();
       const destNames = t.destinations ? t.destinations.map((d) => d.name.toLowerCase()).join(" ") : (t.destination || "").toLowerCase();
-      const matchesDest =
-        destFilter === "All" ||
-        (t.destinations &&
-          t.destinations.some(
-            (d) =>
-              d.id === destFilter ||
-              d.slug === destFilter ||
-              d.name.toLowerCase() === destFilter.toLowerCase()
-          )) ||
-        t.destination === destFilter;
       const matchesSearch = !q || t.name.toLowerCase().includes(q) || destNames.includes(q);
 
       let matchesStatus = true;
@@ -713,7 +702,7 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
       if (statusFilter === "draft") matchesStatus = t.status === "draft";
       if (statusFilter === "archived") matchesStatus = t.status === "archived";
 
-      return matchesDest && matchesSearch && matchesStatus;
+      return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       const aArchived = a.status === "archived" ? 1 : 0;
@@ -866,18 +855,6 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
               className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-full focus:outline-none focus:border-[#0f2922]"
             />
           </div>
-          <select
-            value={destFilter}
-            onChange={(e) => setDestFilter(e.target.value)}
-            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none bg-white text-[#0f2922]"
-          >
-            <option value="All">All Destinations</option>
-            {destinations.map((d) => (
-              <option key={d.id} value={d.id}>
-                {d.name}
-              </option>
-            ))}
-          </select>
         </div>
 
         {/* Quick status tabs matching Destinations */}

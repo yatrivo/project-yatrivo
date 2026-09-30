@@ -15,13 +15,12 @@ import {
   serializeContentSections,
 } from "@/data/contentSections";
 
-type ContentTab = "hero" | "featured" | "why-us" | "featured-reviews" | "faq" | "about" | "terms-privacy" | "site-assets";
+type ContentTab = "hero" | "featured" | "why-us" | "faq" | "about" | "terms-privacy" | "site-assets";
 
 const TABS: { id: ContentTab; label: string }[] = [
   { id: "hero", label: "Hero" },
   { id: "featured", label: "Featured Destinations" },
   { id: "why-us", label: "Why Choose Us" },
-  { id: "featured-reviews", label: "Featured Reviews" },
   { id: "faq", label: "FAQ" },
   { id: "about", label: "About Us" },
   { id: "terms-privacy", label: "Terms & Privacy" },
@@ -1409,7 +1408,6 @@ export default function AdminContent() {
           {activeTab === "hero" && <HeroTab />}
           {activeTab === "featured" && <FeaturedTab />}
           {activeTab === "why-us" && <WhyUsTab />}
-          {activeTab === "featured-reviews" && <FeaturedReviewsTab />}
           {activeTab === "faq" && <FAQTab />}
           {activeTab === "about" && <AboutTab />}
           {activeTab === "terms-privacy" && <TermsPrivacyTab />}
