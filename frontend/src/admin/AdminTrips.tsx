@@ -564,17 +564,22 @@ function TripCard({ trip, instances, onEditTrip, onArchiveTrip, onRestoreTrip }:
       <div>
         {/* Cover Image & Badges */}
         <div className="relative h-44 overflow-hidden">
-          <img
-            src={trip.image}
-            alt={trip.name}
-            className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
-              isArchived ? "grayscale-[50%]" : ""
-            }`}
-            onError={(e) => {
-              (e.target as HTMLImageElement).src =
-                "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format";
-            }}
-          />
+          {trip.image ? (
+            <img
+              src={trip.image}
+              alt={trip.name}
+              className={`w-full h-full object-cover group-hover:scale-105 transition-transform duration-300 ${
+                isArchived ? "grayscale-[50%]" : ""
+              }`}
+              onError={(e) => {
+                (e.target as HTMLImageElement).style.display = "none";
+              }}
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-[#0f2922] via-[#1a4a39] to-[#0f2922] flex items-center justify-center">
+              <span className="text-white/20 text-3xl">🏔️</span>
+            </div>
+          )}
           {/* Status badge in top-left */}
           <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
             {isArchived ? (

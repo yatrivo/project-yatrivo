@@ -486,11 +486,15 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
       {/* Hero with Single Cover Image (No Gallery Thumbs Carousel Overlay) */}
       <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
-        <img
-          src={activeTrip?.image || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1200&h=800&fit=crop&auto=format"}
-          alt={activeTrip?.name ?? "Trip"}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {activeTrip?.image ? (
+          <img
+            src={activeTrip.image}
+            alt={activeTrip.name ?? "Trip"}
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f18] via-[#143a2d] to-[#0a1f18]" />
+        )}
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative h-full flex items-end pb-8 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
@@ -745,7 +749,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                   {tripDestinations.map((td) => {
                     const fullDest = destinations.find((d) => d.id === td.id || d.slug === td.slug);
-                    const destImg = td.image || fullDest?.image || "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&h=400&fit=crop&auto=format";
+                    const destImg = td.image || fullDest?.image || "";
                     const destTagline = fullDest?.tagline || fullDest?.season || "Explore Uttarakhand";
 
                     return (
@@ -755,11 +759,17 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                         className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all group flex flex-col cursor-pointer"
                       >
                         <div className="h-48 overflow-hidden relative">
-                          <img
-                            src={destImg}
-                            alt={td.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                          />
+                          {destImg ? (
+                            <img
+                              src={destImg}
+                              alt={td.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
+                          ) : (
+                            <div className="w-full h-full bg-gradient-to-br from-[#0f2922] via-[#1a4a39] to-[#0f2922] flex items-center justify-center">
+                              <span className="text-white/20 text-3xl">🏔️</span>
+                            </div>
+                          )}
                           {td.isPrimary && (
                             <span className="absolute top-3 left-3 bg-[#e8622a] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
                               PRIMARY DESTINATION

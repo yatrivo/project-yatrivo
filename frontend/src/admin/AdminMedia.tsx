@@ -258,7 +258,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
                 type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://images.unsplash.com/..."
+                placeholder="https://example.com/image.jpg"
                 className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
               />
             </div>
@@ -508,8 +508,7 @@ export default function AdminMedia() {
                         alt={img.label ?? ""}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src =
-                            "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&fit=crop";
+                          (e.target as HTMLImageElement).style.opacity = "0.3";
                         }}
                       />
                     </div>

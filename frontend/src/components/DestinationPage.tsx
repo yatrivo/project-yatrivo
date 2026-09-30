@@ -16,32 +16,7 @@ interface DestinationPageProps {
   onBack: () => void;
 }
 
-const galleryPhotos = [
-  {
-    url: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=800&h=600&fit=crop&auto=format",
-    alt: "Ganga river at dusk, Rishikesh",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=800&h=1000&fit=crop&auto=format",
-    alt: "Yoga session by the river",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=800&h=600&fit=crop&auto=format",
-    alt: "White water rafting on Ganga",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1563911302283-d2bc129e7570?w=800&h=600&fit=crop&auto=format",
-    alt: "Ganga Aarti ceremony at twilight",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800&h=1000&fit=crop&auto=format",
-    alt: "Lakshman Jhula suspension bridge",
-  },
-  {
-    url: "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=800&h=600&fit=crop&auto=format",
-    alt: "Meditation at riverside ashram",
-  },
-];
+const galleryPhotos: { url: string; alt: string }[] = [];
 
 const packages: Package[] = [
   {
@@ -52,8 +27,7 @@ const packages: Package[] = [
     groupSize: "Up to 8",
     difficulty: "Easy",
     highlights: ["Daily yoga & meditation", "Ganga Aarti ceremony", "Ayurvedic spa session"],
-    image:
-      "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&h=400&fit=crop&auto=format",
+    image: "",
   },
   {
     id: 2,
@@ -63,8 +37,7 @@ const packages: Package[] = [
     groupSize: "Up to 12",
     difficulty: "Moderate",
     highlights: ["White water rafting", "Cliff jumping at Shivpuri", "Bungee at Mohan Chatti"],
-    image:
-      "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=600&h=400&fit=crop&auto=format",
+    image: "",
   },
   {
     id: 3,
@@ -74,8 +47,7 @@ const packages: Package[] = [
     groupSize: "Up to 6",
     difficulty: "Moderate",
     highlights: ["Char Dham yatra prep", "Haridwar kumbh ghats", "Forest trek to Neelkanth"],
-    image:
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&auto=format",
+    image: "",
   },
 ];
 

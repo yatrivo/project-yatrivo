@@ -6,6 +6,7 @@ import { tripsApi } from "@/api/trips";
 import { enquiriesApi } from "@/api/enquiries";
 import { contentApi } from "@/api/content";
 import { reviewsApi } from "@/api/reviews";
+import { siteAssetsApi, type SiteAssetsMap, DEFAULT_SITE_ASSET_SLOTS } from "@/api/siteAssets";
 import { INITIAL_DESTINATIONS, type Destination } from "@/data/destinations";
 import { INITIAL_TRIPS, INITIAL_TRIP_INSTANCES, type Trip, type TripInstance } from "@/data/trips";
 import { REVIEWS, type Review } from "@/data/reviews";
@@ -108,11 +109,7 @@ export interface GalleryImage {
 }
 
 const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
-  heroImages: [
-    "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=1920&h=1080&fit=crop&auto=format",
-    "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1920&h=1080&fit=crop&auto=format",
-  ],
+  heroImages: [],
   heroTitle: "Live Deeply. Travel Boldly.",
   heroSubtitle:
     "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
@@ -126,17 +123,7 @@ const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
     { icon: "🏔️", title: "Himalayan Trust", desc: "Certified local guides & sustainable execution." },
   ],
   featuredReviewIds: ["r1", "r2", "r3"],
-  carouselSlides: [
-    { type: "trip", tripInstanceId: "inst-chopta-oct" },
-    { type: "trip", tripInstanceId: "inst-kedarnath-oct" },
-    { type: "trip", tripInstanceId: "inst-auli-nov" },
-    {
-      type: "static",
-      imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format",
-      title: "Explore Uttarakhand",
-      subtitle: "Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
-    },
-  ],
+  carouselSlides: [],
 };
 
 interface AppContextType {
@@ -224,6 +211,11 @@ interface AppContextType {
   // Site Settings
   siteSettings: AllSettings | null;
   refreshSettings: () => Promise<void>;
+
+  // Site Assets (static page images managed via admin)
+  siteAssets: SiteAssetsMap;
+  setSiteAssets: Dispatch<SetStateAction<SiteAssetsMap>>;
+  refreshSiteAssets: () => Promise<void>;
 }
 
 
@@ -235,18 +227,7 @@ const DEFAULT_FAQ_ITEMS: FaqItem[] = [
   { id: "faq-5", question: "What is your cancellation policy?", answer: "We offer highly flexible cancellation terms. If you cancel up to 15 days before departure, we issue a 100% travel credit for future departures, valid for 1 year. For cancellations between 7 and 14 days, a 50% credit is issued." },
 ];
 
-const SEED_GALLERY_IMAGES: GalleryImage[] = [
-  { id: "g1", url: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=800&h=600&fit=crop&auto=format", category: "homepage", label: "Hero — Mountains", addedAt: "2026-01-01" },
-  { id: "g2", url: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=800&h=600&fit=crop&auto=format", category: "homepage", label: "Hero — Valley", addedAt: "2026-01-01" },
-  { id: "g3", url: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&h=600&fit=crop&auto=format", category: "homepage", label: "Hero — Forest", addedAt: "2026-01-01" },
-  { id: "g4", url: "https://images.unsplash.com/photo-1607836046730-3317bd58a31b?w=800&h=600&fit=crop&auto=format", category: "destinations", label: "Chopta Valley", addedAt: "2026-01-02" },
-  { id: "g5", url: "https://images.unsplash.com/photo-1608942025318-1191eeade556?w=800&h=600&fit=crop&auto=format", category: "destinations", label: "Auli Slopes", addedAt: "2026-01-02" },
-  { id: "g6", url: "https://images.unsplash.com/photo-1676718912572-b3ebcff192e3?w=800&h=600&fit=crop&auto=format", category: "destinations", label: "Kedarnath Temple", addedAt: "2026-01-02" },
-  { id: "g7", url: "https://images.unsplash.com/photo-1684436249636-c745f65f31eb?w=800&h=600&fit=crop&auto=format", category: "trips", label: "Trek Path", addedAt: "2026-01-03" },
-  { id: "g8", url: "https://images.unsplash.com/photo-1718429205172-0d91b73ab23c?w=800&h=600&fit=crop&auto=format", category: "trips", label: "Camp Site", addedAt: "2026-01-03" },
-  { id: "g9", url: "https://images.unsplash.com/photo-1577516311194-eb14c570a137?w=800&h=600&fit=crop&auto=format", category: "completed-trips", label: "Group Photo", addedAt: "2026-01-04" },
-  { id: "g10", url: "https://images.unsplash.com/photo-1631377955049-770a6c377bce?w=800&h=600&fit=crop&auto=format", category: "completed-trips", label: "Summit View", addedAt: "2026-01-04" },
-];
+const SEED_GALLERY_IMAGES: GalleryImage[] = [];
 
 export const AppContext = createContext<AppContextType | null>(null);
 
@@ -351,6 +332,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [termsContent, setTermsContent] = useState("");
   const [privacyContent, setPrivacyContent] = useState("");
   const [siteSettings, setSiteSettings] = useState<AllSettings | null>(null);
+  const [siteAssets, setSiteAssets] = useState<SiteAssetsMap>(() =>
+    DEFAULT_SITE_ASSET_SLOTS.reduce((acc, slot) => {
+      acc[slot.assetKey] = slot;
+      return acc;
+    }, {} as SiteAssetsMap)
+  );
   const [destinations, setDestinations] = useState<Destination[]>(INITIAL_DESTINATIONS);
 
   const [trips, setTrips] = useState<Trip[]>(INITIAL_TRIPS);
@@ -752,6 +739,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const refreshSiteAssets = useCallback(async () => {
+    try {
+      const assets = await siteAssetsApi.getAll();
+      if (assets && Object.keys(assets).length > 0) {
+        setSiteAssets(assets);
+      }
+    } catch (err) {
+      console.warn("Failed to load site assets from backend:", err);
+    }
+  }, []);
+
   useEffect(() => {
     void refreshDestinations();
     void refreshTrips();
@@ -759,7 +757,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     void refreshContent();
     void refreshReviews();
     void refreshSettings();
-  }, [refreshDestinations, refreshTrips, refreshEnquiries, refreshContent, refreshReviews, refreshSettings, adminLoggedIn]);
+    void refreshSiteAssets();
+  }, [refreshDestinations, refreshTrips, refreshEnquiries, refreshContent, refreshReviews, refreshSettings, refreshSiteAssets, adminLoggedIn]);
 
   return (
     <AppContext.Provider value={{
@@ -784,6 +783,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       refreshContent,
       updateFeaturedReviewIds,
       siteSettings, refreshSettings,
+      siteAssets, setSiteAssets, refreshSiteAssets,
     }}>
       {children}
     </AppContext.Provider>

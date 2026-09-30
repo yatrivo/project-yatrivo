@@ -2,6 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 import logoImg from "@/imports/logo.png";
 
 const Stars = () => (
@@ -14,7 +16,16 @@ const Stars = () => (
 
 export default function HomePage() {
   const { navigate, homepageContent, tripInstances, trips, openEnquiryModal, reviews, destinations, siteSettings } = useApp();
-  const { heroImages, carouselSlides, featuredReviewIds, featuredDestIds, whyUsTitle, whyUsDesc } = homepageContent;
+  const {
+    heroImages = [],
+    carouselSlides = [],
+    featuredReviewIds = [],
+    featuredDestIds = [],
+    whyUsTitle = "",
+    whyUsDesc = "",
+    heroTitle = "Live Deeply. Travel Boldly.",
+    heroSubtitle = "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+  } = homepageContent || {};
 
   // Featured destinations from context
   const featuredDestinations = (() => {
@@ -41,23 +52,40 @@ export default function HomePage() {
 
   // Build resolved slides for the carousel
   const resolvedSlides = (() => {
-    const raw = (carouselSlides && carouselSlides.length > 0) ? carouselSlides : heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" }));
-    return raw.map((slide) => {
+    const raw = (carouselSlides && carouselSlides.length > 0)
+      ? carouselSlides
+      : (heroImages && heroImages.length > 0 ? heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" })) : []);
+
+    const mapped = raw.map((slide) => {
       if (slide.type === "static") {
-        return { imageUrl: slide.imageUrl, title: slide.title, subtitle: slide.subtitle, tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };
+        return { imageUrl: slide.imageUrl || "", title: slide.title || "Explore Uttarakhand", subtitle: slide.subtitle || "", tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };
       }
       const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
       const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
       return {
-        imageUrl: trip?.image ?? heroImages[0],
-        title: slide.title ?? trip?.name ?? "Upcoming Trip",
-        subtitle: slide.subtitle ?? (trip?.subtitle || ""),
+        imageUrl: trip?.image || heroImages[0] || "",
+        title: slide.title || trip?.name || "Upcoming Trip",
+        subtitle: slide.subtitle || trip?.shortDescription || trip?.overview || "",
         tripId: trip?.id,
         tripInstanceId: slide.tripInstanceId,
         price: inst?.price,
         displayDate: inst?.displayDate,
       };
     });
+
+    if (mapped.length > 0) return mapped;
+
+    return [
+      {
+        imageUrl: "",
+        title: heroTitle || "Live Deeply. Travel Boldly.",
+        subtitle: heroSubtitle || "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
+        tripId: undefined,
+        tripInstanceId: undefined,
+        price: undefined,
+        displayDate: undefined,
+      }
+    ];
   })();
 
   const [heroIdx, setHeroIdx] = useState(0);
@@ -149,11 +177,15 @@ export default function HomePage() {
               className="relative w-full h-full shrink-0 flex items-end pb-8 md:pb-14 overflow-hidden"
             >
               {/* Background image */}
-              <img
-                src={slide.imageUrl}
-                alt={slide.title}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
+              {slide.imageUrl ? (
+                <img
+                  src={slide.imageUrl}
+                  alt={slide.title}
+                  className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
+                />
+              ) : (
+                <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
+              )}
 
               {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
               <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
@@ -164,7 +196,7 @@ export default function HomePage() {
                   className="text-white text-3xl sm:text-4xl md:text-6xl leading-[1.1] sm:leading-[1.02] mb-2 sm:mb-5 max-w-2xl font-normal text-contrast-title"
                   style={{ fontFamily: "var(--font-serif)" }}
                 >
-                  {slide.title.split(". ").map((part, pIdx, arr) => (
+                  {(slide.title || "Live Deeply. Travel Boldly.").split(". ").map((part, pIdx, arr) => (
                     <span key={pIdx}>
                       {part}
                       {pIdx < arr.length - 1 ? "." : ""}
@@ -240,7 +272,7 @@ export default function HomePage() {
       {/* Trust Badges */}
       <section className="bg-white border-b border-[#e2e8f0]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
-          {homepageContent.whyUsPoints.slice(0, 3).map((b) => (
+          {(homepageContent?.whyUsPoints || []).slice(0, 3).map((b) => (
             <div key={b.title} className="flex items-start gap-3">
               <span className="text-2xl mt-0.5">{b.icon}</span>
               <div>
@@ -271,7 +303,13 @@ export default function HomePage() {
                 to={`/destinations/${d.slug || d.id}`}
                 className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
               >
-                <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                {d.image ? (
+                  <img src={d.image} alt={d.name} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-[#0f2922] via-[#1a4a39] to-[#0f2922] flex items-center justify-center">
+                    <span className="text-white/20 text-3xl">🏔️</span>
+                  </div>
+                )}
                 <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-5">
                   <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wider mb-1 text-contrast-subtle">
@@ -289,8 +327,12 @@ export default function HomePage() {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="rounded-2xl overflow-hidden h-80 md:h-96">
-              <img src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=800&h=600&fit=crop&auto=format" alt="Travelers around campfire" className="w-full h-full object-cover" />
+            <div className="rounded-2xl overflow-hidden h-80 md:h-96 relative">
+              <SiteImage
+                assetKey={SITE_ASSET_KEYS.HOME_WHY_US_IMAGE}
+                alt="Travelers around campfire"
+                className="w-full h-full object-cover"
+              />
             </div>
             <div>
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY TRAVELERS LOVE US</div>
@@ -342,7 +384,11 @@ export default function HomePage() {
 
       {/* CTA Banner */}
       <section className="relative py-24 overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=600&fit=crop&auto=format" alt="Forest mountain path" className="absolute inset-0 w-full h-full object-cover" />
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.HOME_CTA_BG}
+          alt="Forest mountain path"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="section-heading text-white mb-4">Ready to Travel Better?</h2>

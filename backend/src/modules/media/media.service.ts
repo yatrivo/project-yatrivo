@@ -74,10 +74,21 @@ export const mediaService = {
       );
     }
 
-    const category = options?.category || "general";
+    const VALID_CATEGORIES = new Set([
+      "homepage",
+      "destinations",
+      "trips",
+      "completed_trips",
+      "reviews",
+      "users",
+      "documents",
+      "general",
+    ]);
+    const rawCategory = options?.category || "general";
+    const dbCategory = VALID_CATEGORIES.has(rawCategory) ? rawCategory : "general";
     const label = options?.label;
     const altText = options?.altText;
-    const isReview = Boolean(options?.isReview || category === "reviews");
+    const isReview = Boolean(options?.isReview || dbCategory === "reviews");
 
     // Automatically resolve destination if provided
     let resolvedDestId: string | null = null;
@@ -98,7 +109,7 @@ export const mediaService = {
       }
     }
 
-    const key = generateStorageKey(category, file.originalname, {
+    const key = generateStorageKey(rawCategory, file.originalname, {
       destinationSlug: resolvedDestSlug,
       isReview
     });
@@ -114,7 +125,7 @@ export const mediaService = {
     try {
       const asset = await mediaRepository.createStorageAsset(
         {
-          category,
+          category: dbCategory,
           destinationId: resolvedDestId,
           label: label || file.originalname,
           altText: altText || label || null,

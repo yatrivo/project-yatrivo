@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 import { DEFAULT_ABOUT_SECTIONS, parseContentSections } from "@/data/contentSections";
 
 export default function AboutPage() {
@@ -18,8 +20,8 @@ export default function AboutPage() {
       />
       {/* Hero */}
       <section className="relative h-[50vh] min-h-[340px] flex items-end pb-12 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1544735716-392fe2489ffa?w=1920&h=900&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.ABOUT_HERO}
           alt="Hikers on Himalayan trail"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -72,9 +74,9 @@ export default function AboutPage() {
       {/* Deep Roots */}
       <section style={{ background: "var(--forest)" }} className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-          <div className="rounded-2xl overflow-hidden h-72 md:h-80">
-            <img
-              src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&h=600&fit=crop&auto=format"
+          <div className="rounded-2xl overflow-hidden h-72 md:h-80 relative">
+            <SiteImage
+              assetKey={SITE_ASSET_KEYS.ABOUT_DEEP_ROOTS}
               alt="Local Uttarakhand community members"
               className="w-full h-full object-cover"
             />
@@ -125,8 +127,8 @@ export default function AboutPage() {
 
       {/* CTA */}
       <section className="relative py-24 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=600&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.ABOUT_CTA_BG}
           alt="Forest light through trees"
           className="absolute inset-0 w-full h-full object-cover"
         />

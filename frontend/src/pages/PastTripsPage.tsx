@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 
 const Stars = ({ count = 5 }: { count?: number }) => (
   <div className="flex gap-0.5">
@@ -29,8 +31,8 @@ export default function PastTripsPage() {
       />
       {/* Header */}
       <section className="relative pt-24 pb-16 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=600&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.PAST_TRIPS_HERO}
           alt="Himalayan mountains"
           className="absolute inset-0 w-full h-full object-cover"
         />

@@ -50,13 +50,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Alpine meadows & dense forest",
     description:
       "Known as the 'Mini Switzerland of India', Chopta is a pristine alpine valley that serves as the base for trekking to Tungnath — the highest Shiva temple in the world. Surrounded by dense rhododendron forests and snow-capped peaks, it offers breathtaking natural beauty year-round.",
-    image: "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1586348943529-beaae6c28db9?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "high-altitude",
     season: "April – Nov",
     highlights: [
@@ -75,12 +70,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "High-altitude winter paradise",
     description:
       "Auli is India's premier ski destination, offering powder snow, certified ski schools, and stunning Himalayan vistas. Perched at 2,519 metres, the slopes offer beginner to expert runs with views of peaks including Nanda Devi.",
-    image: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "high-altitude",
     season: "Dec – March",
     highlights: [
@@ -99,12 +90,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Holy river & yoga capital",
     description:
       "Nestled in the foothills of the Himalayas along the sacred Ganga, Rishikesh is one of India's most spiritually significant towns. Known as the yoga capital of the world, it draws seekers from across the globe to its ancient ashrams, serene riverbanks, and powerful meditation centres.",
-    image: "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1582510003544-4d00b7f74220?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "spiritual",
     season: "Sept – April",
     highlights: [
@@ -122,12 +109,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Spiritual heights & high peaks",
     description:
       "One of the holiest Hindu shrines and part of the Char Dham, Kedarnath sits at 3,583 m surrounded by glaciers and towering peaks. The journey here is as sacred as the destination — a trek through mountain meadows, ancient forests, and the roaring Mandakini river.",
-    image: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1580281657702-257584239a55?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1458442310124-dde6edb43d10?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "spiritual",
     season: "May – Nov",
     highlights: [
@@ -146,12 +129,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Cozy pine woods & stargazing cabins",
     description:
       "Kanatal is a hidden gem in Uttarakhand's Tehri Garhwal district — a quiet, verdant hamlet surrounded by oak and rhododendron forests. Perfect for weekend escapes, the stargazing here is exceptional due to minimal light pollution.",
-    image: "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1543946207-39bd91e70ca7?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "weekend",
     season: "Year round",
     highlights: [
@@ -170,12 +149,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Waterfalls & ancient hill forts",
     description:
       "Chakrata is one of Uttarakhand's least-visited hill stations, offering pristine forests, ancient Mahasu Devta temple, and the magnificent Tiger Falls — one of India's highest waterfalls at 312 feet. A perfect offbeat destination away from tourist trails.",
-    image: "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1501854140801-50d01698950b?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1543946207-39bd91e70ca7?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "weekend",
     season: "March – July",
     highlights: [
@@ -194,12 +169,8 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Colonial hills & sunset viewpoints",
     description:
       "Known as the 'Queen of Hills', Mussoorie blends Victorian-era charm with sweeping Himalayan vistas. The Mall Road, Landour's quiet lanes, and Kempty Falls make it perfect for a relaxed getaway with a colonial character.",
-    image: "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop&auto=format",
-    gallery: [
-      "https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=800&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1536599018102-9f803c140fc1?w=600&h=400&fit=crop&auto=format",
-      "https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=600&h=400&fit=crop&auto=format",
-    ],
+    image: "",
+    gallery: [],
     category: "weekend",
     season: "Sept – June",
     highlights: [

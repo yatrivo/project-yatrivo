@@ -14,6 +14,7 @@ import { contentRouter } from "../modules/content/content.routes";
 import { auditRouter } from "../modules/audit/audit.routes";
 import { dashboardRouter } from "../modules/dashboard/dashboard.routes";
 import { usersRouter } from "../modules/users/users.routes";
+import { siteAssetsRouter } from "../modules/site-assets/site-assets.routes";
 
 export const apiRouter = Router();
 
@@ -38,4 +39,5 @@ apiRouter.use(auditRouter);
 apiRouter.use(dashboardRouter);
 apiRouter.use(usersRouter);
 apiRouter.use("/media", mediaRouter);
+apiRouter.use(siteAssetsRouter);
 

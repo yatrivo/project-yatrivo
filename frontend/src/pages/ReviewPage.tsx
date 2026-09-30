@@ -183,11 +183,13 @@ export default function ReviewPage() {
       <SEO title="Submit Trip Review" noindex={true} />
       {/* Hero Banner */}
       <section className="relative pt-24 pb-16 overflow-hidden bg-[#0f2922]">
-        <img
-          src={tokenData?.coverImage || "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=1920&h=600&fit=crop&auto=format"}
-          alt="Travel Landscape"
-          className="absolute inset-0 w-full h-full object-cover opacity-25"
-        />
+        {tokenData?.coverImage ? (
+          <img
+            src={tokenData.coverImage}
+            alt="Travel Landscape"
+            className="absolute inset-0 w-full h-full object-cover opacity-25"
+          />
+        ) : null}
         <div className="absolute inset-0 bg-gradient-to-t from-[#0f2922] via-[#0f2922]/70 to-transparent" />
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center text-white">
           <span className="inline-block px-3 py-1 rounded-full bg-[#e8622a]/20 border border-[#e8622a]/40 text-[#e8622a] text-xs uppercase tracking-widest font-bold mb-3">

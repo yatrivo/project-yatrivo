@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 
 const features = [
   {
@@ -27,12 +29,12 @@ const features = [
 ];
 
 const highlights = [
-  { id: "1", label: "Alpine Trekking", img: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=600&h=400&fit=crop&auto=format" },
-  { id: "2", label: "Mountain Camping", img: "https://images.unsplash.com/photo-1523987355523-c7b5b0dd90a7?w=600&h=400&fit=crop&auto=format" },
-  { id: "3", label: "River Rafting", img: "https://images.unsplash.com/photo-1541540720359-d9c4da8f55af?w=600&h=400&fit=crop&auto=format" },
-  { id: "4", label: "Himalayan Temples", img: "https://images.unsplash.com/photo-1580281657702-257584239a55?w=600&h=400&fit=crop&auto=format" },
-  { id: "5", label: "Snow Adventures", img: "https://images.unsplash.com/photo-1551632436-cbf8dd35adfa?w=600&h=400&fit=crop&auto=format" },
-  { id: "6", label: "Sunrise Meditation", img: "https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=600&h=400&fit=crop&auto=format" },
+  { id: "1", label: "Alpine Trekking", assetKey: SITE_ASSET_KEYS.ACTIVITY_ALPINE_TREKKING },
+  { id: "2", label: "Mountain Camping", assetKey: SITE_ASSET_KEYS.ACTIVITY_MOUNTAIN_CAMPING },
+  { id: "3", label: "River Rafting", assetKey: SITE_ASSET_KEYS.ACTIVITY_RIVER_RAFTING },
+  { id: "4", label: "Himalayan Temples", assetKey: SITE_ASSET_KEYS.ACTIVITY_HIMALAYAN_TEMPLES },
+  { id: "5", label: "Snow Adventures", assetKey: SITE_ASSET_KEYS.ACTIVITY_SNOW_ADVENTURES },
+  { id: "6", label: "Sunrise Meditation", assetKey: SITE_ASSET_KEYS.ACTIVITY_SUNRISE_MEDITATION },
 ];
 
 export default function TravelWithUsPage() {
@@ -52,8 +54,8 @@ export default function TravelWithUsPage() {
       />
       {/* Hero */}
       <section className="relative min-h-[75vh] flex items-center overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.TRAVEL_WITH_US_HERO}
           alt="Himalayan landscape"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -113,7 +115,11 @@ export default function TravelWithUsPage() {
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {highlights.map((h) => (
               <Link key={h.id} to="/trips" className="relative rounded-2xl overflow-hidden h-52 group block">
-                <img src={h.img} alt={h.label} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <SiteImage
+                  assetKey={h.assetKey}
+                  alt={h.label}
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                />
                 <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-4">
                   <div className="text-white font-medium text-sm text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
@@ -166,7 +172,11 @@ export default function TravelWithUsPage() {
 
       {/* CTA */}
       <section className="relative py-24 overflow-hidden">
-        <img src="https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=600&fit=crop&auto=format" alt="Forest mountain path" className="absolute inset-0 w-full h-full object-cover" />
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.TRAVEL_WITH_US_CTA_BG}
+          alt="Forest mountain path"
+          className="absolute inset-0 w-full h-full object-cover"
+        />
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="text-white text-4xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Explore?</h2>

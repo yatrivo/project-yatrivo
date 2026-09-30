@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
 export default function FAQContactPage() {
@@ -24,8 +26,8 @@ export default function FAQContactPage() {
       />
       {/* Hero */}
       <section className="relative h-[45vh] min-h-[300px] flex items-end pb-12 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1510798831971-661eb04b3739?w=1920&h=800&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.FAQ_HERO}
           alt="Cozy mountain cabin in snow"
           className="absolute inset-0 w-full h-full object-cover"
         />

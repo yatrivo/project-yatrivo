@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import SiteImage from "@/components/SiteImage";
+import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 
 type Filter = "all" | "treks" | "ski" | "spiritual";
 
@@ -79,8 +81,8 @@ export default function ReviewsPage() {
       />
       {/* Hero */}
       <section className="relative h-[45vh] min-h-[300px] flex items-end pb-12 overflow-hidden">
-        <img
-          src="https://images.unsplash.com/photo-1528360983277-13d401cdc186?w=1920&h=800&fit=crop&auto=format"
+        <SiteImage
+          assetKey={SITE_ASSET_KEYS.REVIEWS_HERO}
           alt="Group of travelers around campfire in mountains"
           className="absolute inset-0 w-full h-full object-cover"
         />
@@ -176,9 +178,9 @@ export default function ReviewsPage() {
               PLAN YOUR ADVENTURE
             </Link>
           </div>
-          <div className="rounded-2xl overflow-hidden h-72">
-            <img
-              src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=600&fit=crop&auto=format"
+          <div className="rounded-2xl overflow-hidden h-72 relative">
+            <SiteImage
+              assetKey={SITE_ASSET_KEYS.REVIEWS_HERO}
               alt="Mountain cabin under starry sky"
               className="w-full h-full object-cover"
             />

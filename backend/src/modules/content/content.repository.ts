@@ -20,22 +20,12 @@ export const seedDefaultHomepageConfig = async (): Promise<void> => {
   const instRows = await query<{ id: string }>(`SELECT id FROM trip_instances WHERE is_cancelled = false AND starts_on >= CURRENT_DATE LIMIT 2`);
   const instIds = instRows.rows.map(r => r.id);
 
-  const slides: any[] = [
-    {
-      slideType: "static",
-      imageUrl: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1920&h=1080&fit=crop&auto=format",
-      titleOverride: "Explore Uttarakhand",
-      subtitleOverride: "Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
-      sortOrder: 0,
-      isActive: true
-    }
-  ];
-
+  const slides: any[] = [];
   for (const [i, instId] of instIds.entries()) {
     slides.push({
       slideType: "trip",
       tripInstanceId: instId,
-      sortOrder: i + 1,
+      sortOrder: i,
       isActive: true
     });
   }

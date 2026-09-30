@@ -866,15 +866,20 @@ export default function AdminDestinations() {
               >
                 {/* Image and Badges */}
                 <div className="relative">
-                  <img
-                    src={dest.image}
-                    alt={dest.name}
-                    className={`w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300 ${isArchived ? "grayscale-[0.4]" : ""}`}
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src =
-                        "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=300&h=200&fit=crop";
-                    }}
-                  />
+                  {dest.image ? (
+                    <img
+                      src={dest.image}
+                      alt={dest.name}
+                      className={`w-full h-44 object-cover group-hover:scale-105 transition-transform duration-300 ${isArchived ? "grayscale-[0.4]" : ""}`}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="w-full h-44 bg-gradient-to-br from-[#0f2922] via-[#1a4a39] to-[#0f2922] flex items-center justify-center">
+                      <span className="text-white/20 text-3xl">🏔️</span>
+                    </div>
+                  )}
 
                   {/* Primary Experience Tag Pill */}
                   {dest.experienceTags && dest.experienceTags.length > 0 && (

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { FaqItem, CarouselSlide } from "@/context/AppContext";
 import MediaPicker from "@/components/MediaPicker";
 import { contentApi } from "@/api/content";
 import type { CarouselSlideApi, WhyUsPointApi } from "@/api/content";
+import { siteAssetsApi, type SiteAssetApi, DEFAULT_SITE_ASSET_SLOTS } from "@/api/siteAssets";
 import {
   type ContentSection,
   DEFAULT_TERMS_SECTIONS,
@@ -14,7 +15,7 @@ import {
   serializeContentSections,
 } from "@/data/contentSections";
 
-type ContentTab = "hero" | "featured" | "why-us" | "featured-reviews" | "faq" | "about" | "terms-privacy";
+type ContentTab = "hero" | "featured" | "why-us" | "featured-reviews" | "faq" | "about" | "terms-privacy" | "site-assets";
 
 const TABS: { id: ContentTab; label: string }[] = [
   { id: "hero", label: "Hero" },
@@ -24,6 +25,7 @@ const TABS: { id: ContentTab; label: string }[] = [
   { id: "faq", label: "FAQ" },
   { id: "about", label: "About Us" },
   { id: "terms-privacy", label: "Terms & Privacy" },
+  { id: "site-assets", label: "Site Assets" },
 ];
 
 // ---- Hero Tab ----
@@ -1107,6 +1109,278 @@ function FeaturedReviewsTab() {
   );
 }
 
+// ---- Site Assets Tab ----
+function SiteAssetsTab() {
+  const { siteAssets, refreshSiteAssets, showToast } = useApp();
+  const [assetsList, setAssetsList] = useState<SiteAssetApi[]>(() => DEFAULT_SITE_ASSET_SLOTS);
+  const [loading, setLoading] = useState(false);
+  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [savingKey, setSavingKey] = useState<string | null>(null);
+  const [wipingAll, setWipingAll] = useState(false);
+
+  const loadAssets = useCallback(async () => {
+    setLoading(true);
+    try {
+      const list = await siteAssetsApi.adminListAll();
+      const merged = DEFAULT_SITE_ASSET_SLOTS.map((slot) => {
+        const found = (list || []).find((a) => a.assetKey === slot.assetKey);
+        return found || slot;
+      });
+      setAssetsList(merged);
+    } catch {
+      // Fallback: merge with AppContext state
+      const merged = DEFAULT_SITE_ASSET_SLOTS.map((slot) => {
+        const fromCtx = siteAssets[slot.assetKey];
+        return fromCtx || slot;
+      });
+      setAssetsList(merged);
+    } finally {
+      setLoading(false);
+    }
+  }, [siteAssets]);
+
+  useEffect(() => {
+    void loadAssets();
+  }, [loadAssets]);
+
+  const handleUpdateImage = async (assetKey: string, newUrl: string) => {
+    setSavingKey(assetKey);
+    try {
+      await siteAssetsApi.updateUrl(assetKey, newUrl);
+      setAssetsList((prev) =>
+        prev.map((a) => (a.assetKey === assetKey ? { ...a, imageUrl: newUrl } : a))
+      );
+      await refreshSiteAssets();
+      showToast(newUrl ? `Updated image for ${assetKey}` : `Cleared image for ${assetKey}`, "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update image";
+      showToast(msg, "error");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleClearImage = async (assetKey: string) => {
+    setSavingKey(assetKey);
+    try {
+      await siteAssetsApi.clearAsset(assetKey);
+      setAssetsList((prev) =>
+        prev.map((a) =>
+          a.assetKey === assetKey
+            ? { ...a, imageUrl: null, storageKey: null, storageBucket: null }
+            : a
+        )
+      );
+      await refreshSiteAssets();
+      showToast(`Wiped image for ${assetKey}. Slot is now clean.`, "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to wipe image";
+      showToast(msg, "error");
+    } finally {
+      setSavingKey(null);
+    }
+  };
+
+  const handleWipeAllExternal = async () => {
+    if (!window.confirm("Are you sure you want to wipe all external placeholder images from the system? Any slot pointing to an external URL will be reset to clean.")) {
+      return;
+    }
+    setWipingAll(true);
+    try {
+      const res = await siteAssetsApi.wipeAllExternal();
+      await loadAssets();
+      await refreshSiteAssets();
+      showToast(`Successfully wiped ${res.count} external image placeholders!`, "success");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to wipe external images";
+      showToast(msg, "error");
+    } finally {
+      setWipingAll(false);
+    }
+  };
+
+  const groups = [
+    { id: "all", label: "All Groups" },
+    { id: "about", label: "About Us" },
+    { id: "homepage", label: "Homepage" },
+    { id: "activities", label: "Activities" },
+    { id: "pages", label: "Other Pages" },
+  ];
+
+  const filteredAssets = groupFilter === "all"
+    ? assetsList
+    : assetsList.filter((a) => a.groupName === groupFilter);
+
+  // Statistics
+  const externalCount = assetsList.filter((a) => a.imageUrl && !a.storageKey && !a.imageUrl.includes("yatrivo-media")).length;
+  const s3Count = assetsList.filter((a) => a.imageUrl && (a.storageKey || a.imageUrl.includes("yatrivo-media"))).length;
+  const cleanCount = assetsList.filter((a) => !a.imageUrl).length;
+
+  return (
+    <div className="space-y-6">
+      {/* Header & Global Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#e2e8f0] pb-4">
+        <div>
+          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            Site Assets & Static Images
+          </h3>
+          <p className="text-xs text-[#718096] mt-0.5">
+            Manage page-specific banners, hero backgrounds, and static activity cards across the site.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          {externalCount > 0 && (
+            <button
+              type="button"
+              onClick={() => void handleWipeAllExternal()}
+              disabled={wipingAll}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-200 text-red-600 bg-red-50 hover:bg-red-100 transition cursor-pointer flex items-center gap-1.5 disabled:opacity-50"
+              title="Wipe all external Unsplash URLs across the entire site"
+            >
+              <span>🗑️</span>
+              <span>{wipingAll ? "Wiping..." : `Wipe All External (${externalCount})`}</span>
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={() => void loadAssets()}
+            disabled={loading}
+            className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-[#e2e8f0] text-[#4a5568] hover:bg-[#f7f8f5] transition cursor-pointer"
+          >
+            ↻ Refresh
+          </button>
+        </div>
+      </div>
+
+      {/* Storage Status Banner */}
+      <div className="grid grid-cols-3 gap-3 bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-3 text-xs">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0" />
+          <div>
+            <div className="font-bold text-[#0f2922]">{s3Count} Uploaded to S3</div>
+            <div className="text-[10px] text-[#718096]">Permanently stored</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0" />
+          <div>
+            <div className="font-bold text-[#0f2922]">{externalCount} External Placeholders</div>
+            <div className="text-[10px] text-[#718096]">Unsplash / external</div>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-gray-300 shrink-0" />
+          <div>
+            <div className="font-bold text-[#0f2922]">{cleanCount} Clean Slots</div>
+            <div className="text-[10px] text-[#718096]">Brand gradient fallback</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Group filter tabs */}
+      <div className="flex gap-1.5 flex-wrap">
+        {groups.map((g) => (
+          <button
+            key={g.id}
+            type="button"
+            onClick={() => setGroupFilter(g.id)}
+            className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+              groupFilter === g.id
+                ? "bg-[#0f2922] text-white shadow-2xs"
+                : "bg-white text-[#4a5568] border border-[#e2e8f0] hover:bg-[#edf2f7]"
+            }`}
+          >
+            {g.label}
+          </button>
+        ))}
+      </div>
+
+      {loading && assetsList.length === 0 ? (
+        <div className="flex flex-col items-center justify-center py-16 text-[#718096]">
+          <div className="w-6 h-6 border-2 border-[#0f2922] border-t-transparent rounded-full animate-spin mb-2" />
+          <p className="text-xs">Loading site assets...</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {filteredAssets.map((asset) => {
+            const isExternal = Boolean(asset.imageUrl && !asset.storageKey && !asset.imageUrl.includes("yatrivo-media"));
+            const isS3 = Boolean(asset.imageUrl && (asset.storageKey || asset.imageUrl.includes("yatrivo-media")));
+            const isClean = !asset.imageUrl;
+
+            return (
+              <div
+                key={asset.assetKey}
+                className="bg-white border border-[#e2e8f0] rounded-xl p-4 shadow-2xs hover:border-[#cbd5e1] transition space-y-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <span className="font-semibold text-sm text-[#0f2922]">{asset.label}</span>
+                      <span className="text-[10px] font-mono uppercase bg-[#f0f9f4] text-[#0f2922] border border-[#d1fae5] px-2 py-0.5 rounded font-bold">
+                        {asset.assetKey}
+                      </span>
+                      {isS3 && (
+                        <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded font-medium flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          S3 Storage
+                        </span>
+                      )}
+                      {isExternal && (
+                        <span className="text-[10px] bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded font-medium flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                          External URL
+                        </span>
+                      )}
+                      {isClean && (
+                        <span className="text-[10px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded font-medium">
+                          No Image Set (Clean)
+                        </span>
+                      )}
+                    </div>
+                    {asset.description && (
+                      <p className="text-xs text-[#718096]">{asset.description}</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {savingKey === asset.assetKey && (
+                      <span className="text-xs text-[#e8622a] font-semibold animate-pulse">
+                        Saving...
+                      </span>
+                    )}
+                    {asset.imageUrl && (
+                      <button
+                        type="button"
+                        onClick={() => void handleClearImage(asset.assetKey)}
+                        disabled={savingKey === asset.assetKey}
+                        className="text-xs text-red-600 hover:text-red-700 font-semibold px-2.5 py-1 rounded border border-red-200 hover:bg-red-50 transition cursor-pointer disabled:opacity-50"
+                        title="Completely remove this image"
+                      >
+                        Wipe Image
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* MediaPicker integration */}
+                <MediaPicker
+                  value={asset.imageUrl || ""}
+                  onChange={(url) => void handleUpdateImage(asset.assetKey, url)}
+                  context={{ category: "general" }}
+                  aspectRatio={
+                    asset.assetKey.includes("HERO") || asset.assetKey.includes("BG")
+                      ? "banner"
+                      : "video"
+                  }
+                />
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ---- Main Component ----
 export default function AdminContent() {
   const [activeTab, setActiveTab] = useState<ContentTab>("hero");
@@ -1139,6 +1413,7 @@ export default function AdminContent() {
           {activeTab === "faq" && <FAQTab />}
           {activeTab === "about" && <AboutTab />}
           {activeTab === "terms-privacy" && <TermsPrivacyTab />}
+          {activeTab === "site-assets" && <SiteAssetsTab />}
         </div>
       </div>
     </div>
