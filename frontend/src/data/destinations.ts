@@ -50,7 +50,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Alpine meadows & dense forest",
     description:
       "Known as the 'Mini Switzerland of India', Chopta is a pristine alpine valley that serves as the base for trekking to Tungnath — the highest Shiva temple in the world. Surrounded by dense rhododendron forests and snow-capped peaks, it offers breathtaking natural beauty year-round.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/7e7801b6-4b1e-4e43-a6ce-34eb070fcfcd-1513419766-chandra-jpg.jpg",
     gallery: [],
     category: "high-altitude",
     season: "April – Nov",
@@ -70,7 +70,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "High-altitude winter paradise",
     description:
       "Auli is India's premier ski destination, offering powder snow, certified ski schools, and stunning Himalayan vistas. Perched at 2,519 metres, the slopes offer beginner to expert runs with views of peaks including Nanda Devi.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/e230812f-734d-44d8-9967-fc51d5dd4a9e-maxresdefault.jpg",
     gallery: [],
     category: "high-altitude",
     season: "Dec – March",
@@ -90,7 +90,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Holy river & yoga capital",
     description:
       "Nestled in the foothills of the Himalayas along the sacred Ganga, Rishikesh is one of India's most spiritually significant towns. Known as the yoga capital of the world, it draws seekers from across the globe to its ancient ashrams, serene riverbanks, and powerful meditation centres.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg",
     gallery: [],
     category: "spiritual",
     season: "Sept – April",
@@ -109,7 +109,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Spiritual heights & high peaks",
     description:
       "One of the holiest Hindu shrines and part of the Char Dham, Kedarnath sits at 3,583 m surrounded by glaciers and towering peaks. The journey here is as sacred as the destination — a trek through mountain meadows, ancient forests, and the roaring Mandakini river.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/ea3d6579-4e56-45c2-8940-917166a0e76d-6068998.jpg",
     gallery: [],
     category: "spiritual",
     season: "May – Nov",
@@ -129,7 +129,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Cozy pine woods & stargazing cabins",
     description:
       "Kanatal is a hidden gem in Uttarakhand's Tehri Garhwal district — a quiet, verdant hamlet surrounded by oak and rhododendron forests. Perfect for weekend escapes, the stargazing here is exceptional due to minimal light pollution.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/c0ad513a-b215-44a3-b465-6801cbc40fb1-1548836776-shutterstock-1058770418.jpg",
     gallery: [],
     category: "weekend",
     season: "Year round",
@@ -149,7 +149,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Waterfalls & ancient hill forts",
     description:
       "Chakrata is one of Uttarakhand's least-visited hill stations, offering pristine forests, ancient Mahasu Devta temple, and the magnificent Tiger Falls — one of India's highest waterfalls at 312 feet. A perfect offbeat destination away from tourist trails.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/4014dd97-6346-449a-b252-ccbb82d16507-chakrata-1566208182.webp",
     gallery: [],
     category: "weekend",
     season: "March – July",
@@ -169,7 +169,7 @@ export const INITIAL_DESTINATIONS: Destination[] = [
     tagline: "Colonial hills & sunset viewpoints",
     description:
       "Known as the 'Queen of Hills', Mussoorie blends Victorian-era charm with sweeping Himalayan vistas. The Mall Road, Landour's quiet lanes, and Kempty Falls make it perfect for a relaxed getaway with a colonial character.",
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/ccf7c94c-968d-4182-a24f-2a2f1d033c26-mussoorie-7488728.webp",
     gallery: [],
     category: "weekend",
     season: "Sept – June",

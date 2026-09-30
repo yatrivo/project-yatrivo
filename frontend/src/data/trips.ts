@@ -181,10 +181,10 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Chopta Tungnath Adventure",
     destination: "chopta",
     destinations: [
-      { id: "chopta", name: "Chopta Valley", slug: "chopta", isPrimary: true, image: "" },
-      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "" }
+      { id: "chopta", name: "Chopta Valley", slug: "chopta", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/7e7801b6-4b1e-4e43-a6ce-34eb070fcfcd-1513419766-chandra-jpg.jpg" },
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/7e7801b6-4b1e-4e43-a6ce-34eb070fcfcd-1513419766-chandra-jpg.jpg",
     gallery: [],
     price: 9999,
     duration: "4 Days / 3 Nights",
@@ -219,9 +219,9 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Auli Snow & Ski Collective",
     destination: "auli",
     destinations: [
-      { id: "auli", name: "Auli Slopes", slug: "auli", isPrimary: true, image: "" }
+      { id: "auli", name: "Auli Slopes", slug: "auli", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/425f8f66-3c49-4214-8a0c-77535f638cc7-sunset-view-from-lal-tibba-in-mussoorie-.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/425f8f66-3c49-4214-8a0c-77535f638cc7-sunset-view-from-lal-tibba-in-mussoorie-.jpg",
     gallery: [],
     price: 12499,
     duration: "5 Days / 4 Nights",
@@ -256,9 +256,9 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Rishikesh Escape & Rapids",
     destination: "rishikesh",
     destinations: [
-      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: true, image: "" }
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg",
     gallery: [],
     price: 7499,
     duration: "3 Days / 2 Nights",
@@ -293,10 +293,10 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Kedarnath Pilgrimage Trek",
     destination: "kedarnath",
     destinations: [
-      { id: "kedarnath", name: "Kedarnath", slug: "kedarnath", isPrimary: true, image: "" },
-      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "" }
+      { id: "kedarnath", name: "Kedarnath", slug: "kedarnath", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg" },
+      { id: "rishikesh", name: "Rishikesh", slug: "rishikesh", isPrimary: false, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg",
     gallery: [],
     price: 14999,
     duration: "6 Days / 5 Nights",
@@ -331,10 +331,10 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Kanatal Stargazing Camp",
     destination: "kanatal",
     destinations: [
-      { id: "kanatal", name: "Kanatal", slug: "kanatal", isPrimary: true, image: "" },
-      { id: "mussoorie", name: "Mussoorie", slug: "mussoorie", isPrimary: false, image: "" }
+      { id: "kanatal", name: "Kanatal", slug: "kanatal", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/c0ad513a-b215-44a3-b465-6801cbc40fb1-1548836776-shutterstock-1058770418.jpg" },
+      { id: "mussoorie", name: "Mussoorie", slug: "mussoorie", isPrimary: false, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/425f8f66-3c49-4214-8a0c-77535f638cc7-sunset-view-from-lal-tibba-in-mussoorie-.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/c0ad513a-b215-44a3-b465-6801cbc40fb1-1548836776-shutterstock-1058770418.jpg",
     gallery: [],
     price: 5999,
     duration: "3 Days / 2 Nights",
@@ -369,9 +369,9 @@ export const INITIAL_TRIPS: Trip[] = [
     name: "Chakrata Cascade & Woods",
     destination: "chakrata",
     destinations: [
-      { id: "chakrata", name: "Chakrata", slug: "chakrata", isPrimary: true, image: "" }
+      { id: "chakrata", name: "Chakrata", slug: "chakrata", isPrimary: true, image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/e230812f-734d-44d8-9967-fc51d5dd4a9e-maxresdefault.jpg" }
     ],
-    image: "",
+    image: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/e230812f-734d-44d8-9967-fc51d5dd4a9e-maxresdefault.jpg",
     gallery: [],
     price: 8499,
     duration: "4 Days / 3 Nights",

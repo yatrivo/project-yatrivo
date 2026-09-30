@@ -64,7 +64,7 @@ export default function HomePage() {
       const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
       const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
       return {
-        imageUrl: trip?.image || heroImages[0] || "",
+        imageUrl: slide.imageUrl || trip?.image || heroImages[0] || "",
         title: slide.title || trip?.name || "",
         subtitle: slide.subtitle || trip?.shortDescription || trip?.overview || "",
         tripId: trip?.id,
@@ -178,7 +178,8 @@ export default function HomePage() {
                     src={slide.imageUrl}
                     alt={slide.title || "Yatrivo"}
                     loading="eager"
-                    decoding="async"
+                    fetchPriority={i === 0 ? "high" : "auto"}
+                    decoding={i === 0 ? "sync" : "async"}
                     className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
                   />
                 ) : (

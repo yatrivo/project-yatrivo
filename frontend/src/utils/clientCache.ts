@@ -18,22 +18,23 @@ interface CacheRecord<T> {
   expiresAt: number;
 }
 
-// Strictly allowlisted public keys for sessionStorage rehydration
-const ALLOWED_SESSION_KEYS = new Set([
+// Strictly allowlisted public keys for persistent browser rehydration
+const ALLOWED_PERSISTENT_KEYS = new Set([
   "destinations:active",
   "homepage:content",
+  "homepage:api_config",
   "site_assets",
   "site_settings",
   "trips:published",
 ]);
 
-const SESSION_PREFIX = "yatrivo_cache_";
+const STORAGE_PREFIX = "yatrivo_cache_";
 
 class ClientCache {
   private memoryCache = new Map<string, CacheRecord<unknown>>();
 
   /**
-   * Synchronously retrieve cached data if valid (checks memory first, then sessionStorage).
+   * Synchronously retrieve cached data if valid (checks memory first, then localStorage/sessionStorage).
    * Useful for initializing React state on page load / refresh.
    */
   get<T>(key: string): T | null {
@@ -48,10 +49,12 @@ class ClientCache {
       this.memoryCache.delete(key);
     }
 
-    // 2. Check sessionStorage if key is on the allowed list
-    if (typeof window !== "undefined" && ALLOWED_SESSION_KEYS.has(key)) {
+    // 2. Check persistent storage if key is on the allowed list
+    if (typeof window !== "undefined" && ALLOWED_PERSISTENT_KEYS.has(key)) {
       try {
-        const raw = sessionStorage.getItem(`${SESSION_PREFIX}${key}`);
+        const raw =
+          localStorage.getItem(`${STORAGE_PREFIX}${key}`) ||
+          sessionStorage.getItem(`${STORAGE_PREFIX}${key}`);
         if (raw) {
           const parsed = JSON.parse(raw) as CacheRecord<T>;
           if (parsed && typeof parsed.expiresAt === "number" && now < parsed.expiresAt) {
@@ -59,10 +62,11 @@ class ClientCache {
             this.memoryCache.set(key, parsed as CacheRecord<unknown>);
             return parsed.data;
           }
-          sessionStorage.removeItem(`${SESSION_PREFIX}${key}`);
+          localStorage.removeItem(`${STORAGE_PREFIX}${key}`);
+          sessionStorage.removeItem(`${STORAGE_PREFIX}${key}`);
         }
       } catch {
-        // Ignore session storage errors
+        // Ignore storage errors
       }
     }
 
@@ -76,7 +80,7 @@ class ClientCache {
     key: string,
     data: T,
     staleTimeMs = 5 * 60 * 1000, // 5 minutes default stale time
-    maxAgeMs = 30 * 60 * 1000 // 30 minutes max retention
+    maxAgeMs = 60 * 60 * 1000 // 60 minutes max retention
   ): void {
     const now = Date.now();
     const record: CacheRecord<T> = {
@@ -88,11 +92,15 @@ class ClientCache {
 
     this.memoryCache.set(key, record as CacheRecord<unknown>);
 
-    if (typeof window !== "undefined" && ALLOWED_SESSION_KEYS.has(key)) {
+    if (typeof window !== "undefined" && ALLOWED_PERSISTENT_KEYS.has(key)) {
       try {
-        sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(record));
+        localStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(record));
       } catch {
-        // Storage quota exceeded or disabled, silently continue
+        try {
+          sessionStorage.setItem(`${STORAGE_PREFIX}${key}`, JSON.stringify(record));
+        } catch {
+          // Storage quota exceeded or disabled, silently continue
+        }
       }
     }
   }
@@ -122,7 +130,7 @@ class ClientCache {
       onRevalidate?: (freshData: T) => void;
     }
   ): Promise<T> {
-    const { staleTimeMs = 5 * 60 * 1000, maxAgeMs = 30 * 60 * 1000, bypassCache = false, onRevalidate } = options || {};
+    const { staleTimeMs = 5 * 60 * 1000, maxAgeMs = 60 * 60 * 1000, bypassCache = false, onRevalidate } = options || {};
 
     if (!bypassCache) {
       const cached = this.get<T>(key);
@@ -169,22 +177,27 @@ class ClientCache {
       }
     }
 
-    // Invalidate in sessionStorage
+    // Invalidate in persistent storage
     if (typeof window !== "undefined") {
       try {
-        const fullPrefix = `${SESSION_PREFIX}${keyOrPrefix}`;
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const itemKey = sessionStorage.key(i);
-          if (itemKey && (itemKey === fullPrefix || itemKey.startsWith(fullPrefix))) {
-            keysToRemove.push(itemKey);
+        const fullPrefix = `${STORAGE_PREFIX}${keyOrPrefix}`;
+        const removeFromStorage = (storage: Storage) => {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < storage.length; i++) {
+            const itemKey = storage.key(i);
+            if (itemKey && (itemKey === fullPrefix || itemKey.startsWith(fullPrefix))) {
+              keysToRemove.push(itemKey);
+            }
           }
-        }
-        for (const k of keysToRemove) {
-          sessionStorage.removeItem(k);
-        }
+          for (const k of keysToRemove) {
+            storage.removeItem(k);
+          }
+        };
+
+        removeFromStorage(localStorage);
+        removeFromStorage(sessionStorage);
       } catch {
-        // Ignore session storage errors
+        // Ignore storage errors
       }
     }
   }
@@ -196,16 +209,21 @@ class ClientCache {
     this.memoryCache.clear();
     if (typeof window !== "undefined") {
       try {
-        const keysToRemove: string[] = [];
-        for (let i = 0; i < sessionStorage.length; i++) {
-          const itemKey = sessionStorage.key(i);
-          if (itemKey && itemKey.startsWith(SESSION_PREFIX)) {
-            keysToRemove.push(itemKey);
+        const clearFromStorage = (storage: Storage) => {
+          const keysToRemove: string[] = [];
+          for (let i = 0; i < storage.length; i++) {
+            const itemKey = storage.key(i);
+            if (itemKey && itemKey.startsWith(STORAGE_PREFIX)) {
+              keysToRemove.push(itemKey);
+            }
           }
-        }
-        for (const k of keysToRemove) {
-          sessionStorage.removeItem(k);
-        }
+          for (const k of keysToRemove) {
+            storage.removeItem(k);
+          }
+        };
+
+        clearFromStorage(localStorage);
+        clearFromStorage(sessionStorage);
       } catch {
         // Ignore
       }

@@ -86,7 +86,7 @@ export interface FaqItem {
 }
 
 export type CarouselSlide =
-  | { type: "trip"; tripInstanceId: string; title?: string; subtitle?: string }
+  | { type: "trip"; tripInstanceId: string; imageUrl?: string; title?: string; subtitle?: string }
   | { type: "static"; imageUrl: string; title: string; subtitle: string };
 
 export interface HomepageContent {
@@ -109,10 +109,42 @@ export interface GalleryImage {
   addedAt: string;
 }
 
+export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
+  {
+    type: "trip",
+    tripInstanceId: "3aec4028-8ecd-4307-8244-f8a71a2236b6",
+    imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/e230812f-734d-44d8-9967-fc51d5dd4a9e-maxresdefault.jpg",
+    title: "Darma Vally Trip",
+    subtitle: "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers.",
+  },
+  {
+    type: "trip",
+    tripInstanceId: "5afb37d1-ccdd-4486-8e0f-a771a6fecf49",
+    imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg",
+    title: "Rishikesh Rapids & Cliff Camp",
+    subtitle: "Grade 3–5 white water rafting on the Ganga and riverside luxury glamping.",
+  },
+  {
+    type: "trip",
+    tripInstanceId: "3e7d2f58-d6a0-4cc0-ba0c-5f3521be2542",
+    imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg",
+    title: "Kedarnath Pilgrimage Trek",
+    subtitle: "Kedarnath Temple darshan and sacred glacial valleys.",
+  },
+  {
+    type: "trip",
+    tripInstanceId: "abba9958-5317-4aec-9483-df1dfc59ea4e",
+    imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/7e7801b6-4b1e-4e43-a6ce-34eb070fcfcd-1513419766-chandra-jpg.jpg",
+    title: "Chopta Tungnath Adventure",
+    subtitle: "Trek the Sacred Meadow Ridge and reach Chandrashila summit at 13,123 ft.",
+  },
+];
+
 const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
-  heroImages: [],
-  heroTitle: "",
-  heroSubtitle: "",
+  heroImages: DEFAULT_CAROUSEL_SLIDES.map((s) => s.imageUrl || "").filter(Boolean),
+  heroTitle: "Jai Ho!",
+  heroSubtitle:
+    "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
   featuredDestIds: ["chopta", "auli", "kedarnath"],
   whyUsTitle: "The Mindful Adventure Movement",
   whyUsDesc:
@@ -123,7 +155,7 @@ const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
     { icon: "🏔️", title: "Himalayan Trust", desc: "Certified local guides & sustainable execution." },
   ],
   featuredReviewIds: ["r1", "r2", "r3"],
-  carouselSlides: [],
+  carouselSlides: DEFAULT_CAROUSEL_SLIDES,
 };
 
 interface AppContextType {
@@ -352,7 +384,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return INITIAL_TRIP_INSTANCES;
   });
   const [reviews, setReviews] = useState<Review[]>(REVIEWS);
-  const [homepageContent, setHomepageContent] = useState<HomepageContent>(() => clientCache.get<HomepageContent>("homepage:content") || DEFAULT_HOMEPAGE_CONTENT);
+  const [homepageContent, setHomepageContent] = useState<HomepageContent>(() => {
+    const cached = clientCache.get<HomepageContent>("homepage:content");
+    if (cached && Array.isArray(cached.carouselSlides) && cached.carouselSlides.length > 0) {
+      return cached;
+    }
+    return DEFAULT_HOMEPAGE_CONTENT;
+  });
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(SEED_GALLERY_IMAGES);
   const [bookings, setBookings] = useState<Booking[]>([
     { id: "BK001", customerName: "Rahul Sharma", customerPhone: "+91 98765 43210", destination: "Chopta", tripName: "Chopta Tungnath Trek", tripDate: "Oct 15, 2026", travellers: [{ name: "Rahul Sharma", age: "28", gender: "Male" }, { name: "Anjali Sharma", age: "26", gender: "Female" }], totalAmount: "₹17,000", paymentStatus: "Paid", status: "Confirmed", bookingDate: "2026-09-10" },
@@ -658,6 +696,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         return {
           type: "trip" as const,
           tripInstanceId: s.tripInstanceId || "",
+          imageUrl: s.imageUrl || undefined,
           title: s.titleOverride || undefined,
           subtitle: s.subtitleOverride || undefined,
         };
@@ -669,21 +708,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
         subtitle: s.subtitleOverride || "",
       };
     });
-    setHomepageContent((prev) => ({
-      ...prev,
-      whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
-      whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
-      featuredDestIds: homepage.featuredDestinationIds && homepage.featuredDestinationIds.length > 0
-        ? homepage.featuredDestinationIds
-        : prev.featuredDestIds,
-      featuredReviewIds: homepage.featuredReviewIds && homepage.featuredReviewIds.length > 0
-        ? homepage.featuredReviewIds
-        : prev.featuredReviewIds,
-      whyUsPoints: (homepage.whyUsPoints || []).length > 0
-        ? homepage.whyUsPoints.map((p) => ({ icon: p.icon || "✨", title: p.title, desc: p.description || "" }))
-        : prev.whyUsPoints,
-      carouselSlides: mappedSlides.length > 0 ? mappedSlides : prev.carouselSlides,
-    }));
+    setHomepageContent((prev) => {
+      const next: HomepageContent = {
+        ...prev,
+        heroTitle: homepage.heroTitle || prev.heroTitle,
+        heroSubtitle: homepage.heroSubtitle || prev.heroSubtitle,
+        whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
+        whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,
+        featuredDestIds: homepage.featuredDestinationIds && homepage.featuredDestinationIds.length > 0
+          ? homepage.featuredDestinationIds
+          : prev.featuredDestIds,
+        featuredReviewIds: homepage.featuredReviewIds && homepage.featuredReviewIds.length > 0
+          ? homepage.featuredReviewIds
+          : prev.featuredReviewIds,
+        whyUsPoints: (homepage.whyUsPoints || []).length > 0
+          ? homepage.whyUsPoints.map((p) => ({ icon: p.icon || "✨", title: p.title, desc: p.description || "" }))
+          : prev.whyUsPoints,
+        carouselSlides: mappedSlides.length > 0 ? mappedSlides : prev.carouselSlides,
+        heroImages: mappedSlides.map((s) => s.imageUrl || "").filter(Boolean),
+      };
+      clientCache.set("homepage:content", next);
+      return next;
+    });
   }, []);
 
   const refreshContent = useCallback(async (options?: { bypassCache?: boolean }) => {
@@ -692,7 +738,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     // Load homepage config
     try {
       const homepage = await clientCache.fetchWithCache(
-        "homepage:content",
+        "homepage:api_config",
         () => contentApi.getPublicHomepage(),
         {
           staleTimeMs: 5 * 60 * 1000,
