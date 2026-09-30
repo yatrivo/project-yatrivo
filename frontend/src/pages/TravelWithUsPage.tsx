@@ -91,7 +91,7 @@ export default function TravelWithUsPage() {
           <div className="text-center mb-12">
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY CHOOSE US</div>
             <h2 className="text-[#0f2922] text-3xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>The Yatrivo Difference</h2>
-            <p className="text-[#4a5568] text-sm mt-3 max-w-xl mx-auto">Every detail is thoughtfully designed to give you a safe, immersive, and genuinely memorable Himalayan experience.</p>
+            <p className="text-[#4a5568] text-sm mt-3 max-w-xl mx-auto text-center">Every detail is thoughtfully designed to give you a safe, immersive, and genuinely memorable Himalayan experience.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {features.map((f) => (
@@ -136,7 +136,7 @@ export default function TravelWithUsPage() {
           <div className="text-center mb-12">
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">RECENT DEPARTURES</div>
             <h2 className="text-[#0f2922] text-3xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Join Thousands of Mindful Explorers</h2>
-            <p className="text-[#4a5568] text-sm mt-3 max-w-md mx-auto">Every month, a new group of adventurers discovers the Himalayas with Yatrivo. Here are some of our most recent completed trips.</p>
+            <p className="text-[#4a5568] text-sm mt-3 max-w-md mx-auto text-center">Every month, a new group of adventurers discovers the Himalayas with Yatrivo. Here are some of our most recent completed trips.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             {recentCompleted.map((inst) => {

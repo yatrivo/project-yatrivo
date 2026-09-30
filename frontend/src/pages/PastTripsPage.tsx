@@ -40,7 +40,7 @@ export default function PastTripsPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">MEMORIES MADE</div>
           <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-5 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Our Past Adventures</h1>
-          <p className="text-white/90 text-base max-w-2xl mx-auto leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-base max-w-2xl mx-auto text-center leading-relaxed text-contrast-body">
             Every journey we lead becomes a story. Here's a look at the adventures, summits, and moments shared by our past groups. Each trip is proof that travelling with the right people changes everything.
           </p>
         </div>
@@ -121,7 +121,7 @@ export default function PastTripsPage() {
         <div className="max-w-2xl mx-auto px-4">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">YOUR ADVENTURE AWAITS</div>
           <h2 className="text-[#0f2922] text-3xl sm:text-4xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Be Part of Our Next Adventure</h2>
-          <p className="text-[#4a5568] text-sm leading-relaxed mb-8 max-w-lg mx-auto">
+          <p className="text-[#4a5568] text-sm leading-relaxed mb-8 max-w-lg mx-auto text-center">
             Join the growing Yatrivo family of mindful explorers. Your story is waiting to be written in the Himalayas.
           </p>
           <Link
