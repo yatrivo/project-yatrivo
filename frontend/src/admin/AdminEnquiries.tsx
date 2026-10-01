@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import type { Enquiry } from "@/context/AppContext";
 import type { AdminPage } from "./AdminLayout";
 import { enquiriesApi } from "@/api/enquiries";
+import { formatEnquiryDateTime } from "@/utils/dateFormatters";
 
 const MANUAL_SOURCES = [
   { label: "Phone Call", value: "phone" },
@@ -638,7 +639,7 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
                 <th className="px-4 py-3 text-left">Customer</th>
                 <th className="px-4 py-3 text-left">Package & Destination</th>
                 <th className="px-4 py-3 text-left">Departure</th>
-                <th className="px-4 py-3 text-left">Submitted</th>
+                <th className="px-4 py-3 text-left">Received At</th>
                 <th className="px-4 py-3 text-left">Status</th>
                 <th className="px-4 py-3 text-left">Assigned To</th>
                 <th className="px-4 py-3 text-right">Actions</th>
@@ -695,13 +696,25 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
                       </div>
                     </td>
 
-                    {/* Submitted At */}
-                    <td className="px-4 py-3 text-[#718096] whitespace-nowrap">
-                      {new Date(e.submittedAt).toLocaleDateString("en-IN", {
-                        day: "numeric",
-                        month: "short",
-                        year: "numeric"
-                      })}
+                    {/* Received At (Date & Time) */}
+                    <td className="px-4 py-3 whitespace-nowrap">
+                      {(() => {
+                        const dt = formatEnquiryDateTime(e.submittedAt);
+                        return (
+                          <div>
+                            <div className="text-xs font-semibold text-[#0f2922]">{dt.date}</div>
+                            {dt.time && (
+                              <div className="text-[11px] text-[#718096] flex items-center gap-1 mt-0.5">
+                                <svg className="w-3 h-3 text-[#94a3b8] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <circle cx="12" cy="12" r="9" strokeWidth="1.8" />
+                                  <polyline points="12 7 12 12 15 14" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+                                </svg>
+                                <span>{dt.time}</span>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
 
                     {/* Status Badge */}

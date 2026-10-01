@@ -11,6 +11,7 @@ import {
   type EnquiryAdmin
 } from "@/api/enquiries";
 import { bookingsApi } from "@/api/bookings";
+import { formatEnquiryDateTime } from "@/utils/dateFormatters";
 
 interface Props {
   setAdminPage?: (p: AdminPage) => void;
@@ -421,11 +422,10 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
           <span className="text-xs text-[#718096] capitalize">Source: {enquiry.source.replace("_", " ")}</span>
           <span className="text-[#a0aec0] text-xs">•</span>
           <span className="text-xs text-[#718096]">
-            Submitted on {new Date(enquiry.submittedAt).toLocaleDateString("en-IN", {
-              day: "numeric",
-              month: "long",
-              year: "numeric"
-            })}
+            {(() => {
+              const dt = formatEnquiryDateTime(enquiry.submittedAt);
+              return `Received on ${dt.date}${dt.time ? ` at ${dt.time}` : ""}`;
+            })()}
           </span>
         </div>
         <h1 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
@@ -786,6 +786,15 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
               <div className="flex justify-between">
                 <span>Enquiry Number:</span>
                 <span className="font-mono font-semibold text-[#0f2922]">{enquiry.enquiryNumber}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Received At:</span>
+                <span className="font-semibold text-[#0f2922]">
+                  {(() => {
+                    const dt = formatEnquiryDateTime(enquiry.submittedAt);
+                    return `${dt.date}${dt.time ? ` at ${dt.time}` : ""}`;
+                  })()}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span>Lead Source:</span>
