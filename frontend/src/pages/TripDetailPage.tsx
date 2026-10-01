@@ -555,6 +555,67 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
               </div>
             </section>
 
+            {/* MOBILE ONLY: Upcoming Departures & Dates (for regular visitors) */}
+            {!isAdmin && (
+              <section id="mobile-scheduled-departures" className="block lg:hidden border-t border-[#e2e8f0] pt-8">
+                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+                  <div>
+                    <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
+                      UPCOMING DATES
+                    </div>
+                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+                      Scheduled Departures
+                    </h2>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-xs text-[#718096]">Starting from</div>
+                    <div className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif)" }}>
+                      {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
+                    </div>
+                  </div>
+                </div>
+
+                {upcomingDepartures.length > 0 ? (
+                  <div className="space-y-3">
+                    {upcomingDepartures.map((d) => (
+                      <div
+                        key={d.id}
+                        onClick={() => openEnquiryModal(tripId, d.id)}
+                        className="bg-white rounded-xl p-3.5 border border-[#e2e8f0] shadow-sm hover:border-[#0f2922] transition cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-sm font-semibold text-[#0f2922]">{d.displayDate}</span>
+                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                              d.spotsLeft <= 3
+                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            }`}>
+                              {d.spotsLeft} {d.spotsLeft === 1 ? "spot" : "spots"} remaining
+                            </span>
+                          </div>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0aec0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
+                            <polyline points="9 18 15 12 9 6" />
+                          </svg>
+                        </div>
+                        {d.notes && (
+                          <div className="text-[11px] text-[#4a5568] mt-2 italic flex items-center gap-1.5 bg-[#f7f8f5] px-2.5 py-1 rounded-md border border-[#e2e8f0]/60">
+                            <span className="text-[#e8622a] text-xs">✦</span>
+                            <span className="line-clamp-1">{d.notes}</span>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="bg-[#f7f8f5] rounded-xl p-4 border border-dashed border-[#cbd5e1] text-center">
+                    <p className="text-sm font-medium text-[#0f2922] mb-1">No fixed group departures currently scheduled.</p>
+                    <p className="text-xs text-[#718096]">We organize customized and private departures on any dates of your choice.</p>
+                  </div>
+                )}
+              </section>
+            )}
+
             {/* DEDICATED SECTION: Departure Management for Admin (Requirement 8 & 9) */}
             {isAdmin && (
               <section id="departure-management" className="border-t border-[#e2e8f0] pt-10">
@@ -1053,7 +1114,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
               {/* Upcoming Departures Card (For user) */}
               {!isAdmin && upcomingDepartures.length > 0 && (
-                <div className="border border-[#e2e8f0] rounded-2xl p-5 bg-white">
+                <div className="hidden lg:block border border-[#e2e8f0] rounded-2xl p-5 bg-white">
                   <div className="text-[#e8622a] text-xs uppercase tracking-wider font-semibold mb-3">
                     SCHEDULED DEPARTURES
                   </div>
