@@ -275,13 +275,9 @@ export const authService = {
 
     const user = await authRepository.findUserByEmail(email);
 
-    // Verify that the email actually exists for an active administrator
+    // Verify that the email actually exists for an active administrator; return silently if not to prevent enumeration
     if (!user || user.status !== "active" || (user.role !== "admin" && user.role !== "super_admin")) {
-      throw new AppError(
-        404,
-        "ADMIN_NOT_FOUND",
-        "No active administrator account was found with this email address."
-      );
+      return;
     }
 
     // 1. Check if an active, unconsumed token already exists within its 20-minute window

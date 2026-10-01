@@ -25,17 +25,19 @@ enquiriesRouter.get(
   asyncHandler(enquiriesController.listAdmins)
 );
 
-// List enquiries (with optional role / assigned-to filtering)
+// List enquiries (Admin & Super Admin only)
 enquiriesRouter.get(
   "/enquiries",
-  optionalAuthenticate,
+  authenticate,
+  requireAdmin,
   asyncHandler(enquiriesController.list)
 );
 
-// Single enquiry details with notes & events
+// Single enquiry details with notes & events (Admin & Super Admin only)
 enquiriesRouter.get(
   "/enquiries/:id",
-  optionalAuthenticate,
+  authenticate,
+  requireAdmin,
   asyncHandler(enquiriesController.getById)
 );
 
