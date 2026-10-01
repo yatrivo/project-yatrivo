@@ -17,14 +17,14 @@ export const seedDefaultHomepageConfig = async (): Promise<void> => {
   const revRows = await query<{ id: string }>(`SELECT id FROM reviews WHERE status = 'published' LIMIT 3`);
   const revIds = revRows.rows.map(r => r.id);
 
-  const instRows = await query<{ id: string }>(`SELECT id FROM trip_instances WHERE is_cancelled = false AND starts_on >= CURRENT_DATE LIMIT 2`);
-  const instIds = instRows.rows.map(r => r.id);
+  const tripRows = await query<{ id: string }>(`SELECT id FROM trips WHERE status = 'published' OR status = 'active' LIMIT 4`);
+  const tripIds = tripRows.rows.map(r => r.id);
 
   const slides: any[] = [];
-  for (const [i, instId] of instIds.entries()) {
+  for (const [i, tripId] of tripIds.entries()) {
     slides.push({
       slideType: "trip",
-      tripInstanceId: instId,
+      tripId: tripId,
       sortOrder: i,
       isActive: true
     });
@@ -72,8 +72,7 @@ export const getHomepageConfig = async (): Promise<HomepageConfigFull | null> =>
        m.public_url as static_public_url,
        m.external_url as static_external_url
      FROM homepage_slides hs
-     LEFT JOIN trip_instances ti ON hs.trip_instance_id = ti.id
-     LEFT JOIN trips t ON ti.trip_id = t.id
+     LEFT JOIN trips t ON (hs.trip_id = t.id OR (hs.trip_id IS NULL AND hs.trip_instance_id IS NOT NULL AND t.id = (SELECT ti.trip_id FROM trip_instances ti WHERE ti.id = hs.trip_instance_id)))
      LEFT JOIN media_assets trip_cover_media ON t.cover_media_id = trip_cover_media.id
      LEFT JOIN media_assets m ON hs.media_id = m.id
      WHERE hs.homepage_config_id = $1
@@ -117,6 +116,8 @@ export const getHomepageConfig = async (): Promise<HomepageConfigFull | null> =>
         homepage_config_id: s.homepage_config_id,
         slide_type: s.slide_type,
         slideType: s.slide_type,
+        trip_id: s.trip_id,
+        tripId: s.trip_id,
         trip_instance_id: s.trip_instance_id,
         tripInstanceId: s.trip_instance_id,
         media_id: s.media_id,
@@ -186,22 +187,58 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
       await client.query(`DELETE FROM homepage_slides WHERE homepage_config_id = $1`, [configId]);
       for (const [index, slide] of incomingSlides.entries()) {
         let slideType = slide.slideType ?? slide.slide_type ?? "static";
+        const rawTripId = slide.tripId ?? slide.trip_id;
         const rawTripInstId = slide.tripInstanceId ?? slide.trip_instance_id;
+        let tripId: string | null = null;
         let tripInstId: string | null = null;
-        if (typeof rawTripInstId === "string" && rawTripInstId.trim().length > 0) {
+
+        if (typeof rawTripId === "string" && rawTripId.trim().length > 0) {
+          const val = rawTripId.trim();
+          if (UUID_REGEX.test(val)) {
+            const check = await client.query(`SELECT id FROM trips WHERE id = $1`, [val]);
+            if (check.rows.length > 0) {
+              tripId = check.rows[0].id;
+            } else {
+              const instCheck = await client.query(`SELECT id, trip_id FROM trip_instances WHERE id = $1`, [val]);
+              if (instCheck.rows.length > 0) {
+                tripInstId = instCheck.rows[0].id;
+                tripId = instCheck.rows[0].trip_id;
+              }
+            }
+          } else {
+            const check = await client.query(`SELECT id FROM trips WHERE slug = $1`, [val]);
+            if (check.rows.length > 0) tripId = check.rows[0].id;
+          }
+        }
+
+        if (!tripId && typeof rawTripInstId === "string" && rawTripInstId.trim().length > 0) {
           const val = rawTripInstId.trim();
           if (UUID_REGEX.test(val)) {
-            const check = await client.query(`SELECT id FROM trip_instances WHERE id = $1`, [val]);
-            if (check.rows.length > 0) tripInstId = check.rows[0].id;
+            const tripCheck = await client.query(`SELECT id FROM trips WHERE id = $1`, [val]);
+            if (tripCheck.rows.length > 0) {
+              tripId = tripCheck.rows[0].id;
+            } else {
+              const check = await client.query(`SELECT id, trip_id FROM trip_instances WHERE id = $1`, [val]);
+              if (check.rows.length > 0) {
+                tripInstId = check.rows[0].id;
+                tripId = check.rows[0].trip_id;
+              }
+            }
           } else {
             const check = await client.query(
-              `SELECT ti.id FROM trip_instances ti 
+              `SELECT ti.id, ti.trip_id FROM trip_instances ti 
                JOIN trips t ON ti.trip_id = t.id 
                WHERE t.slug = $1 OR ('inst-' || t.slug || '-oct') = $1 OR ('inst-' || t.slug || '-nov') = $1
                ORDER BY ti.starts_on ASC LIMIT 1`,
               [val]
             );
-            if (check.rows.length > 0) tripInstId = check.rows[0].id;
+            if (check.rows.length > 0) {
+              tripInstId = check.rows[0].id;
+              tripId = check.rows[0].trip_id;
+            } else {
+              const tripCheck = await client.query(`SELECT id FROM trips WHERE slug = $1`, [val]);
+              if (tripCheck.rows.length > 0) tripId = tripCheck.rows[0].id;
+            }
           }
         }
 
@@ -220,14 +257,14 @@ export const upsertHomepageConfig = async (data: Record<string, any>): Promise<H
         const subtitleOverride = slide.subtitleOverride ?? slide.subtitle_override ?? slide.subtitle ?? null;
         const isActive = slide.isActive ?? slide.is_active ?? true;
 
-        if (slideType === "trip" && !tripInstId && imageUrl) {
+        if (slideType === "trip" && !tripId && !tripInstId && imageUrl) {
           slideType = "static";
         }
 
         await client.query(
-          `INSERT INTO homepage_slides (homepage_config_id, slide_type, trip_instance_id, media_id, image_url, title_override, subtitle_override, sort_order, is_active)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-          [configId, slideType, tripInstId, mediaId, imageUrl, titleOverride, subtitleOverride, index, isActive]
+          `INSERT INTO homepage_slides (homepage_config_id, slide_type, trip_id, trip_instance_id, media_id, image_url, title_override, subtitle_override, sort_order, is_active)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+          [configId, slideType, tripId, tripInstId, mediaId, imageUrl, titleOverride, subtitleOverride, index, isActive]
         );
       }
     }

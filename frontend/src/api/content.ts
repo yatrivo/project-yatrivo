@@ -6,6 +6,7 @@ import { API_BASE } from "./baseUrl";
 export interface CarouselSlideApi {
   id?: string;
   slideType: "trip" | "static";
+  tripId?: string;
   tripInstanceId?: string;
   mediaId?: string;
   imageUrl?: string;

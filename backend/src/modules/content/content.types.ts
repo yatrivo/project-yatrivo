@@ -12,6 +12,8 @@ export interface HomepageSlide {
   homepage_config_id?: string;
   slide_type: 'trip' | 'static';
   slideType?: 'trip' | 'static';
+  trip_id?: string | null;
+  tripId?: string | null;
   trip_instance_id: string | null;
   tripInstanceId?: string | null;
   media_id: string | null;

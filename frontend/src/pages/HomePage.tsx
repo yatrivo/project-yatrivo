@@ -56,20 +56,49 @@ export default function HomePage() {
       ? carouselSlides
       : (heroImages && heroImages.length > 0 ? heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" })) : []);
 
+    const resolveTripFromSlide = (slide: CarouselSlide) => {
+      if (slide.type !== "trip") return null;
+
+      if (slide.tripId) {
+        const match = trips.find((t) => t.id === slide.tripId || t.slug === slide.tripId);
+        if (match) return match;
+      }
+
+      if (slide.tripInstanceId) {
+        const match = trips.find((t) => t.id === slide.tripInstanceId || t.slug === slide.tripInstanceId);
+        if (match) return match;
+
+        const directInstance = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
+        if (directInstance) {
+          return trips.find((trip) => trip.id === directInstance.tripId) ?? null;
+        }
+
+        return trips.find((trip) =>
+          trip.departures?.some((departure) => departure.id === slide.tripInstanceId)
+        ) ?? null;
+      }
+
+      return null;
+    };
+
     const mapped = raw.map((slide) => {
       if (slide.type === "static") {
-        return { imageUrl: slide.imageUrl || "", title: slide.title || "", subtitle: slide.subtitle || "", tripId: undefined as string | undefined, tripInstanceId: undefined as string | undefined, price: undefined as number | undefined, displayDate: undefined as string | undefined };
+        return {
+          imageUrl: slide.imageUrl || "",
+          title: slide.title || "",
+          subtitle: slide.subtitle || "",
+          tripId: undefined as string | undefined,
+        };
       }
-      const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
-      const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
+
+      const trip = resolveTripFromSlide(slide);
+      const imageUrl = slide.imageUrl || trip?.image || heroImages[0] || "";
+
       return {
-        imageUrl: slide.imageUrl || trip?.image || heroImages[0] || "",
-        title: slide.title || trip?.name || "",
+        imageUrl,
+        title: slide.title || trip?.name || "Trip unavailable",
         subtitle: slide.subtitle || trip?.shortDescription || trip?.overview || "",
-        tripId: trip?.id,
-        tripInstanceId: slide.tripInstanceId,
-        price: inst?.price,
-        displayDate: inst?.displayDate,
+        tripId: trip?.id || slide.tripId || slide.tripInstanceId,
       };
     });
 
@@ -206,23 +235,10 @@ export default function HomePage() {
                   ) : null}
 
                   {slide.subtitle ? (
-                    <p className="text-white/90 text-xs sm:text-sm md:text-[15px] max-w-lg mb-1.5 sm:mb-2.5 leading-relaxed text-contrast-body line-clamp-2">
+                    <p className="text-white/90 text-xs sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-relaxed text-contrast-body line-clamp-2">
                       {slide.subtitle}
                     </p>
                   ) : null}
-
-                {/* Trip-specific info */}
-                {slide.tripId ? (
-                  <>
-                    {(slide.price !== undefined || slide.displayDate) && (
-                      <p className="text-white text-[11px] sm:text-xs md:text-sm mb-2.5 sm:mb-3.5 font-medium text-contrast-body">
-                        {slide.price !== undefined && `₹${slide.price.toLocaleString("en-IN")}/person`}
-                        {slide.price !== undefined && slide.displayDate && " · "}
-                        {slide.displayDate}
-                      </p>
-                    )}
-                  </>
-                ) : null}
 
                 {/* Symmetrical Uniform Buttons */}
                 <div className="flex items-center gap-2 sm:gap-2.5 mb-1">

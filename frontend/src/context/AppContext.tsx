@@ -86,7 +86,7 @@ export interface FaqItem {
 }
 
 export type CarouselSlide =
-  | { type: "trip"; tripInstanceId: string; imageUrl?: string; title?: string; subtitle?: string }
+  | { type: "trip"; tripId?: string; tripInstanceId?: string; imageUrl?: string; title?: string; subtitle?: string }
   | { type: "static"; imageUrl: string; title: string; subtitle: string };
 
 export interface HomepageContent {
@@ -112,6 +112,7 @@ export interface GalleryImage {
 export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
   {
     type: "trip",
+    tripId: "darma-valley-trek",
     tripInstanceId: "3aec4028-8ecd-4307-8244-f8a71a2236b6",
     imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/e230812f-734d-44d8-9967-fc51d5dd4a9e-maxresdefault.jpg",
     title: "Darma Vally Trip",
@@ -119,6 +120,7 @@ export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
   },
   {
     type: "trip",
+    tripId: "rishikesh-rafting-glamping",
     tripInstanceId: "5afb37d1-ccdd-4486-8e0f-a771a6fecf49",
     imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/22a1874c-a717-4dab-a82a-48380b2b7ec3-rishikesh.jpg",
     title: "Rishikesh Rapids & Cliff Camp",
@@ -126,6 +128,7 @@ export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
   },
   {
     type: "trip",
+    tripId: "kedarnath-spiritual-trek",
     tripInstanceId: "3e7d2f58-d6a0-4cc0-ba0c-5f3521be2542",
     imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg",
     title: "Kedarnath Pilgrimage Trek",
@@ -133,6 +136,7 @@ export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
   },
   {
     type: "trip",
+    tripId: "chopta-chandrashila-trek",
     tripInstanceId: "abba9958-5317-4aec-9483-df1dfc59ea4e",
     imageUrl: "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/7e7801b6-4b1e-4e43-a6ce-34eb070fcfcd-1513419766-chandra-jpg.jpg",
     title: "Chopta Tungnath Adventure",
@@ -695,7 +699,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (s.slideType === "trip") {
         return {
           type: "trip" as const,
-          tripInstanceId: s.tripInstanceId || "",
+          tripId: s.tripId || undefined,
+          tripInstanceId: s.tripInstanceId || s.tripId || "",
           imageUrl: s.imageUrl || undefined,
           title: s.titleOverride || undefined,
           subtitle: s.subtitleOverride || undefined,
@@ -828,6 +833,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         whyUsDescription: homepageContent.whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => ({
           slideType: s.type,
+          tripId: s.type === "trip" ? (s.tripId || s.tripInstanceId) : undefined,
           tripInstanceId: s.type === "trip" ? s.tripInstanceId : undefined,
           imageUrl: s.type === "static" ? s.imageUrl : undefined,
           titleOverride: s.title,

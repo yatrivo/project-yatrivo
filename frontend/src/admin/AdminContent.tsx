@@ -43,7 +43,7 @@ function HeroTab() {
   const [addMode, setAddMode] = useState<AddSlideMode>(null);
   const [saving, setSaving] = useState(false);
   // Add trip slide form
-  const [addTripInstanceId, setAddTripInstanceId] = useState("");
+  const [addTripId, setAddTripId] = useState("");
   const [addTripTitle, setAddTripTitle] = useState("");
   const [addTripSubtitle, setAddTripSubtitle] = useState("");
   // Add static slide form
@@ -59,7 +59,8 @@ function HeroTab() {
         if (slide.type === "trip") {
           return {
             slideType: "trip" as const,
-            tripInstanceId: slide.tripInstanceId,
+            tripId: slide.tripId || slide.tripInstanceId,
+            tripInstanceId: slide.tripInstanceId || undefined,
             titleOverride: slide.title || undefined,
             subtitleOverride: slide.subtitle || undefined,
             sortOrder: i,
@@ -112,16 +113,17 @@ function HeroTab() {
   const remove = (idx: number) => setSlides(slides.filter((_, i) => i !== idx));
 
   const handleAddTrip = () => {
-    if (!addTripInstanceId) return;
+    if (!addTripId) return;
     const newSlide: CarouselSlide = {
       type: "trip",
-      tripInstanceId: addTripInstanceId,
+      tripId: addTripId,
+      tripInstanceId: addTripId,
       title: addTripTitle.trim() || undefined,
       subtitle: addTripSubtitle.trim() || undefined,
     };
     setSlides([...slides, newSlide]);
     setAddMode(null);
-    setAddTripInstanceId("");
+    setAddTripId("");
     setAddTripTitle("");
     setAddTripSubtitle("");
   };
@@ -131,16 +133,6 @@ function HeroTab() {
       void refreshTrips({ bypassCache: true });
     }
   }, [addMode, refreshTrips, trips.length]);
-
-  const tripOptions = trips.map((trip) => {
-    const departures = Array.isArray(trip.departures) ? trip.departures : [];
-    const upcomingInstance = departures
-      .filter((departure) => departure.status === "upcoming")
-      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
-      ?? departures[0] ?? null;
-
-    return { trip, upcomingInstance };
-  });
 
   const handleAddStatic = () => {
     if (!addStaticUrl.trim() || !addStaticTitle.trim()) return;
@@ -157,23 +149,46 @@ function HeroTab() {
     setAddStaticSubtitle("");
   };
 
+  const resolveTripFromSlide = (slide: CarouselSlide) => {
+    if (slide.type !== "trip") return null;
+
+    if (slide.tripId) {
+      const match = trips.find((t) => t.id === slide.tripId || t.slug === slide.tripId);
+      if (match) return match;
+    }
+
+    if (slide.tripInstanceId) {
+      const match = trips.find((t) => t.id === slide.tripInstanceId || t.slug === slide.tripInstanceId);
+      if (match) return match;
+
+      const directInstance = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
+      if (directInstance) {
+        return trips.find((trip) => trip.id === directInstance.tripId) ?? null;
+      }
+
+      return trips.find((trip) =>
+        trip.departures?.some((departure) => departure.id === slide.tripInstanceId)
+      ) ?? null;
+    }
+
+    return null;
+  };
+
   const getSlidePreviewLabel = (slide: CarouselSlide): string => {
     if (slide.type === "trip") {
-      const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
-      const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
-      return slide.title ?? trip?.name ?? slide.tripInstanceId;
+      const trip = resolveTripFromSlide(slide);
+      return slide.title ?? trip?.name ?? "Trip unavailable";
     }
     return slide.title;
   };
 
   const getSlideSubLabel = (slide: CarouselSlide): string => {
     if (slide.type === "trip") {
-      const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
-      if (inst) {
-        const trip = trips.find((t) => t.id === inst.tripId);
-        return `${trip?.name ?? inst.tripId} — ${inst.displayDate} — ₹${inst.price.toLocaleString("en-IN")}`;
+      const trip = resolveTripFromSlide(slide);
+      if (trip) {
+        return slide.subtitle || trip.shortDescription || trip.overview || "Trip package";
       }
-      return slide.tripInstanceId;
+      return slide.tripId || slide.tripInstanceId ? "Trip data unavailable" : "No trip selected";
     }
     return slide.imageUrl.substring(0, 60) + (slide.imageUrl.length > 60 ? "..." : "");
   };
@@ -215,9 +230,8 @@ function HeroTab() {
                 <img src={slide.imageUrl} alt="" className="w-12 h-9 object-cover rounded shrink-0" />
               )}
               {slide.type === "trip" && (() => {
-                const inst = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
-                const trip = inst ? trips.find((t) => t.id === inst.tripId) : null;
-                return trip ? <img src={trip.image} alt="" className="w-12 h-9 object-cover rounded shrink-0" /> : null;
+                const trip = resolveTripFromSlide(slide);
+                return trip?.image ? <img src={trip.image} alt="" className="w-12 h-9 object-cover rounded shrink-0" /> : null;
               })()}
               <div className="flex-1 min-w-0">
                 <div className="text-[#0f2922] text-sm font-medium truncate">{getSlidePreviewLabel(slide)}</div>
@@ -264,17 +278,16 @@ function HeroTab() {
             {addMode === "trip" && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Trip</label>
+                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Trip Package</label>
                   <select
-                    value={addTripInstanceId}
-                    onChange={(e) => setAddTripInstanceId(e.target.value)}
+                    value={addTripId}
+                    onChange={(e) => setAddTripId(e.target.value)}
                     className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] bg-white"
                   >
-                    <option value="">Select a trip...</option>
-                    {tripOptions.map(({ trip, upcomingInstance }) => (
-                      <option key={trip.id} value={upcomingInstance?.id ?? trip.id}>
-                        {trip.name}
-                        {upcomingInstance ? ` — ${upcomingInstance.displayDate} — ₹${upcomingInstance.price.toLocaleString("en-IN")}` : " — no upcoming departure"}
+                    <option value="">Select a trip package...</option>
+                    {trips.map((trip) => (
+                      <option key={trip.id} value={trip.id}>
+                        {trip.name} {trip.durationDays ? `(${trip.durationDays}D/${Math.max(1, trip.durationDays - 1)}N)` : ""}
                       </option>
                     ))}
                   </select>
@@ -285,11 +298,11 @@ function HeroTab() {
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-[#4a5568] mb-1">Override Subtitle (optional)</label>
-                  <input value={addTripSubtitle} onChange={(e) => setAddTripSubtitle(e.target.value)} placeholder="Defaults to trip date + price" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
+                  <input value={addTripSubtitle} onChange={(e) => setAddTripSubtitle(e.target.value)} placeholder="Defaults to trip short description" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
                 </div>
                 <button
                   onClick={handleAddTrip}
-                  disabled={!addTripInstanceId}
+                  disabled={!addTripId}
                   className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50"
                 >
                   Add Trip Slide
@@ -355,7 +368,15 @@ function FeaturedTab() {
         whyUsDescription: homepageContent.whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => {
           if (s.type === "trip") {
-            return { slideType: "trip" as const, tripInstanceId: s.tripInstanceId, titleOverride: s.title, subtitleOverride: s.subtitle, sortOrder: i, isActive: true };
+            return {
+              slideType: "trip" as const,
+              tripId: s.tripId || s.tripInstanceId,
+              tripInstanceId: s.tripInstanceId,
+              titleOverride: s.title,
+              subtitleOverride: s.subtitle,
+              sortOrder: i,
+              isActive: true,
+            };
           }
           return { slideType: "static" as const, imageUrl: s.imageUrl, titleOverride: s.title, subtitleOverride: s.subtitle, sortOrder: i, isActive: true };
         }),
@@ -428,7 +449,15 @@ function WhyUsTab() {
         whyUsDescription: whyUsDesc,
         slides: (homepageContent.carouselSlides || []).map((s, i) => {
           if (s.type === "trip") {
-            return { slideType: "trip" as const, tripInstanceId: s.tripInstanceId, titleOverride: s.title, subtitleOverride: s.subtitle, sortOrder: i, isActive: true };
+            return {
+              slideType: "trip" as const,
+              tripId: s.tripId || s.tripInstanceId,
+              tripInstanceId: s.tripInstanceId,
+              titleOverride: s.title,
+              subtitleOverride: s.subtitle,
+              sortOrder: i,
+              isActive: true,
+            };
           }
           return { slideType: "static" as const, imageUrl: s.imageUrl, titleOverride: s.title, subtitleOverride: s.subtitle, sortOrder: i, isActive: true };
         }),
