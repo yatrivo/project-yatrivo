@@ -57,7 +57,7 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
     if (p.startsWith("/admin/content")) return "content";
     if (p.startsWith("/admin/analytics")) return "analytics";
     if (p.startsWith("/admin/notifications")) return "notifications";
-    if (p.startsWith("/admin/settings")) return "settings";
+    if (p.startsWith("/admin/settings") || p.startsWith("/admin/change-password") || p.startsWith("/admin/security")) return "settings";
     if (p.startsWith("/admin/audit-logs")) return "audit-logs";
     return adminPage || "dashboard";
   };
@@ -128,7 +128,7 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
               {!collapsed && (
                 <>
                   <span className="flex-1 text-left">{item.label}</span>
-                  {(item.id === "settings" || item.id === "audit-logs") && !isSuperAdmin && (
+                  {item.id === "audit-logs" && !isSuperAdmin && (
                     <span className="ml-auto text-[10px] bg-[#1a3d31] text-[#7aab95] rounded px-1">Pro</span>
                   )}
                 </>

@@ -12,33 +12,37 @@ import ForgotPasswordModal from "./ForgotPasswordModal";
 
 type SubNav = "general" | "contact" | "social" | "cancellation" | "security";
 
-const SUB_NAV: { id: SubNav; label: string; icon?: string }[] = [
-  { id: "general", label: "General" },
-  { id: "contact", label: "Contact Details" },
-  { id: "social", label: "Social Media" },
-  { id: "cancellation", label: "Cancellation Policy" },
+export interface AdminSettingsProps {
+  initialTab?: SubNav;
+}
+
+const SUB_NAV_CONFIG: { id: SubNav; label: string; superAdminOnly?: boolean }[] = [
+  { id: "general", label: "General", superAdminOnly: true },
+  { id: "contact", label: "Contact Details", superAdminOnly: true },
+  { id: "social", label: "Social Media", superAdminOnly: true },
+  { id: "cancellation", label: "Cancellation Policy", superAdminOnly: true },
   { id: "security", label: "Security & Password" },
 ];
 
-export default function AdminSettings() {
+export default function AdminSettings({ initialTab }: AdminSettingsProps = {}) {
   const { showToast, adminRole, adminUser, adminLogout, refreshSettings } = useApp();
   const navigate = useNavigate();
+  const isSuperAdmin = adminRole === "superAdmin" || adminUser?.role === "super_admin";
 
-  if (adminRole !== "superAdmin") {
-    return (
-      <div className="flex flex-col items-center justify-center h-full py-24 text-center px-4">
-        <div className="w-16 h-16 rounded-full bg-[#f0f4f1] flex items-center justify-center mb-4">
-          <svg className="w-8 h-8 text-[#a3bfb5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Access Restricted</h3>
-        <p className="text-[#718096] text-sm">Settings are restricted to Super Admin only.</p>
-      </div>
-    );
-  }
+  const visibleSubNav = SUB_NAV_CONFIG.filter((item) => !item.superAdminOnly || isSuperAdmin);
 
-  const [subNav, setSubNav] = useState<SubNav>("general");
+  const [subNav, setSubNav] = useState<SubNav>(() => {
+    if (initialTab) return initialTab;
+    return isSuperAdmin ? "general" : "security";
+  });
+
+  // Ensure normal admins cannot land on a superAdmin-only tab
+  useEffect(() => {
+    if (!isSuperAdmin && subNav !== "security") {
+      setSubNav("security");
+    }
+  }, [isSuperAdmin, subNav]);
+
   const [loadingInitial, setLoadingInitial] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -83,6 +87,10 @@ export default function AdminSettings() {
   // Load all settings from backend on mount
   useEffect(() => {
     async function loadAllSettings() {
+      if (!isSuperAdmin) {
+        setLoadingInitial(false);
+        return;
+      }
       try {
         setLoadingInitial(true);
         const data: AllSettings = await settingsApi.getAllSettings();
@@ -230,7 +238,7 @@ export default function AdminSettings() {
     <div className="flex h-full">
       {/* Sub nav */}
       <div className="w-52 shrink-0 bg-white border-r border-[#e2e8f0] py-4 px-2 space-y-0.5">
-        {SUB_NAV.map((n) => (
+        {visibleSubNav.map((n) => (
           <button
             key={n.id}
             onClick={() => setSubNav(n.id)}
@@ -320,14 +328,6 @@ export default function AdminSettings() {
                       Public Website Contact
                     </h3>
                     <Field label="Contact Phone Number" value={phone} onChange={setPhone} />
-                    <Field
-                      label="Public WhatsApp Number"
-                      value={whatsapp}
-                      onChange={(val) => {
-                        setWhatsapp(val);
-                        setInquiryWhatsapp(val);
-                      }}
-                    />
                     <Field label="Contact Email" value={contactEmail} onChange={setContactEmail} type="email" />
                     <div>
                       <label className="block text-sm font-medium text-[#4a5568] mb-1">Physical Address</label>

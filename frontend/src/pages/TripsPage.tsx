@@ -54,7 +54,7 @@ export default function TripsPage() {
                       <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px]">{trip.category}</span>
                       <span className="text-[11px] sm:text-xs">{trip.duration}</span>
                     </div>
-                    <h3 className="text-[#0f2922] text-sm sm:text-base font-semibold mb-1 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
+                    <h3 className="text-[#0f2922] text-base sm:text-lg font-semibold mb-1 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
                       <Link to={`/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
                     </h3>
                     <p className="text-[#718096] text-[11px] sm:text-xs leading-snug line-clamp-1">

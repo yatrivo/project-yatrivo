@@ -154,6 +154,8 @@ export default function App() {
           <Route path="notifications" element={<AdminNotifications />} />
           */}
           <Route path="settings" element={<AdminSettings />} />
+          <Route path="change-password" element={<AdminSettings initialTab="security" />} />
+          <Route path="security" element={<AdminSettings initialTab="security" />} />
           <Route path="audit-logs" element={<AdminAuditLogs />} />
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Route>

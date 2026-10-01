@@ -62,11 +62,11 @@ export default function TravelWithUsPage() {
         <div className="absolute inset-0 hero-overlay-directional-side" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 w-full">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-4 text-contrast-subtle">JOIN THE MOVEMENT</div>
-          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-6 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-5 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Travel With<br />Yatrivo
           </h1>
-          <p className="text-white/90 text-base sm:text-lg max-w-lg mb-10 leading-relaxed text-contrast-body">
-            Small groups, authentic experiences, and deep connection with the Himalayas. No crowded buses, no rushed itineraries — just real adventure with like-minded explorers.
+          <p className="text-white/90 text-sm sm:text-base max-w-md mb-8 leading-relaxed text-contrast-body">
+            Small groups, authentic experiences, and deep connection with the Himalayas.
           </p>
           <div className="flex flex-wrap gap-4">
             <Link
@@ -152,16 +152,20 @@ export default function TravelWithUsPage() {
                   to={`/past-trips/${inst.id}`}
                   className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
                 >
-                  <div className="relative h-48 overflow-hidden">
-                    <img src={coverImg} alt={destLabel} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-3 left-3 bg-[#0f2922]/80 backdrop-blur-sm text-white text-xs font-medium px-3 py-1 rounded-full">
+                  <div className="relative h-52 overflow-hidden">
+                    <img src={coverImg} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                    <div className="absolute top-3 left-3 badge-glass-dark text-white text-xs font-medium px-3 py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
+                    <div className="absolute inset-0 card-overlay-bottom" />
+                    <div className="absolute bottom-0 left-0 p-4">
+                      <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wide mb-0.5 text-contrast-subtle">{destLabel}</div>
+                      <div className="text-white font-semibold text-base sm:text-lg leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
+                    </div>
                   </div>
-                  <div className="px-3.5 py-2.5">
-                    <div className="text-[#e8622a] text-[10px] sm:text-[11px] font-medium uppercase tracking-wider mb-1">{destLabel}</div>
-                    <h3 className="text-[#0f2922] text-sm sm:text-base font-semibold mb-1 group-hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h3>
-                    <div className="text-[#718096] text-[11px] sm:text-xs">{inst.displayDate}</div>
+                  <div className="px-4 py-3.5 flex items-center justify-between border-t border-[#f0f4f2]">
+                    <span className="text-[#718096] text-xs font-medium">{inst.displayDate}</span>
+                    <span className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</span>
                   </div>
                 </Link>
               );

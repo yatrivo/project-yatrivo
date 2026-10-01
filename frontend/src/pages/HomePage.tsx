@@ -312,10 +312,9 @@ export default function HomePage() {
                 />
                 <div className="absolute inset-0 card-overlay-bottom" />
                 <div className="absolute bottom-0 left-0 p-5">
-                  <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wider mb-1 text-contrast-subtle">
-                    {d.category?.toUpperCase() || d.experienceTags?.[0]?.toUpperCase() || "HIMALAYAN DESTINATION"}
+                  <div className="text-white text-xl sm:text-2xl font-semibold leading-tight text-contrast-title drop-shadow-xs" style={{ fontFamily: "var(--font-serif)" }}>
+                    {d.name}
                   </div>
-                  <div className="text-white card-title text-contrast-title font-medium">{d.name}</div>
                 </div>
               </Link>
             ))}

@@ -63,7 +63,7 @@ export default function PastTripsPage() {
                     <div className="absolute inset-0 card-overlay-bottom" />
                     <div className="absolute bottom-0 left-0 p-4">
                       <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wide mb-0.5 text-contrast-subtle">{destLabel}</div>
-                      <div className="text-white font-semibold text-sm leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
+                      <div className="text-white font-semibold text-base sm:text-lg leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                     </div>
                   </div>
                   <div className="px-4 py-3.5 flex items-center justify-between border-t border-[#f0f4f2]">

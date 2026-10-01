@@ -38,7 +38,7 @@ export default function DestinationsPage() {
             <Link
               key={d.id}
               to={`/destinations/${d.slug || d.id}`}
-              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all duration-300 group flex flex-col cursor-pointer"
+              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all duration-300 group block w-full text-left cursor-pointer"
             >
               <div className="h-52 overflow-hidden relative">
                 <ProgressiveImage
@@ -49,18 +49,24 @@ export default function DestinationsPage() {
                   priority={idx < 3}
                 />
                 {d.season && (
-                  <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white">
+                  <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
                     {d.season}
                   </span>
                 )}
+                <div className="absolute inset-0 card-overlay-bottom pointer-events-none" />
+                <div className="absolute bottom-0 left-0 p-4 z-10">
+                  <div className="text-white font-semibold text-lg sm:text-xl leading-snug text-contrast-title drop-shadow-xs" style={{ fontFamily: "var(--font-serif)" }}>
+                    {d.name}
+                  </div>
+                </div>
               </div>
-              <div className="px-3.5 py-2.5">
-                <h3 className="text-[#0f2922] text-sm sm:text-base font-semibold line-clamp-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
-                  {d.name}
-                </h3>
-                <p className="text-[#718096] text-[11px] sm:text-xs leading-snug line-clamp-1 mt-0.5">
-                  {d.tagline || d.description || "Himalayan Destination"}
-                </p>
+              <div className="px-4 py-2.5 flex items-center justify-between border-t border-[#f0f4f2] bg-white">
+                <span className="text-[#718096] text-xs font-medium truncate flex-1 pr-3 leading-tight">
+                  {d.tagline || d.description || "Pristine Himalayan destination"}
+                </span>
+                <span className="text-[#e8622a] text-xs font-medium group-hover:underline shrink-0 leading-tight">
+                  EXPLORE →
+                </span>
               </div>
             </Link>
           ))}
