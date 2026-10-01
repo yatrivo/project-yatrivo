@@ -156,8 +156,39 @@ export const tripQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(100).default(50)
 });
 
+export function isValidGregorianDate(dateStr: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+  const parts = dateStr.split("-");
+  const year = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10);
+  const day = parseInt(parts[2], 10);
+
+  if (isNaN(year) || isNaN(month) || isNaN(day)) return false;
+  if (year < 1000 || year > 9999) return false;
+  if (month < 1 || month > 12) return false;
+  if (day < 1 || day > 31) return false;
+
+  // 30-day months: April (4), June (6), September (9), November (11)
+  if ([4, 6, 9, 11].includes(month) && day > 30) return false;
+
+  // February: 28 days normally, 29 in leap years
+  if (month === 2) {
+    const isLeapYear = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+    const maxFebDays = isLeapYear ? 29 : 28;
+    if (day > maxFebDays) return false;
+  }
+
+  return true;
+}
+
+export const departureDateSchema = z
+  .string()
+  .trim()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD")
+  .refine(isValidGregorianDate, "Invalid calendar date");
+
 export const createDepartureSchema = z.object({
-  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD"),
+  date: departureDateSchema,
   displayDate: z.string().trim().optional(),
   price: z.coerce.number().nonnegative().optional(),
   spotsTotal: z.coerce.number().int().positive("Total spots must be at least 1"),
@@ -165,7 +196,7 @@ export const createDepartureSchema = z.object({
 });
 
 export const updateDepartureSchema = z.object({
-  date: z.string().trim().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  date: departureDateSchema.optional(),
   displayDate: z.string().trim().optional(),
   price: z.coerce.number().nonnegative().optional(),
   spotsTotal: z.coerce.number().int().positive().optional(),

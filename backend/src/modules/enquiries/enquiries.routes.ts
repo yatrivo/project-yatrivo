@@ -61,6 +61,14 @@ enquiriesRouter.patch(
   asyncHandler(enquiriesController.updateStatus)
 );
 
+// Reopen terminal enquiry (Admin & Super Admin only)
+enquiriesRouter.post(
+  "/enquiries/:id/reopen",
+  authenticate,
+  requireAdmin,
+  asyncHandler(enquiriesController.reopen)
+);
+
 // Assign / Reassign enquiry (Super Admin only - enforced by middleware and controller)
 enquiriesRouter.patch(
   "/enquiries/:id/assign",

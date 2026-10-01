@@ -60,3 +60,10 @@ bookingsRouter.post(
   requireAdmin,
   asyncHandler(bookingsController.recordPayment)
 );
+
+bookingsRouter.post(
+  "/bookings/:id/reopen",
+  authenticate,
+  requireAdmin,
+  asyncHandler(bookingsController.reopen)
+);

@@ -193,6 +193,37 @@ export const enquiriesController = {
     });
   },
 
+  async reopen(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const id = String(req.params.id);
+    const updated = await enquiriesRepository.reopen(
+      id,
+      {
+        id: req.user.id,
+        fullName: req.user.fullName || null,
+        role: req.user.role
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry reopened successfully",
+      enquiry: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Reopened Enquiry",
+      entityType: "enquiry",
+      entityId: updated.id,
+      details: `Enquiry #${updated.enquiryNumber || id.slice(0, 8)} reopened to "in_discussion"`,
+      afterData: { status: "in_discussion" }
+    });
+  },
+
   async assign(req: Request, res: Response): Promise<void> {
     if (!req.user) {
       throw new AppError(401, "UNAUTHORIZED", "Authentication required");

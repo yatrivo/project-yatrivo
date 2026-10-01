@@ -353,5 +353,34 @@ export const bookingsController = {
       details: `Payment of ₹${data.amount.toLocaleString("en-IN")} recorded for Booking #${updated.bookingNumber || id.slice(0, 8)} via ${data.method}`,
       afterData: { amount: data.amount, method: data.method, paymentStatus: updated.paymentStatus }
     });
+  },
+
+  async reopen(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const id = String(req.params.id);
+    const updated = await bookingsRepository.reopen(id, {
+      id: req.user.id,
+      fullName: req.user.fullName || null,
+      role: req.user.role
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Booking reopened successfully",
+      booking: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Reopened Booking",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Booking #${updated.bookingNumber || id.slice(0, 8)} reopened to "awaiting_traveller_details"`,
+      beforeData: { status: "cancelled" },
+      afterData: { status: updated.status }
+    });
   }
 };

@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { query } from "../../db/postgres";
+import { query, withTransaction } from "../../db/postgres";
 import { AppError } from "../../errors/AppError";
 import type {
   BookingDto,
@@ -12,6 +12,15 @@ import type {
   PaymentStatus,
   SaveTravellerItem
 } from "./bookings.types";
+
+export const ALLOWED_BOOKING_TRANSITIONS: Record<BookingStatus, BookingStatus[]> = {
+  draft: ["awaiting_traveller_details", "details_received", "confirmed", "cancelled"],
+  awaiting_traveller_details: ["details_received", "confirmed", "cancelled"],
+  details_received: ["awaiting_traveller_details", "confirmed", "cancelled"],
+  confirmed: ["completed", "cancelled"],
+  cancelled: [],
+  completed: []
+};
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -116,6 +125,25 @@ export const bookingsRepository = {
       bookingNumber = generateBookingNumber();
     }
 
+    let resolvedEnquiryId: string | null = null;
+    let resolvedEnquiryNumber: string | null = null;
+
+    if (input.enquiryId && input.enquiryId.trim()) {
+      const cleanEnquiryId = input.enquiryId.trim();
+      if (!UUID_REGEX.test(cleanEnquiryId)) {
+        throw new AppError(400, "INVALID_ENQUIRY", "Referenced enquiry does not exist");
+      }
+      const enqCheck = await query<{ id: string; enquiry_number: string }>(
+        `SELECT id, enquiry_number FROM enquiries WHERE id = $1 LIMIT 1`,
+        [cleanEnquiryId]
+      );
+      if (enqCheck.rows.length === 0) {
+        throw new AppError(400, "INVALID_ENQUIRY", "Referenced enquiry does not exist");
+      }
+      resolvedEnquiryId = enqCheck.rows[0].id;
+      resolvedEnquiryNumber = enqCheck.rows[0].enquiry_number;
+    }
+
     const detailsToken = generateDetailsToken();
     const travellerCount = Math.max(1, input.travellerCount || 1);
     const finalAmountPaise = input.totalAmount ? Math.round(input.totalAmount * 100) : null;
@@ -123,190 +151,164 @@ export const bookingsRepository = {
     const initialPaymentStatus: PaymentStatus = input.paymentStatus || "unpaid";
     const createdByUserId = await resolveValidUserId(actor?.id);
 
-    // Insert booking
-    const insertRes = await query<{
-      id: string;
-      booking_number: string;
-      enquiry_id: string | null;
-      primary_contact_name: string;
-      primary_contact_phone: string;
-      primary_contact_email: string | null;
-      destination_id: string | null;
-      destination_label: string | null;
-      trip_id: string | null;
-      trip_instance_id: string | null;
-      trip_label: string | null;
-      trip_date_label: string | null;
-      traveller_count: number;
-      final_amount_paise: number | null;
-      payment_status: PaymentStatus;
-      status: BookingStatus;
-      booking_date: string;
-      details_token: string;
-      payment_notes: string | null;
-      internal_notes: string | null;
-      created_at: string;
-      updated_at: string;
-    }>(
-      `INSERT INTO bookings (
-        booking_number, enquiry_id, primary_contact_name, primary_contact_phone, primary_contact_email,
-        destination_id, destination_label, trip_id, trip_instance_id, trip_label, trip_date_label,
-        traveller_count, final_amount_paise, payment_status, status, details_token,
-        payment_notes, internal_notes, created_by_user_id
-      ) VALUES (
-        $1, $2, $3, $4, $5,
-        $6, $7, $8, $9, $10, $11,
-        $12, $13, $14, $15, $16,
-        $17, $18, $19
-      ) RETURNING id, booking_number, enquiry_id, primary_contact_name, primary_contact_phone, primary_contact_email,
-                  destination_id, destination_label, trip_id, trip_instance_id, trip_label, trip_date_label,
-                  traveller_count, final_amount_paise, payment_status, status, details_token,
-                  payment_notes, internal_notes, booking_date::text, created_at::text, updated_at::text`,
-      [
-        bookingNumber,
-        input.enquiryId || null,
-        input.primaryContactName.trim(),
-        input.primaryContactPhone.trim(),
-        input.primaryContactEmail?.trim() || null,
-        resolvedDestId,
-        resolvedDestLabel,
-        resolvedTripId,
-        resolvedTripInstanceId,
-        resolvedTripName,
-        resolvedDateLabel,
-        travellerCount,
-        finalAmountPaise,
-        initialPaymentStatus,
-        initialStatus,
-        detailsToken,
-        input.paymentNotes?.trim() || null,
-        input.internalNotes?.trim() || null,
-        createdByUserId
-      ]
-    );
-
-    const bookingRow = insertRes.rows[0];
-
-    // If converted from enquiry: update enquiry and log events on both sides
-    if (input.enquiryId) {
-      const enqRes = await query<{ enquiry_number: string }>(
-        `SELECT enquiry_number FROM enquiries WHERE id = $1 LIMIT 1`,
-        [input.enquiryId]
-      );
-      const enqNumber = enqRes.rows[0]?.enquiry_number || input.enquiryId;
-
-      // Update enquiry status to 'converted'
-      await query(
-        `UPDATE enquiries SET status = 'converted', updated_at = now(), updated_by_user_id = $1 WHERE id = $2`,
-        [createdByUserId, input.enquiryId]
-      );
-
-      // Log in enquiry_events
-      await query(
-        `INSERT INTO enquiry_events (enquiry_id, event_type, new_status, title, details, created_by_user_id)
-         VALUES ($1, 'enquiry_converted_to_booking', 'converted', $2, $3, $4)`,
+    const createdBookingId = await withTransaction(async (client) => {
+      // Insert booking
+      const insertRes = await client.query<{ id: string }>(
+        `INSERT INTO bookings (
+          booking_number, enquiry_id, primary_contact_name, primary_contact_phone, primary_contact_email,
+          destination_id, destination_label, trip_id, trip_instance_id, trip_label, trip_date_label,
+          traveller_count, final_amount_paise, payment_status, status, details_token,
+          payment_notes, internal_notes, created_by_user_id
+        ) VALUES (
+          $1, $2, $3, $4, $5,
+          $6, $7, $8, $9, $10, $11,
+          $12, $13, $14, $15, $16,
+          $17, $18, $19
+        ) RETURNING id`,
         [
-          input.enquiryId,
-          `Converted to Booking #${bookingNumber}`,
-          JSON.stringify({
-            bookingId: bookingRow.id,
-            bookingNumber,
-            convertedByName: actor?.fullName || "Admin"
-          }),
-          createdByUserId
-        ]
-      ).catch(() => {});
-
-      // Log in booking_events
-      await query(
-        `INSERT INTO booking_events (booking_id, event_type, new_status, title, details, actor_type, created_by_user_id)
-         VALUES ($1, 'booking_converted_from_enquiry', $2, $3, $4, 'admin', $5)`,
-        [
-          bookingRow.id,
+          bookingNumber,
+          resolvedEnquiryId,
+          input.primaryContactName.trim(),
+          input.primaryContactPhone.trim(),
+          input.primaryContactEmail?.trim() || null,
+          resolvedDestId,
+          resolvedDestLabel,
+          resolvedTripId,
+          resolvedTripInstanceId,
+          resolvedTripName,
+          resolvedDateLabel,
+          travellerCount,
+          finalAmountPaise,
+          initialPaymentStatus,
           initialStatus,
-          `Booking converted from enquiry #${enqNumber}`,
-          JSON.stringify({
-            enquiryId: input.enquiryId,
-            enquiryNumber: enqNumber,
-            createdByName: actor?.fullName || "Admin"
-          }),
-          createdByUserId
-        ]
-      ).catch(() => {});
-    } else {
-      // Standalone manual booking
-      await query(
-        `INSERT INTO booking_events (booking_id, event_type, new_status, title, details, actor_type, created_by_user_id)
-         VALUES ($1, 'booking_created', $2, 'Booking created', $3, 'admin', $4)`,
-        [
-          bookingRow.id,
-          initialStatus,
-          JSON.stringify({
-            createdByName: actor?.fullName || "Admin",
-            travellerCount
-          }),
-          createdByUserId
-        ]
-      ).catch(() => {});
-    }
-
-    // Auto-create initial slot for primary customer in booking_travellers
-    await query(
-      `INSERT INTO booking_travellers (booking_id, full_name, phone, email, sort_order, source)
-       VALUES ($1, $2, $3, $4, 1, 'admin')`,
-      [
-        bookingRow.id,
-        input.primaryContactName.trim(),
-        input.primaryContactPhone.trim(),
-        input.primaryContactEmail?.trim() || null
-      ]
-    ).catch(() => {});
-
-    // If initial payment provided:
-    if (input.initialPayment && input.initialPayment.amount > 0) {
-      const payPaise = Math.round(input.initialPayment.amount * 100);
-      await query(
-        `INSERT INTO booking_payments (booking_id, amount_paise, method, status, paid_at, reference_number, notes, created_by_user_id)
-         VALUES ($1, $2, $3, 'paid', now(), $4, $5, $6)`,
-        [
-          bookingRow.id,
-          payPaise,
-          normalizePaymentMethod(input.initialPayment.method),
-          input.initialPayment.referenceNumber || null,
-          input.initialPayment.notes || null,
+          detailsToken,
+          input.paymentNotes?.trim() || null,
+          input.internalNotes?.trim() || null,
           createdByUserId
         ]
       );
 
-      // Determine payment status
-      const totalPaise = finalAmountPaise || 0;
-      let newPayStatus: PaymentStatus = "partial";
-      if (payPaise >= totalPaise && totalPaise > 0) {
-        newPayStatus = "paid";
+      const bookingRow = insertRes.rows[0];
+
+      // If converted from enquiry: update enquiry and log events on both sides
+      if (resolvedEnquiryId) {
+        const enqNumber = resolvedEnquiryNumber || resolvedEnquiryId;
+
+        // Update enquiry status to 'converted'
+        await client.query(
+          `UPDATE enquiries SET status = 'converted', updated_at = now(), updated_by_user_id = $1 WHERE id = $2`,
+          [createdByUserId, resolvedEnquiryId]
+        );
+
+        // Log in enquiry_events
+        await client.query(
+          `INSERT INTO enquiry_events (enquiry_id, event_type, new_status, title, details, created_by_user_id)
+           VALUES ($1, 'enquiry_converted_to_booking', 'converted', $2, $3, $4)`,
+          [
+            resolvedEnquiryId,
+            `Converted to Booking #${bookingNumber}`,
+            JSON.stringify({
+              bookingId: bookingRow.id,
+              bookingNumber,
+              convertedByName: actor?.fullName || "Admin"
+            }),
+            createdByUserId
+          ]
+        );
+
+        // Log in booking_events
+        await client.query(
+          `INSERT INTO booking_events (booking_id, event_type, new_status, title, details, actor_type, created_by_user_id)
+           VALUES ($1, 'booking_converted_from_enquiry', $2, $3, $4, 'admin', $5)`,
+          [
+            bookingRow.id,
+            initialStatus,
+            `Booking converted from enquiry #${enqNumber}`,
+            JSON.stringify({
+              enquiryId: resolvedEnquiryId,
+              enquiryNumber: enqNumber,
+              createdByName: actor?.fullName || "Admin"
+            }),
+            createdByUserId
+          ]
+        );
+      } else {
+        // Standalone manual booking
+        await client.query(
+          `INSERT INTO booking_events (booking_id, event_type, new_status, title, details, actor_type, created_by_user_id)
+           VALUES ($1, 'booking_created', $2, 'Booking created', $3, 'admin', $4)`,
+          [
+            bookingRow.id,
+            initialStatus,
+            JSON.stringify({
+              createdByName: actor?.fullName || "Admin",
+              travellerCount
+            }),
+            createdByUserId
+          ]
+        );
       }
 
-      await query(
-        `UPDATE bookings SET payment_status = $1 WHERE id = $2`,
-        [newPayStatus, bookingRow.id]
-      );
-
-      await query(
-        `INSERT INTO booking_events (booking_id, event_type, title, details, actor_type, created_by_user_id)
-         VALUES ($1, 'payment_recorded', $2, $3, 'admin', $4)`,
+      // Auto-create initial slot for primary customer in booking_travellers
+      await client.query(
+        `INSERT INTO booking_travellers (booking_id, full_name, phone, email, sort_order, source)
+         VALUES ($1, $2, $3, $4, 1, 'admin')`,
         [
           bookingRow.id,
-          `Initial payment recorded: ₹${input.initialPayment.amount.toLocaleString("en-IN")}`,
-          JSON.stringify({
-            amount: input.initialPayment.amount,
-            method: input.initialPayment.method,
-            referenceNumber: input.initialPayment.referenceNumber
-          }),
-          createdByUserId
+          input.primaryContactName.trim(),
+          input.primaryContactPhone.trim(),
+          input.primaryContactEmail?.trim() || null
         ]
-      ).catch(() => {});
-    }
+      );
 
-    const created = await this.findById(bookingRow.id);
+      // If initial payment provided:
+      if (input.initialPayment && input.initialPayment.amount > 0) {
+        const payPaise = Math.round(input.initialPayment.amount * 100);
+        await client.query(
+          `INSERT INTO booking_payments (booking_id, amount_paise, method, status, paid_at, reference_number, notes, created_by_user_id)
+           VALUES ($1, $2, $3, 'paid', now(), $4, $5, $6)`,
+          [
+            bookingRow.id,
+            payPaise,
+            normalizePaymentMethod(input.initialPayment.method),
+            input.initialPayment.referenceNumber || null,
+            input.initialPayment.notes || null,
+            createdByUserId
+          ]
+        );
+
+        // Determine payment status
+        const totalPaise = finalAmountPaise || 0;
+        let newPayStatus: PaymentStatus = "partial";
+        if (payPaise >= totalPaise && totalPaise > 0) {
+          newPayStatus = "paid";
+        }
+
+        await client.query(
+          `UPDATE bookings SET payment_status = $1 WHERE id = $2`,
+          [newPayStatus, bookingRow.id]
+        );
+
+        await client.query(
+          `INSERT INTO booking_events (booking_id, event_type, title, details, actor_type, created_by_user_id)
+           VALUES ($1, 'payment_recorded', $2, $3, 'admin', $4)`,
+          [
+            bookingRow.id,
+            `Initial payment recorded: ₹${input.initialPayment.amount.toLocaleString("en-IN")}`,
+            JSON.stringify({
+              amount: input.initialPayment.amount,
+              method: input.initialPayment.method,
+              referenceNumber: input.initialPayment.referenceNumber
+            }),
+            createdByUserId
+          ]
+        );
+      }
+
+      return bookingRow.id;
+    });
+
+    const created = await this.findById(createdBookingId);
     return created!;
   },
 
@@ -749,10 +751,25 @@ export const bookingsRepository = {
     }
 
     const oldStatus = existing.status;
+    const normalizedNew = newStatus.toLowerCase() as BookingStatus;
+
+    if (oldStatus === normalizedNew) {
+      return existing;
+    }
+
+    const allowed = ALLOWED_BOOKING_TRANSITIONS[oldStatus] || [];
+    if (!allowed.includes(normalizedNew)) {
+      throw new AppError(
+        400,
+        "INVALID_STATUS_TRANSITION",
+        `Cannot transition booking from '${oldStatus}' to '${normalizedNew}'. Terminal or non-sequential transitions require an explicit reopen operation.`
+      );
+    }
+
     let extraSql = "";
-    if (newStatus === "completed") {
+    if (normalizedNew === "completed") {
       extraSql = ", completed_at = now()";
-    } else if (newStatus === "cancelled") {
+    } else if (normalizedNew === "cancelled") {
       extraSql = ", cancelled_at = now()";
     }
 
@@ -762,19 +779,19 @@ export const bookingsRepository = {
       `UPDATE bookings
        SET status = $1, updated_at = now(), updated_by_user_id = $2 ${extraSql}
        WHERE id = $3`,
-      [newStatus, actorUserId, existing.id]
+      [normalizedNew, actorUserId, existing.id]
     );
 
-    let eventTitle = `Status changed: ${oldStatus} → ${newStatus}`;
+    let eventTitle = `Status changed: ${oldStatus} → ${normalizedNew}`;
     let eventType = "booking_status_changed";
 
-    if (newStatus === "confirmed") {
+    if (normalizedNew === "confirmed") {
       eventType = "booking_confirmed";
       eventTitle = "Booking officially confirmed";
-    } else if (newStatus === "cancelled") {
+    } else if (normalizedNew === "cancelled") {
       eventType = "booking_cancelled";
       eventTitle = "Booking cancelled";
-    } else if (newStatus === "completed") {
+    } else if (normalizedNew === "completed") {
       eventType = "booking_completed";
       eventTitle = "Trip & booking completed";
     }
@@ -786,12 +803,66 @@ export const bookingsRepository = {
         existing.id,
         eventType,
         oldStatus,
-        newStatus,
+        normalizedNew,
         eventTitle,
         JSON.stringify({
           oldStatus,
-          newStatus,
+          newStatus: normalizedNew,
           changedByName: actor?.fullName || "Admin"
+        }),
+        actorUserId
+      ]
+    );
+
+    const updated = await this.findById(existing.id);
+    return updated!;
+  },
+
+  async reopen(
+    bookingId: string,
+    actor?: { id?: string; fullName?: string | null; role?: string }
+  ): Promise<BookingDto> {
+    const existing = await this.findById(bookingId);
+    if (!existing) {
+      throw new AppError(404, "NOT_FOUND", "Booking not found");
+    }
+
+    if (existing.status === "completed") {
+      throw new AppError(
+        400,
+        "CANNOT_REOPEN_COMPLETED",
+        "Completed bookings cannot be reopened."
+      );
+    }
+
+    if (existing.status !== "cancelled") {
+      throw new AppError(
+        400,
+        "BOOKING_NOT_CANCELLED",
+        `Only cancelled bookings can be reopened. Current status is '${existing.status}'.`
+      );
+    }
+
+    const targetStatus: BookingStatus = "awaiting_traveller_details";
+    const actorUserId = await resolveValidUserId(actor?.id);
+
+    await query(
+      `UPDATE bookings
+       SET status = $1, cancelled_at = null, updated_at = now(), updated_by_user_id = $2
+       WHERE id = $3`,
+      [targetStatus, actorUserId, existing.id]
+    );
+
+    await query(
+      `INSERT INTO booking_events (booking_id, event_type, old_status, new_status, title, details, actor_type, created_by_user_id)
+       VALUES ($1, 'booking_reopened', 'cancelled', $2, 'Booking reopened by admin', $3, 'admin', $4)`,
+      [
+        existing.id,
+        targetStatus,
+        JSON.stringify({
+          oldStatus: "cancelled",
+          newStatus: targetStatus,
+          reopenedByName: actor?.fullName || "Admin"
         }),
         actorUserId
       ]
