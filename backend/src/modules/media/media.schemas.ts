@@ -11,10 +11,30 @@ export const mediaCategoryEnum = z.enum([
   "general"
 ]);
 
+const safeHttpUrlSchema = z.string().trim().superRefine((val, ctx) => {
+  let parsed: URL;
+  try {
+    parsed = new URL(val);
+  } catch {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Must be a valid, well-formed URL"
+    });
+    return;
+  }
+  const protocol = parsed.protocol.toLowerCase();
+  if (protocol !== "http:" && protocol !== "https:") {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "URL protocol must be http: or https:"
+    });
+  }
+});
+
 export const createExternalMediaSchema = z
   .object({
-    url: z.string().url("Must be a valid URL").optional(),
-    externalUrl: z.string().url("Must be a valid URL").optional(),
+    url: safeHttpUrlSchema.optional(),
+    externalUrl: safeHttpUrlSchema.optional(),
     label: z.string().trim().max(100).optional(),
     altText: z.string().trim().max(255).optional(),
     destinationId: z.string().optional(),

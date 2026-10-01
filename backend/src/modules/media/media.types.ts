@@ -48,7 +48,7 @@ export interface MediaAssetDto {
   fileSizeBytes: number | null;
   width: number | null;
   height: number | null;
-  uploadedByUserId: string | null;
+  uploadedByUserId?: string | null;
   createdAt: string;
   updatedAt: string;
 }

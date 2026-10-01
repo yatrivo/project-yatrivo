@@ -1,4 +1,5 @@
 import type { Request, Response } from "express";
+import { AppError } from "../../errors/AppError";
 import { reviewsService } from "./reviews.service";
 import type { ReviewStatus } from "./reviews.types";
 import { recordAuditLog } from "../audit/audit.service";
@@ -140,6 +141,26 @@ export const reviewsController = {
       entityId: review.id,
       details: `New review submitted by ${reviewerName || "Customer"} (${rating}★)`,
       afterData: { rating, reviewerName }
+    });
+  },
+
+  async uploadPhoto(req: Request, res: Response): Promise<void> {
+    const rawToken = String(req.query.token || req.body.token || "").trim();
+    if (!rawToken) {
+      throw new AppError(400, "TOKEN_REQUIRED", "A valid review token is required to upload review photos.");
+    }
+
+    const file = req.file;
+    if (!file) {
+      throw new AppError(400, "FILE_MISSING", "No file uploaded");
+    }
+
+    const result = await reviewsService.uploadReviewPhoto(rawToken, file);
+
+    res.status(200).json({
+      status: "success",
+      url: result.url,
+      data: result
     });
   }
 };

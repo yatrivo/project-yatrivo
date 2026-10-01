@@ -8,12 +8,13 @@ import {
 import { siteAssetsRepository } from "./site-assets.repository";
 import type { SiteAssetDto } from "./site-assets.types";
 
+import { validateAndProcessImage } from "../../utils/imageValidation";
+
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "image/gif",
-  "image/svg+xml",
 ]);
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -49,13 +50,6 @@ export const siteAssetsService = {
     if (!file) {
       throw new AppError(400, "FILE_MISSING", "No file uploaded");
     }
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-      throw new AppError(
-        400,
-        "INVALID_FILE_TYPE",
-        `Invalid file type "${file.mimetype}". Allowed: JPEG, PNG, WEBP, GIF, SVG`
-      );
-    }
     if (file.size > MAX_FILE_SIZE) {
       throw new AppError(
         400,
@@ -64,14 +58,17 @@ export const siteAssetsService = {
       );
     }
 
+    // Verify and sanitize image content (detects corrupt data, MIME spoofing, SVG, etc.)
+    const processed = await validateAndProcessImage(file.buffer, file.mimetype);
+
     // Generate a clean S3 key under site/ prefix
     const key = generateStorageKey(`site/${existing.groupName}`, file.originalname);
 
     // Upload to S3
     const uploaded = await uploadBufferToStorage({
-      buffer: file.buffer,
+      buffer: processed.buffer,
       key,
-      contentType: file.mimetype,
+      contentType: processed.mimeType,
     });
 
     // Delete old S3 object if it exists and is different (cleanup old storage)

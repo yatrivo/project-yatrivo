@@ -106,7 +106,6 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
     fileSizeBytes: record.file_size_bytes,
     width: record.width,
     height: record.height,
-    uploadedByUserId: record.uploaded_by_user_id,
     createdAt: new Date(record.created_at).toISOString(),
     updatedAt: new Date(record.updated_at).toISOString()
   };
