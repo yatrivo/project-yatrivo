@@ -36,7 +36,7 @@ const TABS: { id: ContentTab; label: string }[] = [
 type AddSlideMode = null | "trip" | "static";
 
 function HeroTab() {
-  const { homepageContent, setHomepageContent, showToast, tripInstances, trips, refreshContent } = useApp();
+  const { homepageContent, setHomepageContent, showToast, tripInstances, trips, refreshContent, refreshTrips } = useApp();
   const [slides, setSlides] = useState<CarouselSlide[]>(
     homepageContent.carouselSlides ?? homepageContent.heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" }))
   );
@@ -126,15 +126,22 @@ function HeroTab() {
     setAddTripSubtitle("");
   };
 
+  useEffect(() => {
+    if (addMode === "trip" && trips.length === 0) {
+      void refreshTrips({ bypassCache: true });
+    }
+  }, [addMode, refreshTrips, trips.length]);
+
   const tripOptions = trips
     .map((trip) => {
-      const upcomingInstance = tripInstances
-        .filter((ti) => ti.tripId === trip.id && ti.status === "upcoming")
+      const departures = Array.isArray(trip.departures) ? trip.departures : [];
+      const upcomingInstance = departures
+        .filter((departure) => departure.status === "upcoming")
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
 
       return upcomingInstance ? { trip, upcomingInstance } : null;
     })
-    .filter((item): item is { trip: typeof trips[number]; upcomingInstance: (typeof tripInstances)[number] } => Boolean(item));
+    .filter((item): item is { trip: (typeof trips)[number]; upcomingInstance: NonNullable<(typeof trips)[number]["departures"]>[number] } => Boolean(item));
 
   const handleAddStatic = () => {
     if (!addStaticUrl.trim() || !addStaticTitle.trim()) return;
