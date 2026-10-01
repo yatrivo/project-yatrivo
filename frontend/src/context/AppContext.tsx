@@ -476,16 +476,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
     const verifySession = async () => {
       const accessToken = tokenStorage.getAccessToken();
-      const refreshToken = tokenStorage.getRefreshToken();
-
-      if (!accessToken && !refreshToken) {
-        if (isMounted) {
-          setAdminLoggedIn(false);
-          setAdminUser(null);
-          setAdminRole(null);
-        }
-        return;
-      }
 
       if (accessToken) {
         try {
@@ -497,26 +487,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
           }
           return;
         } catch {
-          // Access token might be expired, proceed to refresh below
+          // Access token might be expired, proceed to refresh via cookie below
         }
       }
 
-      if (refreshToken) {
-        try {
-          const newTokens = await authApi.refresh(refreshToken);
-          const user = await authApi.getMe(newTokens.accessToken);
-          if (isMounted) {
-            setAdminUser(user);
-            setAdminLoggedIn(true);
-            setAdminRole(user.role === "super_admin" ? "superAdmin" : "admin");
-          }
-        } catch {
-          if (isMounted) {
-            tokenStorage.clearSession();
-            setAdminLoggedIn(false);
-            setAdminUser(null);
-            setAdminRole(null);
-          }
+      // Attempt session restoration via HttpOnly refresh cookie
+      try {
+        const newTokens = await authApi.refresh();
+        const user = await authApi.getMe(newTokens.accessToken);
+        if (isMounted) {
+          setAdminUser(user);
+          setAdminLoggedIn(true);
+          setAdminRole(user.role === "super_admin" ? "superAdmin" : "admin");
+        }
+      } catch {
+        if (isMounted) {
+          tokenStorage.clearSession();
+          setAdminLoggedIn(false);
+          setAdminUser(null);
+          setAdminRole(null);
         }
       }
     };

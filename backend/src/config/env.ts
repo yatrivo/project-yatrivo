@@ -25,7 +25,7 @@ const envSchema = z.object({
   REQUEST_BODY_LIMIT: z.string().default("1mb"),
   UPSTASH_REDIS_REST_URL: z.string().url().optional().or(z.literal("")),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().or(z.literal("")),
-  JWT_ACCESS_TOKEN_SECRET: z.string().optional().or(z.literal("")),
+  JWT_ACCESS_TOKEN_SECRET: z.string().min(32, "JWT_ACCESS_TOKEN_SECRET is required and must be at least 32 characters long"),
   JWT_REFRESH_TOKEN_SECRET: z.string().optional().or(z.literal("")),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),

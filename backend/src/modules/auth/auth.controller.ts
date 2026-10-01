@@ -1,8 +1,33 @@
-import type { Request, Response } from "express";
+import type { CookieOptions, Request, Response } from "express";
+import { env, isProduction } from "../../config/env";
 import { AppError } from "../../errors/AppError";
 import type { LoginInput, LogoutInput, RefreshTokenInput } from "./auth.schemas";
 import { authService } from "./auth.service";
 import type { RequestMeta } from "./auth.types";
+
+export const REFRESH_TOKEN_COOKIE_NAME = "yatrivo_refresh_token";
+
+export function parseCookies(header?: string): Record<string, string> {
+  if (!header) return {};
+  const cookies: Record<string, string> = {};
+  for (const pair of header.split(";")) {
+    const [name, ...rest] = pair.trim().split("=");
+    if (name) {
+      cookies[name] = decodeURIComponent(rest.join("="));
+    }
+  }
+  return cookies;
+}
+
+function getRefreshCookieOptions(): CookieOptions {
+  return {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: "lax",
+    path: "/api/v1/auth",
+    maxAge: (env.REFRESH_TOKEN_TTL_DAYS || 30) * 24 * 60 * 60 * 1000
+  };
+}
 
 function extractRequestMeta(req: Request): RequestMeta {
   const forwarded = req.headers["x-forwarded-for"];
@@ -27,6 +52,9 @@ export const authController = {
 
     const result = await authService.login(input, meta);
 
+    // Set HttpOnly, Secure cookie for refresh token
+    res.cookie(REFRESH_TOKEN_COOKIE_NAME, result.tokens.refreshToken, getRefreshCookieOptions());
+
     res.status(200).json({
       status: "success",
       data: result
@@ -35,9 +63,18 @@ export const authController = {
 
   async refresh(req: Request, res: Response): Promise<void> {
     const input = (res.locals.validated?.body ?? req.body) as RefreshTokenInput;
-    const meta = extractRequestMeta(req);
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies[REFRESH_TOKEN_COOKIE_NAME] || input?.refreshToken;
 
-    const tokens = await authService.refreshTokens(input.refreshToken, meta);
+    if (!token) {
+      throw new AppError(400, "REFRESH_TOKEN_REQUIRED", "Refresh token is required via cookie or request body");
+    }
+
+    const meta = extractRequestMeta(req);
+    const tokens = await authService.refreshTokens(token, meta);
+
+    // Set rotated HttpOnly, Secure cookie
+    res.cookie(REFRESH_TOKEN_COOKIE_NAME, tokens.refreshToken, getRefreshCookieOptions());
 
     res.status(200).json({
       status: "success",
@@ -47,10 +84,21 @@ export const authController = {
 
   async logout(req: Request, res: Response): Promise<void> {
     const input = (res.locals.validated?.body ?? req.body) as LogoutInput;
+    const cookies = parseCookies(req.headers.cookie);
+    const token = cookies[REFRESH_TOKEN_COOKIE_NAME] || input?.refreshToken;
     const meta = extractRequestMeta(req);
     const userId = req.user?.id;
 
-    await authService.logout(input.refreshToken, userId, meta);
+    if (token) {
+      await authService.logout(token, userId, meta);
+    }
+
+    res.clearCookie(REFRESH_TOKEN_COOKIE_NAME, {
+      httpOnly: true,
+      secure: isProduction,
+      sameSite: "lax",
+      path: "/api/v1/auth"
+    });
 
     res.status(200).json({
       status: "success",
