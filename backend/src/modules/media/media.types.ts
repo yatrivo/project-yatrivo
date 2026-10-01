@@ -1,3 +1,9 @@
+export interface MediaDestinationLink {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface MediaAssetRecord {
   id: string;
   folder_id: string | null;
@@ -19,6 +25,8 @@ export interface MediaAssetRecord {
   updated_at: string | Date;
   destination_name?: string | null;
   destination_slug?: string | null;
+  destinations_json?: unknown;
+  destination_names?: string | null;
 }
 
 export interface MediaAssetDto {
@@ -26,6 +34,8 @@ export interface MediaAssetDto {
   destinationId: string | null;
   destinationName: string | null;
   destinationSlug: string | null;
+  destinations?: MediaDestinationLink[];
+  destinationNames?: string[];
   category: string;
   categories?: string[];
   label: string | null;

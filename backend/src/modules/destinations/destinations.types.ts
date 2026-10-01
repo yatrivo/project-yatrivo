@@ -24,7 +24,7 @@ export interface DestinationRecord {
   name: string;
   tagline: string | null;
   description: string | null;
-  category: DbDestinationCategory;
+  category?: DbDestinationCategory | null;
   season_label: string | null;
   best_time_label: string | null;
   elevation_label: string | null;

@@ -195,16 +195,12 @@ export default function AdminSettings({ initialTab }: AdminSettingsProps = {}) {
         newPassword
       });
 
-      showToast("Password changed successfully! Please log in with your new credentials.", "success");
-      
+      showToast("Password updated successfully!", "success");
+
       // Clear password fields
       setOldPassword("");
       setNewPassword("");
       setConfirmPassword("");
-
-      // Log out and redirect to login as specified
-      await adminLogout();
-      navigate("/admin/login?changed=true", { replace: true });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to update password";
       setPasswordError(msg);
@@ -568,12 +564,9 @@ export default function AdminSettings({ initialTab }: AdminSettingsProps = {}) {
                               Updating Password...
                             </>
                           ) : (
-                            "Submit & Log Out"
+                            "Submit"
                           )}
                         </button>
-                        <p className="text-xs text-[#718096] mt-2">
-                          * As a security precaution, updating your password will immediately end your current administrative session and prompt you to log in with your new password.
-                        </p>
                       </div>
                     </form>
                   </div>

@@ -59,7 +59,7 @@ export function toDestinationDto(
     name: record.name,
     tagline: record.tagline || "",
     description: record.description || "",
-    category: toApiCategory(record.category),
+    category: record.category ? toApiCategory(record.category) : ("other" as DestinationCategory),
     season: record.season_label || "",
     bestTime: record.best_time_label || "",
     elevation: record.elevation_label || undefined,
@@ -118,6 +118,25 @@ async function resolveCoverMedia(
   return { coverMediaId: null, coverImageUrl: null };
 }
 
+async function syncDestinationCoverMedia(
+  destinationId: string,
+  coverMediaId?: string | null,
+  executor: QueryExecutor = getExecutor()
+): Promise<void> {
+  await executor.query(
+    `DELETE FROM destination_media WHERE destination_id = $1 AND usage = 'cover'`,
+    [destinationId]
+  );
+  if (coverMediaId) {
+    await executor.query(
+      `INSERT INTO destination_media (destination_id, media_id, usage, sort_order)
+       VALUES ($1, $2, 'cover', 0)
+       ON CONFLICT (destination_id, media_id, usage) DO NOTHING`,
+      [destinationId, coverMediaId]
+    );
+  }
+}
+
 async function syncDestinationGalleryMedia(
   destinationId: string,
   destinationName: string,
@@ -137,58 +156,57 @@ async function syncDestinationGalleryMedia(
   );
 
   const finalUrls: string[] = [];
+  const maxCount = Math.max(galleryUrls?.length || 0, galleryMediaIds?.length || 0);
 
-  // Case A: array of media asset UUIDs provided
-  if (galleryMediaIds && galleryMediaIds.length > 0) {
-    for (let i = 0; i < galleryMediaIds.length; i++) {
-      const mediaId = galleryMediaIds[i];
-      const mRes = await executor.query<{ public_url: string; external_url: string }>(
-        `SELECT public_url, external_url FROM media_assets WHERE id = $1`,
-        [mediaId]
+  for (let i = 0; i < maxCount; i++) {
+    const mediaIdInput = galleryMediaIds?.[i];
+    const urlInput = galleryUrls?.[i];
+
+    let resolvedMediaId: string | null = null;
+    let resolvedUrl: string | null = null;
+
+    // Check if mediaIdInput is valid
+    if (mediaIdInput) {
+      const mRes = await executor.query<{ id: string; public_url: string; external_url: string }>(
+        `SELECT id, public_url, external_url FROM media_assets WHERE id = $1`,
+        [mediaIdInput]
       );
       if (mRes.rows.length > 0) {
-        const url = mRes.rows[0].public_url || mRes.rows[0].external_url || "";
-        finalUrls.push(url);
-        await executor.query(
-          `INSERT INTO destination_media (destination_id, media_id, usage, sort_order)
-           VALUES ($1, $2, 'gallery', $3)
-           ON CONFLICT (destination_id, media_id, usage) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
-          [destinationId, mediaId, i + 1]
-        );
+        resolvedMediaId = mRes.rows[0].id;
+        resolvedUrl = mRes.rows[0].public_url || mRes.rows[0].external_url || urlInput || null;
       }
     }
-    return finalUrls;
-  }
 
-  // Case B: array of URLs provided
-  if (galleryUrls && galleryUrls.length > 0) {
-    for (let i = 0; i < galleryUrls.length; i++) {
-      const gUrl = galleryUrls[i];
-      if (!gUrl) continue;
-      finalUrls.push(gUrl);
-
-      let mediaId: string;
+    // If mediaId not found or not given, resolve via urlInput
+    if (!resolvedMediaId && urlInput && urlInput.trim()) {
+      resolvedUrl = urlInput.trim();
       const existing = await executor.query<{ id: string }>(
-        `SELECT id FROM media_assets WHERE external_url = $1 OR public_url = $1 LIMIT 1`,
-        [gUrl]
+        `SELECT id FROM media_assets 
+         WHERE external_url = $1 OR public_url = $1 
+            OR split_part(coalesce(public_url, external_url), '?', 1) = split_part($1, '?', 1)
+         LIMIT 1`,
+        [resolvedUrl]
       );
       if (existing.rows.length > 0) {
-        mediaId = existing.rows[0].id;
+        resolvedMediaId = existing.rows[0].id;
       } else {
         const created = await executor.query<{ id: string }>(
-          `INSERT INTO media_assets (category, label, external_url, public_url)
-           VALUES ('destinations', $1, $2, $2)
+          `INSERT INTO media_assets (category, destination_id, label, external_url, public_url)
+           VALUES ('destinations', $1, $2, $3, $3)
            RETURNING id`,
-          [`${destinationName} Gallery ${i + 1}`, gUrl]
+          [destinationId, `${destinationName} Gallery ${i + 1}`, resolvedUrl]
         );
-        mediaId = created.rows[0].id;
+        resolvedMediaId = created.rows[0].id;
       }
+    }
 
+    if (resolvedMediaId && resolvedUrl) {
+      finalUrls.push(resolvedUrl);
       await executor.query(
         `INSERT INTO destination_media (destination_id, media_id, usage, sort_order)
          VALUES ($1, $2, 'gallery', $3)
          ON CONFLICT (destination_id, media_id, usage) DO UPDATE SET sort_order = EXCLUDED.sort_order`,
-        [destinationId, mediaId, i + 1]
+        [destinationId, resolvedMediaId, i + 1]
       );
     }
   }
@@ -214,10 +232,10 @@ export const destinationsRepository = {
       conditions.push(`d.status = 'active'`);
     }
 
-    // Category filtering
+    // Category filtering (fall back to experience tags matching if supplied)
     if (filters.category && filters.category !== "All") {
-      conditions.push(`d.category = $${paramIndex++}`);
-      params.push(toDbCategory(filters.category as DestinationCategory));
+      conditions.push(`$${paramIndex++} = ANY(d.experience_tags)`);
+      params.push(filters.category.toLowerCase().replace(/-/g, " "));
     }
 
     // Tag filtering
@@ -254,7 +272,7 @@ export const destinationsRepository = {
         resolved_cover_url: string | null;
       }
     >(
-      `SELECT d.id, d.slug, d.name, d.tagline, d.description, d.category,
+      `SELECT d.id, d.slug, d.name, d.tagline, d.description,
               d.season_label, d.best_time_label, d.elevation_label, d.status,
               d.sort_order, d.seo_title, d.seo_description, d.og_media_id,
               d.cover_media_id, d.cover_image_url, d.gallery_image_urls,
@@ -439,19 +457,18 @@ export const destinationsRepository = {
 
     const insertResult = await executor.query<DestinationRecord>(
       `INSERT INTO destinations (
-         name, slug, tagline, description, category, season_label,
+         name, slug, tagline, description, season_label,
          best_time_label, elevation_label, status, sort_order,
          cover_media_id, cover_image_url, gallery_image_urls,
          experience_tags,
          seo_title, seo_description, created_by_user_id, updated_by_user_id
-       ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'active', $9, $10, $11, $12, $13, $14, $15, $16, $16)
+       ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'active', $8, $9, $10, $11, $12, $13, $14, $15, $15)
        RETURNING *`,
       [
         data.name,
         data.slug,
         data.tagline || null,
         data.description || null,
-        toDbCategory(data.category),
         data.season || null,
         data.bestTime || null,
         data.elevation || null,
@@ -467,6 +484,9 @@ export const destinationsRepository = {
     );
 
     const dest = insertResult.rows[0];
+
+    // Sync cover media in destination_media
+    await syncDestinationCoverMedia(dest.id, coverInfo.coverMediaId, executor);
 
     // Sync gallery media in destination_media
     const galleryUrls = await syncDestinationGalleryMedia(
@@ -538,10 +558,6 @@ export const destinationsRepository = {
       updateFields.push(`description = $${idx++}`);
       updateParams.push(data.description || null);
     }
-    if (data.category !== undefined) {
-      updateFields.push(`category = $${idx++}`);
-      updateParams.push(toDbCategory(data.category));
-    }
     if (data.season !== undefined) {
       updateFields.push(`season_label = $${idx++}`);
       updateParams.push(data.season || null);
@@ -560,8 +576,9 @@ export const destinationsRepository = {
     }
 
     // Resolve cover media if updated
+    let coverInfo: { coverMediaId: string | null; coverImageUrl: string | null } | undefined;
     if (data.coverMediaId !== undefined || data.image !== undefined) {
-      const coverInfo = await resolveCoverMedia(
+      coverInfo = await resolveCoverMedia(
         data.coverMediaId,
         data.image,
         data.name || "Destination",
@@ -602,6 +619,10 @@ export const destinationsRepository = {
          WHERE id = $${idParamIdx}`,
         updateParams
       );
+    }
+
+    if (coverInfo) {
+      await syncDestinationCoverMedia(id, coverInfo.coverMediaId, executor);
     }
 
     // Sync gallery media if provided

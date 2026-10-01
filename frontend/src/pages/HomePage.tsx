@@ -285,7 +285,7 @@ export default function HomePage() {
       </section>
 
       {/* Destinations */}
-      <section className="py-16 bg-white">
+      <section className="pt-12 md:pt-16 pb-8 md:pb-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
             <div>
@@ -323,7 +323,7 @@ export default function HomePage() {
       </section>
 
       {/* Mindful Adventure Movement */}
-      <section className="py-16 bg-white">
+      <section className="pt-6 md:pt-16 pb-12 md:pb-16 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-center">
             <div className="hidden md:block md:col-span-5 rounded-2xl overflow-hidden h-64 lg:h-72 relative shadow-xs">

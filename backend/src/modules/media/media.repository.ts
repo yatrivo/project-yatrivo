@@ -5,6 +5,7 @@ import type {
   CreateStorageMediaInput,
   MediaAssetDto,
   MediaAssetRecord,
+  MediaDestinationLink,
   MediaFilters,
   MediaReferenceInfo
 } from "./media.types";
@@ -32,14 +33,43 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
   in_trips?: boolean;
   in_reviews?: boolean;
   in_homepage?: boolean;
+  destinations_json?: unknown;
+  destination_names?: string | null;
 }): MediaAssetDto {
   const url = record.public_url || record.external_url || "";
   const categoriesSet = new Set<string>();
 
+  let parsedDestinations: MediaDestinationLink[] = [];
+  if (record.destinations_json) {
+    if (typeof record.destinations_json === "string") {
+      try {
+        parsedDestinations = JSON.parse(record.destinations_json);
+      } catch {
+        parsedDestinations = [];
+      }
+    } else if (Array.isArray(record.destinations_json)) {
+      parsedDestinations = record.destinations_json as MediaDestinationLink[];
+    }
+  }
+
+  // Deduplicate destinations by id - only from actual cover and gallery usages
+  const destMap = new Map<string, MediaDestinationLink>();
+  for (const d of parsedDestinations) {
+    if (d && d.id) {
+      destMap.set(d.id, {
+        id: d.id,
+        name: d.name || "Destination",
+        slug: d.slug || ""
+      });
+    }
+  }
+  const allDestinations = Array.from(destMap.values());
+  const destinationNames = allDestinations.map((d) => d.name);
+
   if (record.category) {
     categoriesSet.add(record.category.replace(/_/g, "-"));
   }
-  if (record.in_destinations || record.destination_id) {
+  if (record.in_destinations || allDestinations.length > 0) {
     categoriesSet.add("destinations");
   }
   if (record.in_trips) {
@@ -55,11 +85,15 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
     categoriesSet.add("general");
   }
 
+  const primaryDest = allDestinations[0];
+
   return {
     id: record.id,
-    destinationId: record.destination_id || null,
-    destinationName: record.destination_name || null,
-    destinationSlug: record.destination_slug || null,
+    destinationId: primaryDest?.id ?? null,
+    destinationName: destinationNames.length > 0 ? destinationNames.join(", ") : null,
+    destinationSlug: primaryDest?.slug ?? null,
+    destinations: allDestinations,
+    destinationNames,
     category: record.category,
     categories: Array.from(categoriesSet),
     label: record.label,
@@ -78,6 +112,45 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
   };
 }
 
+const DEST_LINKS_CTE = `
+  media_dest_links AS (
+    -- 1. Via destination_media (ONLY cover and gallery)
+    SELECT dm.media_id, d.id AS destination_id, d.name AS destination_name, d.slug AS destination_slug
+    FROM destination_media dm
+    JOIN destinations d ON d.id = dm.destination_id
+    WHERE dm.usage IN ('cover', 'gallery')
+    UNION
+    -- 2. Via cover_media_id on destinations
+    SELECT d.cover_media_id AS media_id, d.id AS destination_id, d.name AS destination_name, d.slug AS destination_slug
+    FROM destinations d
+    WHERE d.cover_media_id IS NOT NULL
+    UNION
+    -- 3. Via URL matching in cover_image_url
+    SELECT m.id AS media_id, d.id AS destination_id, d.name AS destination_name, d.slug AS destination_slug
+    FROM media_assets m
+    JOIN destinations d ON (
+      d.cover_image_url IS NOT NULL 
+      AND split_part(d.cover_image_url, '?', 1) = split_part(COALESCE(m.public_url, m.external_url), '?', 1)
+    )
+    UNION
+    -- 4. Via URL matching in gallery_image_urls
+    SELECT m.id AS media_id, d.id AS destination_id, d.name AS destination_name, d.slug AS destination_slug
+    FROM media_assets m
+    JOIN destinations d ON EXISTS (
+      SELECT 1 FROM unnest(d.gallery_image_urls) gurl 
+      WHERE split_part(gurl, '?', 1) = split_part(COALESCE(m.public_url, m.external_url), '?', 1)
+    )
+  ),
+  media_dest_agg AS (
+    SELECT 
+      media_id,
+      json_agg(json_build_object('id', destination_id, 'name', destination_name, 'slug', destination_slug)) as destinations,
+      string_agg(destination_name, ', ') as destination_names
+    FROM (SELECT DISTINCT media_id, destination_id, destination_name, destination_slug FROM media_dest_links) sub
+    GROUP BY media_id
+  )
+`;
+
 export const mediaRepository = {
   async findAll(
     filters: MediaFilters,
@@ -89,19 +162,13 @@ export const mediaRepository = {
     let paramIndex = 1;
 
     const cte = `
-      WITH media_usage AS (
+      WITH ${DEST_LINKS_CTE},
+      media_usage AS (
         SELECT
           m.id,
           (
             m.category = 'destinations'
-            OR m.destination_id IS NOT NULL
-            OR EXISTS (
-              SELECT 1 FROM destinations d
-              WHERE d.cover_media_id = m.id
-                 OR (d.cover_image_url IS NOT NULL AND split_part(d.cover_image_url, '?', 1) = split_part(coalesce(m.public_url, m.external_url), '?', 1))
-                 OR EXISTS (SELECT 1 FROM unnest(d.gallery_image_urls) u WHERE split_part(u, '?', 1) = split_part(coalesce(m.public_url, m.external_url), '?', 1))
-                 OR EXISTS (SELECT 1 FROM destination_media dm WHERE dm.media_id = m.id)
-            )
+            OR EXISTS (SELECT 1 FROM media_dest_links mdl WHERE mdl.media_id = m.id)
           ) as in_destinations,
           (
             m.category = 'trips'
@@ -160,14 +227,16 @@ export const mediaRepository = {
     }
 
     if (filters.destinationId && filters.destinationId !== "all") {
-      conditions.push(`(m.destination_id::text = $${paramIndex} OR d.slug = $${paramIndex})`);
+      conditions.push(
+        `EXISTS (SELECT 1 FROM media_dest_links mdl WHERE mdl.media_id = m.id AND (mdl.destination_id::text = $${paramIndex} OR mdl.destination_slug = $${paramIndex}))`
+      );
       params.push(filters.destinationId);
       paramIndex++;
     }
 
     if (filters.search) {
       conditions.push(
-        `(m.label ILIKE $${paramIndex} OR m.alt_text ILIKE $${paramIndex} OR m.storage_key ILIKE $${paramIndex} OR m.external_url ILIKE $${paramIndex} OR d.name ILIKE $${paramIndex})`
+        `(m.label ILIKE $${paramIndex} OR m.alt_text ILIKE $${paramIndex} OR m.storage_key ILIKE $${paramIndex} OR m.external_url ILIKE $${paramIndex} OR EXISTS (SELECT 1 FROM media_dest_links mdl WHERE mdl.media_id = m.id AND mdl.destination_name ILIKE $${paramIndex}))`
       );
       params.push(`%${filters.search}%`);
       paramIndex++;
@@ -180,7 +249,6 @@ export const mediaRepository = {
        SELECT count(*)::text as count
        FROM media_assets m
        JOIN media_usage u ON u.id = m.id
-       LEFT JOIN destinations d ON d.id = m.destination_id
        ${whereClause}`,
       params
     );
@@ -199,13 +267,17 @@ export const mediaRepository = {
       in_trips: boolean;
       in_reviews: boolean;
       in_homepage: boolean;
+      destinations_json: unknown;
+      destination_names: string | null;
     }>(
       `${cte}
        SELECT m.*, d.name as destination_name, d.slug as destination_slug,
+              mda.destinations as destinations_json, mda.destination_names,
               u.in_destinations, u.in_trips, u.in_reviews, u.in_homepage
        FROM media_assets m
        JOIN media_usage u ON u.id = m.id
        LEFT JOIN destinations d ON d.id = m.destination_id
+       LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
        ${whereClause}
        ORDER BY m.created_at DESC
        LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`,
@@ -220,10 +292,13 @@ export const mediaRepository = {
 
   async findById(id: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
-    const result = await executor.query<MediaAssetRecord>(
-      `SELECT m.*, d.name as destination_name, d.slug as destination_slug
+    const result = await executor.query<MediaAssetRecord & { destinations_json: unknown; destination_names: string | null }>(
+      `WITH ${DEST_LINKS_CTE}
+       SELECT m.*, d.name as destination_name, d.slug as destination_slug,
+              mda.destinations as destinations_json, mda.destination_names
        FROM media_assets m
        LEFT JOIN destinations d ON d.id = m.destination_id
+       LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
        WHERE m.id = $1`,
       [id]
     );
@@ -236,10 +311,13 @@ export const mediaRepository = {
 
   async findByUrl(url: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
-    const result = await executor.query<MediaAssetRecord>(
-      `SELECT m.*, d.name as destination_name, d.slug as destination_slug
+    const result = await executor.query<MediaAssetRecord & { destinations_json: unknown; destination_names: string | null }>(
+      `WITH ${DEST_LINKS_CTE}
+       SELECT m.*, d.name as destination_name, d.slug as destination_slug,
+              mda.destinations as destinations_json, mda.destination_names
        FROM media_assets m
        LEFT JOIN destinations d ON d.id = m.destination_id
+       LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
        WHERE m.external_url = $1 OR m.public_url = $1 LIMIT 1`,
       [url]
     );
@@ -281,7 +359,7 @@ export const mediaRepository = {
       ]
     );
 
-    return toMediaAssetDto(result.rows[0]);
+    return (await this.findById(result.rows[0].id, client)) || toMediaAssetDto(result.rows[0]);
   },
 
   async createExternalAsset(
@@ -314,7 +392,7 @@ export const mediaRepository = {
       ]
     );
 
-    return toMediaAssetDto(result.rows[0]);
+    return (await this.findById(result.rows[0].id, client)) || toMediaAssetDto(result.rows[0]);
   },
 
   async findReferences(mediaId: string, client?: PoolClient): Promise<MediaReferenceInfo> {
@@ -330,11 +408,13 @@ export const mediaRepository = {
     const assetUrl = asset?.public_url || asset?.external_url;
     const cleanUrl = assetUrl ? assetUrl.split("?")[0] : null;
 
-    // 1. Destination cover references (by ID or URL)
+    // 1. Destination cover references (by ID, cover relationship, or URL)
     const destCoverRes = await executor.query<{ id: string; name: string }>(
-      `SELECT id, name FROM destinations
-       WHERE cover_media_id = $1
-          OR ($2::text IS NOT NULL AND cover_image_url IS NOT NULL AND split_part(cover_image_url, '?', 1) = $2)`,
+      `SELECT d.id, d.name FROM destinations d
+       LEFT JOIN destination_media dm ON dm.destination_id = d.id AND dm.media_id = $1 AND dm.usage = 'cover'
+       WHERE d.cover_media_id = $1
+          OR dm.media_id IS NOT NULL
+          OR ($2::text IS NOT NULL AND d.cover_image_url IS NOT NULL AND split_part(d.cover_image_url, '?', 1) = $2)`,
       [mediaId, cleanUrl]
     );
     for (const row of destCoverRes.rows) {
@@ -346,11 +426,11 @@ export const mediaRepository = {
       });
     }
 
-    // 2. Destination gallery references (by media_id or gallery URL)
+    // 2. Destination gallery references (strictly by gallery usage or gallery URL)
     const destGalleryRes = await executor.query<{ destination_id: string; name: string }>(
       `SELECT d.id as destination_id, d.name
        FROM destinations d
-       LEFT JOIN destination_media dm ON dm.destination_id = d.id AND dm.media_id = $1
+       LEFT JOIN destination_media dm ON dm.destination_id = d.id AND dm.media_id = $1 AND dm.usage = 'gallery'
        WHERE dm.media_id IS NOT NULL
           OR ($2::text IS NOT NULL AND EXISTS (SELECT 1 FROM unnest(d.gallery_image_urls) u WHERE split_part(u, '?', 1) = $2))`,
       [mediaId, cleanUrl]

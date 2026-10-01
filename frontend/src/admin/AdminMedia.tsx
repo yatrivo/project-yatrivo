@@ -578,11 +578,26 @@ export default function AdminMedia() {
                 </div>
 
                 <div className="bg-[#f7f8f5] p-3 rounded-lg border border-[#e2e8f0] space-y-1.5 text-[11px]">
-                  <div className="flex justify-between">
-                    <span className="text-[#718096]">Destination:</span>
-                    <span className="font-semibold text-[#0f2922]">
-                      {selectedAsset.destinationName || "General / Unassigned"}
-                    </span>
+                  <div className="flex justify-between items-start">
+                    <span className="text-[#718096] shrink-0">Destinations:</span>
+                    <div className="flex gap-1 flex-wrap justify-end">
+                      {selectedAsset.destinations && selectedAsset.destinations.length > 0 ? (
+                        selectedAsset.destinations.map((d) => (
+                          <span
+                            key={d.id}
+                            className="font-semibold text-[10px] px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200"
+                          >
+                            {d.name}
+                          </span>
+                        ))
+                      ) : selectedAsset.destinationName ? (
+                        <span className="font-semibold text-[#0f2922]">
+                          {selectedAsset.destinationName}
+                        </span>
+                      ) : (
+                        <span className="text-[#a0aec0]">General / Unassigned</span>
+                      )}
+                    </div>
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[#718096]">Sections:</span>

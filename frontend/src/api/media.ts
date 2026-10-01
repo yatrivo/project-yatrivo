@@ -1,11 +1,19 @@
 import { authApi, tokenStorage } from "./auth";
 import { API_BASE } from "./baseUrl";
 
+export interface MediaDestinationLink {
+  id: string;
+  name: string;
+  slug: string;
+}
+
 export interface MediaAsset {
   id: string;
   destinationId?: string | null;
   destinationName?: string | null;
   destinationSlug?: string | null;
+  destinations?: MediaDestinationLink[];
+  destinationNames?: string[];
   category: string;
   categories?: string[];
   label: string | null;
