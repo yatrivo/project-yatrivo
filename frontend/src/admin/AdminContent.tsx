@@ -126,6 +126,16 @@ function HeroTab() {
     setAddTripSubtitle("");
   };
 
+  const tripOptions = trips
+    .map((trip) => {
+      const upcomingInstance = tripInstances
+        .filter((ti) => ti.tripId === trip.id && ti.status === "upcoming")
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+
+      return upcomingInstance ? { trip, upcomingInstance } : null;
+    })
+    .filter((item): item is { trip: typeof trips[number]; upcomingInstance: (typeof tripInstances)[number] } => Boolean(item));
+
   const handleAddStatic = () => {
     if (!addStaticUrl.trim() || !addStaticTitle.trim()) return;
     const newSlide: CarouselSlide = {
@@ -248,21 +258,18 @@ function HeroTab() {
             {addMode === "trip" && (
               <>
                 <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Trip Instance</label>
+                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Trip</label>
                   <select
                     value={addTripInstanceId}
                     onChange={(e) => setAddTripInstanceId(e.target.value)}
                     className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] bg-white"
                   >
-                    <option value="">Select a trip instance...</option>
-                    {tripInstances.filter((ti) => ti.status === "upcoming").map((ti) => {
-                      const trip = trips.find((t) => t.id === ti.tripId);
-                      return (
-                        <option key={ti.id} value={ti.id}>
-                          {trip?.name ?? ti.tripId} — {ti.displayDate} — ₹{ti.price.toLocaleString("en-IN")}
-                        </option>
-                      );
-                    })}
+                    <option value="">Select a trip...</option>
+                    {tripOptions.map(({ trip, upcomingInstance }) => (
+                      <option key={upcomingInstance.id} value={upcomingInstance.id}>
+                        {trip.name} — {upcomingInstance.displayDate} — ₹{upcomingInstance.price.toLocaleString("en-IN")}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
