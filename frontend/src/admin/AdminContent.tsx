@@ -8,12 +8,17 @@ import type { CarouselSlideApi, WhyUsPointApi } from "@/api/content";
 import { siteAssetsApi, type SiteAssetApi, DEFAULT_SITE_ASSET_SLOTS } from "@/api/siteAssets";
 import {
   type ContentSection,
+  type AboutPageData,
+  type AboutEcosystemPoint,
   DEFAULT_TERMS_SECTIONS,
   DEFAULT_PRIVACY_SECTIONS,
-  DEFAULT_ABOUT_SECTIONS,
+  DEFAULT_ABOUT_DATA,
   parseContentSections,
   serializeContentSections,
+  parseAboutData,
+  serializeAboutData,
 } from "@/data/contentSections";
+
 
 type ContentTab = "hero" | "featured" | "why-us" | "faq" | "about" | "terms-privacy" | "site-assets";
 
@@ -784,22 +789,56 @@ function SectionListEditor({
 // ---- About Tab ----
 function AboutTab() {
   const { aboutContent, setAboutContent, showToast } = useApp();
-  const [sections, setSections] = useState<ContentSection[]>(() =>
-    parseContentSections(aboutContent, DEFAULT_ABOUT_SECTIONS)
-  );
+  const [data, setData] = useState<AboutPageData>(() => parseAboutData(aboutContent));
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setData(parseAboutData(aboutContent));
+  }, [aboutContent]);
+
+  const updateField = <K extends keyof AboutPageData>(field: K, value: AboutPageData[K]) => {
+    setData((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const updateEcosystemPoint = (index: number, key: keyof AboutEcosystemPoint, val: string) => {
+    const updated = [...data.ecosystemPoints];
+    updated[index] = { ...updated[index], [key]: val };
+    setData((prev) => ({ ...prev, ecosystemPoints: updated }));
+  };
+
+  const addEcosystemPoint = () => {
+    setData((prev) => ({
+      ...prev,
+      ecosystemPoints: [...prev.ecosystemPoints, { icon: "✨", title: "", desc: "" }],
+    }));
+  };
+
+  const removeEcosystemPoint = (index: number) => {
+    setData((prev) => ({
+      ...prev,
+      ecosystemPoints: prev.ecosystemPoints.filter((_, i) => i !== index),
+    }));
+  };
+
+  const moveEcosystemPoint = (index: number, direction: -1 | 1) => {
+    const updated = [...data.ecosystemPoints];
+    const target = index + direction;
+    if (target < 0 || target >= updated.length) return;
+    [updated[index], updated[target]] = [updated[target], updated[index]];
+    setData((prev) => ({ ...prev, ecosystemPoints: updated }));
+  };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const serialized = serializeContentSections(sections);
+      const serialized = serializeAboutData(data);
       await contentApi.updateContentPage("about", {
         title: "About Us",
         body: serialized,
         status: "published",
       });
       setAboutContent(serialized);
-      showToast("About Us story sections saved.", "success");
+      showToast("About Us content saved successfully.", "success");
     } catch (err) {
       console.error("Failed to save About Us:", err);
       showToast("Failed to save About Us.", "error");
@@ -808,17 +847,253 @@ function AboutTab() {
     }
   };
 
+  const handleResetDefaults = () => {
+    setData(DEFAULT_ABOUT_DATA);
+  };
+
   return (
-    <SectionListEditor
-      title="About Us Story Tiles"
-      helpText="Each tile is rendered as a distinct narrative card on the public /about page."
-      sections={sections}
-      onChange={setSections}
-      onSave={handleSave}
-      saving={saving}
-      saveButtonText="Save About Us"
-      onResetDefaults={() => setSections(DEFAULT_ABOUT_SECTIONS)}
-    />
+    <div className="space-y-8">
+      <div className="flex items-center justify-between flex-wrap gap-2">
+        <div>
+          <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+            About Us Page Content
+          </h3>
+          <p className="text-[#718096] text-xs mt-0.5">
+            Configure copy for the public /about page. Changes appear immediately on the site.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={handleResetDefaults}
+            className="text-[#718096] hover:text-[#0f2922] text-xs underline font-medium cursor-pointer"
+          >
+            Reset to Defaults
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold px-5 py-2 rounded-lg transition disabled:opacity-60 cursor-pointer"
+          >
+            {saving ? "Saving..." : "Save About Us"}
+          </button>
+        </div>
+      </div>
+
+      {/* The Promise Section (Primary - Screenshot 2) */}
+      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
+        <div className="border-b border-[#e2e8f0] pb-2">
+          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">The Yatrivo Promise Section</span>
+          <h4 className="text-sm font-semibold text-[#0f2922]">Brand Manifesto & Promise Copy</h4>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Tagline / Badge</label>
+            <input
+              value={data.promiseBadge}
+              onChange={(e) => updateField("promiseBadge", e.target.value)}
+              placeholder="e.g. THE YATRIVO PROMISE"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Heading</label>
+            <input
+              value={data.promiseHeading}
+              onChange={(e) => updateField("promiseHeading", e.target.value)}
+              placeholder="e.g. Explore More. Travel Better."
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#4a5568] mb-1">Story & Promise Content (Paragraphs)</label>
+          <textarea
+            value={data.promiseText}
+            onChange={(e) => updateField("promiseText", e.target.value)}
+            rows={5}
+            placeholder="Write the promise description paragraphs..."
+            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
+          />
+        </div>
+      </div>
+
+      {/* Hero Section */}
+      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
+        <div className="border-b border-[#e2e8f0] pb-2">
+          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">Hero Banner</span>
+          <h4 className="text-sm font-semibold text-[#0f2922]">Top Header Headline & Description</h4>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Hero Tagline</label>
+            <input
+              value={data.heroBadge}
+              onChange={(e) => updateField("heroBadge", e.target.value)}
+              placeholder="e.g. OUR STORY & MANIFESTO"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Hero Title</label>
+            <input
+              value={data.heroTitle}
+              onChange={(e) => updateField("heroTitle", e.target.value)}
+              placeholder="e.g. We are Yatrivo. Born in Dehradun."
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#4a5568] mb-1">Hero Description</label>
+          <textarea
+            value={data.heroDescription}
+            onChange={(e) => updateField("heroDescription", e.target.value)}
+            rows={2}
+            placeholder="Short intro paragraph below title..."
+            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
+          />
+        </div>
+      </div>
+
+      {/* Ecosystem Section */}
+      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
+        <div className="border-b border-[#e2e8f0] pb-2">
+          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">Ecosystem & Deep Roots</span>
+          <h4 className="text-sm font-semibold text-[#0f2922]">Pillars & Values</h4>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Section Tagline</label>
+            <input
+              value={data.ecosystemBadge}
+              onChange={(e) => updateField("ecosystemBadge", e.target.value)}
+              placeholder="e.g. OUR ECOSYSTEM STRAP"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Section Title</label>
+            <input
+              value={data.ecosystemHeading}
+              onChange={(e) => updateField("ecosystemHeading", e.target.value)}
+              placeholder="e.g. Deep Roots in Uttarakhand"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+        </div>
+
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-semibold text-[#4a5568]">Values & Points</label>
+            <button
+              type="button"
+              onClick={addEcosystemPoint}
+              className="text-[#e8622a] hover:text-[#d4541f] text-xs font-medium cursor-pointer"
+            >
+              + Add Point
+            </button>
+          </div>
+
+          {data.ecosystemPoints.map((item, idx) => (
+            <div key={idx} className="bg-white rounded-lg p-3 border border-[#e2e8f0] space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  value={item.icon}
+                  onChange={(e) => updateEcosystemPoint(idx, "icon", e.target.value)}
+                  placeholder="🛡️"
+                  className="w-12 text-center border border-[#e2e8f0] rounded px-2 py-1 text-sm focus:outline-none"
+                />
+                <input
+                  value={item.title}
+                  onChange={(e) => updateEcosystemPoint(idx, "title", e.target.value)}
+                  placeholder="Point Title (e.g. 100% Certified Local Safety)"
+                  className="flex-1 border border-[#e2e8f0] rounded px-2.5 py-1 text-sm font-medium text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                />
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => moveEcosystemPoint(idx, -1)}
+                    disabled={idx === 0}
+                    className="p-1 text-[#a0aec0] hover:text-[#0f2922] disabled:opacity-30 cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => moveEcosystemPoint(idx, 1)}
+                    disabled={idx === data.ecosystemPoints.length - 1}
+                    className="p-1 text-[#a0aec0] hover:text-[#0f2922] disabled:opacity-30 cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeEcosystemPoint(idx)}
+                    className="p-1 text-red-400 hover:text-red-600 cursor-pointer"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12"/></svg>
+                  </button>
+                </div>
+              </div>
+              <textarea
+                value={item.desc}
+                onChange={(e) => updateEcosystemPoint(idx, "desc", e.target.value)}
+                placeholder="Description of this value..."
+                rows={2}
+                className="w-full border border-[#e2e8f0] rounded px-2.5 py-1 text-xs text-[#4a5568] focus:outline-none focus:border-[#0f2922] resize-y"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* CTA Section */}
+      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
+        <div className="border-b border-[#e2e8f0] pb-2">
+          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">Bottom CTA Banner</span>
+          <h4 className="text-sm font-semibold text-[#0f2922]">Call to Action Copy</h4>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#4a5568] mb-1">CTA Heading</label>
+          <input
+            value={data.ctaHeading}
+            onChange={(e) => updateField("ctaHeading", e.target.value)}
+            placeholder="e.g. Let's Plan Your Mountain Excursion"
+            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+          />
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#4a5568] mb-1">CTA Description</label>
+          <textarea
+            value={data.ctaDescription}
+            onChange={(e) => updateField("ctaDescription", e.target.value)}
+            rows={2}
+            placeholder="Description text above planning button..."
+            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
+          />
+        </div>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving}
+          className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition disabled:opacity-60 cursor-pointer"
+        >
+          {saving ? "Saving..." : "Save About Us"}
+        </button>
+      </div>
+    </div>
   );
 }
 

@@ -116,3 +116,100 @@ export function parseContentSections(raw: string | null | undefined, fallback: C
 export function serializeContentSections(sections: ContentSection[]): string {
   return JSON.stringify(sections, null, 2);
 }
+
+export interface AboutEcosystemPoint {
+  icon: string;
+  title: string;
+  desc: string;
+}
+
+export interface AboutPageData {
+  heroBadge: string;
+  heroTitle: string;
+  heroDescription: string;
+
+  promiseBadge: string;
+  promiseHeading: string;
+  promiseText: string;
+
+  ecosystemBadge: string;
+  ecosystemHeading: string;
+  ecosystemPoints: AboutEcosystemPoint[];
+
+  ctaHeading: string;
+  ctaDescription: string;
+}
+
+export const DEFAULT_ABOUT_DATA: AboutPageData = {
+  heroBadge: "OUR STORY & MANIFESTO",
+  heroTitle: "We are Yatrivo.\nBorn in Dehradun.",
+  heroDescription: "We are Uttarakhand's premium travel collective. We started to bridge the gap between heavy commercial bus tours and high-risk, unguided exploration.",
+
+  promiseBadge: "THE YATRIVO PROMISE",
+  promiseHeading: "Explore More. Travel Better.",
+  promiseText: `Uttarakhand is more than just tourism checklists; it is a sacred, living ecosystem. We believe that true travel requires stepping away from crowded, noisy buses, slowing down the pace, and experiencing the pristine high alpine valleys with certified mountain guides.
+
+Every route we design is handpicked. Every wood cabin we choose has a warm local soul. We buy food from nearby organic family farms, hire licensed local guides, and execute every trip with deep environmental respect.`,
+
+  ecosystemBadge: "OUR ECOSYSTEM STRAP",
+  ecosystemHeading: "Deep Roots in Uttarakhand",
+  ecosystemPoints: [
+    {
+      icon: "🛡️",
+      title: "100% Certified Local Safety",
+      desc: "All guides are certified by high-altitude institutes and trained in wilderness medicine.",
+    },
+    {
+      icon: "🤝",
+      title: "Support for Rural Communities",
+      desc: "We hire local potters, purchase from women-led farm cooperatives, and keep capital inside the hills.",
+    },
+    {
+      icon: "🌿",
+      title: "Carbon-Offset Treks",
+      desc: "Zero trace plastic usage, solar campsites, and absolute preservation of sensitive mountain meadows.",
+    },
+  ],
+
+  ctaHeading: "Let's Plan Your Mountain Excursion",
+  ctaDescription: "Step off the tourist trail. Explore Uttarakhand with local safety, certified guides, and small youthful groups.",
+};
+
+export function parseAboutData(raw: string | null | undefined): AboutPageData {
+  if (!raw || !raw.trim()) return DEFAULT_ABOUT_DATA;
+  try {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      return {
+        heroBadge: typeof parsed.heroBadge === "string" && parsed.heroBadge.trim() ? parsed.heroBadge : DEFAULT_ABOUT_DATA.heroBadge,
+        heroTitle: typeof parsed.heroTitle === "string" && parsed.heroTitle.trim() ? parsed.heroTitle : DEFAULT_ABOUT_DATA.heroTitle,
+        heroDescription: typeof parsed.heroDescription === "string" && parsed.heroDescription.trim() ? parsed.heroDescription : DEFAULT_ABOUT_DATA.heroDescription,
+
+        promiseBadge: typeof parsed.promiseBadge === "string" && parsed.promiseBadge.trim() ? parsed.promiseBadge : DEFAULT_ABOUT_DATA.promiseBadge,
+        promiseHeading: typeof parsed.promiseHeading === "string" && parsed.promiseHeading.trim() ? parsed.promiseHeading : DEFAULT_ABOUT_DATA.promiseHeading,
+        promiseText: typeof parsed.promiseText === "string" && parsed.promiseText.trim() ? parsed.promiseText : DEFAULT_ABOUT_DATA.promiseText,
+
+        ecosystemBadge: typeof parsed.ecosystemBadge === "string" && parsed.ecosystemBadge.trim() ? parsed.ecosystemBadge : DEFAULT_ABOUT_DATA.ecosystemBadge,
+        ecosystemHeading: typeof parsed.ecosystemHeading === "string" && parsed.ecosystemHeading.trim() ? parsed.ecosystemHeading : DEFAULT_ABOUT_DATA.ecosystemHeading,
+        ecosystemPoints: Array.isArray(parsed.ecosystemPoints) && parsed.ecosystemPoints.length > 0
+          ? parsed.ecosystemPoints.map((p: any) => ({
+              icon: p.icon || "✨",
+              title: p.title || "",
+              desc: p.desc || p.description || "",
+            }))
+          : DEFAULT_ABOUT_DATA.ecosystemPoints,
+
+        ctaHeading: typeof parsed.ctaHeading === "string" && parsed.ctaHeading.trim() ? parsed.ctaHeading : DEFAULT_ABOUT_DATA.ctaHeading,
+        ctaDescription: typeof parsed.ctaDescription === "string" && parsed.ctaDescription.trim() ? parsed.ctaDescription : DEFAULT_ABOUT_DATA.ctaDescription,
+      };
+    }
+  } catch {
+    // If raw is legacy plain text or malformed JSON, do NOT display as overview tile
+  }
+  return DEFAULT_ABOUT_DATA;
+}
+
+export function serializeAboutData(data: AboutPageData): string {
+  return JSON.stringify(data, null, 2);
+}
+

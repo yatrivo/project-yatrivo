@@ -325,21 +325,21 @@ export default function HomePage() {
 
       {/* Mindful Adventure Movement */}
       <section className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            <div className="hidden md:block rounded-2xl overflow-hidden h-80 md:h-96 relative">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-center">
+            <div className="hidden md:block md:col-span-5 rounded-2xl overflow-hidden h-64 lg:h-72 relative shadow-xs">
               <SiteImage
                 assetKey={SITE_ASSET_KEYS.HOME_WHY_US_IMAGE}
                 alt="Travelers around campfire"
                 className="w-full h-full object-cover"
               />
             </div>
-            <div>
-              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY TRAVELERS LOVE US</div>
-              <h2 className="section-heading text-[#0f2922] mb-5">
+            <div className="md:col-span-7">
+              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2.5">WHY TRAVELERS LOVE US</div>
+              <h2 className="section-heading text-[#0f2922] mb-4">
                 {whyUsTitle || "The Mindful Adventure Movement"}
               </h2>
-              <p className="text-[#4a5568] text-sm leading-relaxed mb-8">
+              <p className="text-[#4a5568] text-sm sm:text-[15px] leading-relaxed mb-7 max-w-xl">
                 {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
               </p>
               <Link
