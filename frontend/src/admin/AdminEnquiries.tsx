@@ -375,6 +375,19 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
   const [page, setPage] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
   const PER_PAGE = 10;
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      await refreshEnquiries();
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+  };
 
   // Filter pipeline
   const filtered = useMemo(() => {
@@ -456,11 +469,17 @@ export default function AdminEnquiries({ setAdminPage, setSelectedEnquiry }: Pro
 
         <div className="flex items-center gap-2.5">
           <button
-            onClick={() => void refreshEnquiries()}
-            className="p-2 border border-[#e2e8f0] text-[#718096] hover:text-[#0f2922] hover:bg-[#f7f8f5] rounded-lg transition cursor-pointer"
+            onClick={() => void handleRefresh()}
+            disabled={isRefreshing}
+            className="p-2 border border-[#e2e8f0] text-[#718096] hover:text-[#0f2922] hover:bg-[#f7f8f5] rounded-lg transition cursor-pointer disabled:opacity-70"
             title="Refresh from database"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`w-4 h-4 transition-transform ${isRefreshing ? "animate-spin text-[#0f2922]" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>

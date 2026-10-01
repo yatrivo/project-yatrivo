@@ -881,46 +881,6 @@ function AboutTab() {
         </div>
       </div>
 
-      {/* The Promise Section (Primary - Screenshot 2) */}
-      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
-        <div className="border-b border-[#e2e8f0] pb-2">
-          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">The Yatrivo Promise Section</span>
-          <h4 className="text-sm font-semibold text-[#0f2922]">Brand Manifesto & Promise Copy</h4>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Tagline / Badge</label>
-            <input
-              value={data.promiseBadge}
-              onChange={(e) => updateField("promiseBadge", e.target.value)}
-              placeholder="e.g. THE YATRIVO PROMISE"
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Heading</label>
-            <input
-              value={data.promiseHeading}
-              onChange={(e) => updateField("promiseHeading", e.target.value)}
-              placeholder="e.g. Explore More. Travel Better."
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-[#4a5568] mb-1">Story & Promise Content (Paragraphs)</label>
-          <textarea
-            value={data.promiseText}
-            onChange={(e) => updateField("promiseText", e.target.value)}
-            rows={5}
-            placeholder="Write the promise description paragraphs..."
-            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
-          />
-        </div>
-      </div>
-
       {/* Hero Section */}
       <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
         <div className="border-b border-[#e2e8f0] pb-2">
@@ -956,6 +916,46 @@ function AboutTab() {
             onChange={(e) => updateField("heroDescription", e.target.value)}
             rows={2}
             placeholder="Short intro paragraph below title..."
+            className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
+          />
+        </div>
+      </div>
+
+      {/* The Promise Section (Primary - Screenshot 2) */}
+      <div className="bg-[#f7f8f5] rounded-xl p-5 space-y-4 border border-[#e2e8f0]">
+        <div className="border-b border-[#e2e8f0] pb-2">
+          <span className="text-xs font-bold text-[#e8622a] uppercase tracking-wider">The Yatrivo Promise Section</span>
+          <h4 className="text-sm font-semibold text-[#0f2922]">Brand Manifesto & Promise Copy</h4>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Tagline / Badge</label>
+            <input
+              value={data.promiseBadge}
+              onChange={(e) => updateField("promiseBadge", e.target.value)}
+              placeholder="e.g. THE YATRIVO PROMISE"
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">Heading</label>
+            <input
+              value={data.promiseHeading}
+              onChange={(e) => updateField("promiseHeading", e.target.value)}
+              placeholder="e.g. Explore More. Travel Better."
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:border-[#0f2922]"
+            />
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#4a5568] mb-1">Story & Promise Content (Paragraphs)</label>
+          <textarea
+            value={data.promiseText}
+            onChange={(e) => updateField("promiseText", e.target.value)}
+            rows={5}
+            placeholder="Write the promise description paragraphs..."
             className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm bg-white leading-relaxed focus:outline-none focus:border-[#0f2922] resize-y"
           />
         </div>
