@@ -132,16 +132,15 @@ function HeroTab() {
     }
   }, [addMode, refreshTrips, trips.length]);
 
-  const tripOptions = trips
-    .map((trip) => {
-      const departures = Array.isArray(trip.departures) ? trip.departures : [];
-      const upcomingInstance = departures
-        .filter((departure) => departure.status === "upcoming")
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0];
+  const tripOptions = trips.map((trip) => {
+    const departures = Array.isArray(trip.departures) ? trip.departures : [];
+    const upcomingInstance = departures
+      .filter((departure) => departure.status === "upcoming")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())[0]
+      ?? departures[0] ?? null;
 
-      return upcomingInstance ? { trip, upcomingInstance } : null;
-    })
-    .filter((item): item is { trip: (typeof trips)[number]; upcomingInstance: NonNullable<(typeof trips)[number]["departures"]>[number] } => Boolean(item));
+    return { trip, upcomingInstance };
+  });
 
   const handleAddStatic = () => {
     if (!addStaticUrl.trim() || !addStaticTitle.trim()) return;
@@ -273,8 +272,9 @@ function HeroTab() {
                   >
                     <option value="">Select a trip...</option>
                     {tripOptions.map(({ trip, upcomingInstance }) => (
-                      <option key={upcomingInstance.id} value={upcomingInstance.id}>
-                        {trip.name} — {upcomingInstance.displayDate} — ₹{upcomingInstance.price.toLocaleString("en-IN")}
+                      <option key={trip.id} value={upcomingInstance?.id ?? trip.id}>
+                        {trip.name}
+                        {upcomingInstance ? ` — ${upcomingInstance.displayDate} — ₹${upcomingInstance.price.toLocaleString("en-IN")}` : " — no upcoming departure"}
                       </option>
                     ))}
                   </select>
