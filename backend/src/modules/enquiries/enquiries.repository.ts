@@ -7,8 +7,10 @@ import type {
   EnquiryDto,
   EnquiryEventDto,
   EnquiryFilters,
-  EnquiryNoteDto
+  EnquiryNoteDto,
+  EnquiryStatus
 } from "./enquiries.types";
+import { ALLOWED_ENQUIRY_TRANSITIONS } from "./enquiries.types";
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DEFAULT_ADMIN_WHATSAPP = env.ADMIN_WHATSAPP_NUMBER || "919876543210";
@@ -20,6 +22,38 @@ function generateEnquiryNumber(): string {
 }
 
 export const enquiriesRepository = {
+  async findRecentDuplicate(params: {
+    customerPhone: string;
+    customerEmail?: string | null;
+    tripId?: string | null;
+    destinationId?: string | null;
+    destinationLabel?: string | null;
+    cooldownMinutes?: number;
+  }): Promise<boolean> {
+    const minutes = params.cooldownMinutes || 5;
+    const phone = params.customerPhone.trim();
+    const conditions: string[] = ["e.customer_phone = $1", "e.submitted_at > now() - ($2 || ' minutes')::interval"];
+    const queryParams: unknown[] = [phone, `${minutes}`];
+
+    if (params.tripId) {
+      queryParams.push(params.tripId);
+      conditions.push(`e.trip_id = $${queryParams.length}`);
+    } else if (params.destinationId) {
+      queryParams.push(params.destinationId);
+      conditions.push(`e.destination_id = $${queryParams.length}`);
+    } else if (params.destinationLabel) {
+      queryParams.push(params.destinationLabel.trim().toLowerCase());
+      conditions.push(`LOWER(COALESCE(e.destination_label, '')) = $${queryParams.length}`);
+    }
+
+    const res = await query(
+      `SELECT 1 FROM enquiries e WHERE ${conditions.join(" AND ")} LIMIT 1`,
+      queryParams
+    );
+
+    return res.rows.length > 0;
+  },
+
   async create(
     input: CreateEnquiryInput,
     actor?: { id: string; fullName: string | null; role: string }
@@ -527,8 +561,21 @@ export const enquiriesRepository = {
       throw new AppError(404, "NOT_FOUND", "Enquiry not found");
     }
 
-    const oldStatus = existing.status;
-    const normalizedNew = newStatus.toLowerCase();
+    const oldStatus = existing.status.toLowerCase() as EnquiryStatus;
+    const normalizedNew = newStatus.toLowerCase() as EnquiryStatus;
+
+    if (oldStatus === normalizedNew) {
+      return existing;
+    }
+
+    const allowed = ALLOWED_ENQUIRY_TRANSITIONS[oldStatus] || [];
+    if (!allowed.includes(normalizedNew)) {
+      throw new AppError(
+        400,
+        "INVALID_STATUS_TRANSITION",
+        `Cannot transition enquiry from '${oldStatus}' to '${normalizedNew}'. Terminal or non-sequential transitions require an explicit reopen operation.`
+      );
+    }
 
     await query(
       `UPDATE enquiries
@@ -549,6 +596,53 @@ export const enquiriesRepository = {
           oldStatus,
           newStatus: normalizedNew,
           changedByName: actor.fullName || "Admin"
+        }),
+        actor.id
+      ]
+    );
+
+    const updated = await this.findById(existing.id);
+    return updated!;
+  },
+
+  async reopen(
+    id: string,
+    actor: { id: string; fullName: string | null; role: string }
+  ): Promise<EnquiryDto> {
+    const existing = await this.findById(id);
+    if (!existing) {
+      throw new AppError(404, "NOT_FOUND", "Enquiry not found");
+    }
+
+    const terminalStatuses = ["closed", "cancelled", "lost"];
+    if (!terminalStatuses.includes(existing.status.toLowerCase())) {
+      throw new AppError(
+        400,
+        "CANNOT_REOPEN_ACTIVE",
+        `Only closed, cancelled, or lost enquiries can be reopened. Current status is '${existing.status}'.`
+      );
+    }
+
+    const targetStatus: EnquiryStatus = "in_discussion";
+
+    await query(
+      `UPDATE enquiries
+       SET status = $1, updated_at = now(), updated_by_user_id = $2
+       WHERE id = $3`,
+      [targetStatus, actor.id, existing.id]
+    );
+
+    await query(
+      `INSERT INTO enquiry_events (enquiry_id, event_type, old_status, new_status, title, details, created_by_user_id)
+       VALUES ($1, 'enquiry_reopened', $2, $3, 'Enquiry reopened by admin', $4, $5)`,
+      [
+        existing.id,
+        existing.status,
+        targetStatus,
+        JSON.stringify({
+          oldStatus: existing.status,
+          newStatus: targetStatus,
+          reopenedByName: actor.fullName || "Admin"
         }),
         actor.id
       ]

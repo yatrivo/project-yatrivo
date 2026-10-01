@@ -1,5 +1,6 @@
 import type { PoolClient } from "pg";
-import { query } from "../../db/postgres";
+import { query, withTransaction } from "../../db/postgres";
+import { AppError } from "../../errors/AppError";
 import crypto from "node:crypto";
 import type {
   DepartureOperationalDto,
@@ -529,21 +530,19 @@ export const reviewsRepository = {
 
     if (res.rows.length === 0) return null;
     const r = res.rows[0];
+    const isUsed = Boolean(r.used_at || r.status === "submitted");
 
     return {
       request: {
         id: r.id,
         token: r.token || token,
-        bookingId: r.booking_id,
-        bookingTravellerId: r.booking_traveller_id || null,
         bookingNumber: r.booking_number,
         tripId: r.trip_id,
         tripInstanceId: r.trip_instance_id,
         customerName: r.customer_name,
-        customerPhone: r.customer_phone,
         customMessage: r.custom_message,
         reviewLink: `/review?token=${r.token || token}`,
-        status: r.used_at ? "submitted" : "pending",
+        status: isUsed ? "submitted" : "pending",
         sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : null,
         createdAt: new Date(r.created_at).toISOString()
       },
@@ -556,85 +555,102 @@ export const reviewsRepository = {
       tripInstanceId: r.trip_instance_id,
       bookingNumber: r.booking_number,
       customerName: r.customer_name,
-      isUsed: Boolean(r.used_at)
+      isUsed
     };
   },
 
   async submitReview(input: SubmitReviewInput): Promise<ReviewDto> {
-    const reqContext = await this.findRequestByToken(input.token);
+    return withTransaction(async (client) => {
+      const token = input.token.trim();
+      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
 
-    let tripId: string;
-    let tripInstanceId: string | null = null;
-    let bookingId: string | null = null;
-    let bookingTravellerId: string | null = null;
-    let destinationId: string | null = null;
-    let reviewRequestId: string | null = null;
-    let reviewerName = input.reviewerName?.trim() || "Verified Traveller";
+      const reqRes = await client.query<{
+        id: string;
+        token: string | null;
+        booking_id: string | null;
+        booking_traveller_id: string | null;
+        trip_id: string;
+        trip_instance_id: string | null;
+        customer_name: string | null;
+        used_at: string | null;
+        expires_at: string | null;
+      }>(
+        `SELECT id, token, booking_id, booking_traveller_id, trip_id, trip_instance_id,
+                customer_name, used_at::text, expires_at::text
+         FROM review_requests
+         WHERE token = $1 OR token_hash = $2
+         FOR UPDATE`,
+        [token, tokenHash]
+      );
 
-    if (reqContext) {
-      tripId = reqContext.tripId;
-      tripInstanceId = reqContext.tripInstanceId;
-      bookingId = reqContext.request.bookingId;
-      bookingTravellerId = reqContext.request.bookingTravellerId || null;
-      reviewRequestId = reqContext.request.id;
-      reviewerName = reqContext.customerName || reviewerName;
+      if (reqRes.rows.length === 0) {
+        throw new AppError(404, "TOKEN_INVALID", "This review link is invalid or has expired.");
+      }
+
+      const reqRow = reqRes.rows[0];
+
+      if (reqRow.used_at) {
+        throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
+      }
+
+      if (reqRow.expires_at && new Date(reqRow.expires_at) < new Date()) {
+        throw new AppError(400, "TOKEN_EXPIRED", "This review link has expired.");
+      }
+
+      const tripId = reqRow.trip_id;
+      const tripInstanceId = reqRow.trip_instance_id;
+      const bookingId = reqRow.booking_id;
+      const bookingTravellerId = reqRow.booking_traveller_id;
+      const reviewRequestId = reqRow.id;
+      const reviewerName = reqRow.customer_name || input.reviewerName?.trim() || "Verified Traveller";
 
       // Find destination ID
-      const destRes = await query<{ id: string }>(
+      let destinationId: string | null = null;
+      const destRes = await client.query<{ id: string }>(
         `SELECT td.destination_id as id FROM trip_destinations td WHERE td.trip_id = $1 LIMIT 1`,
         [tripId]
       );
       if (destRes.rows.length > 0) {
         destinationId = destRes.rows[0].id;
       }
-    } else {
-      // Direct submission fallback without token (e.g. from general review form)
-      const firstTrip = await query<{ id: string; destination_id: string }>(
-        `SELECT t.id, td.destination_id FROM trips t LEFT JOIN trip_destinations td ON td.trip_id = t.id LIMIT 1`
+
+      const initials = reviewerName
+        .split(" ")
+        .map((w) => w[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase() || "YR";
+
+      // Insert review into reviews table with status 'pending'
+      const res = await client.query<ReviewRecord>(
+        `INSERT INTO reviews (
+          review_request_id, booking_id, booking_traveller_id, trip_id, trip_instance_id, destination_id,
+          reviewer_name, reviewer_avatar_initials, rating, body,
+          status, photo_urls, submitted_at
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, now())
+        RETURNING *`,
+        [
+          reviewRequestId,
+          bookingId,
+          bookingTravellerId,
+          tripId,
+          tripInstanceId,
+          destinationId,
+          reviewerName,
+          initials,
+          input.rating,
+          input.body.trim(),
+          input.photos || []
+        ]
       );
-      tripId = firstTrip.rows[0]?.id;
-      destinationId = firstTrip.rows[0]?.destination_id || null;
-    }
 
-    const initials = reviewerName
-      .split(" ")
-      .map((w) => w[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase() || "YR";
-
-    // Insert review into reviews table with status 'pending'
-    const res = await query<ReviewRecord>(
-      `INSERT INTO reviews (
-        review_request_id, booking_id, booking_traveller_id, trip_id, trip_instance_id, destination_id,
-        reviewer_name, reviewer_avatar_initials, rating, body,
-        status, photo_urls, submitted_at
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 'pending', $11, now())
-      RETURNING *`,
-      [
-        reviewRequestId,
-        bookingId,
-        bookingTravellerId,
-        tripId,
-        tripInstanceId,
-        destinationId,
-        reviewerName,
-        initials,
-        input.rating,
-        input.body.trim(),
-        input.photos || []
-      ]
-    );
-
-    // If submitted via review request, mark the request as used
-    if (reviewRequestId) {
-      await query(
+      // Atomically mark review_request used
+      await client.query(
         `UPDATE review_requests SET used_at = now(), status = 'submitted' WHERE id = $1`,
         [reviewRequestId]
       );
-    }
 
-    const created = await this.findById(res.rows[0].id);
-    return created!;
+      return toReviewDto(res.rows[0]);
+    });
   }
 };

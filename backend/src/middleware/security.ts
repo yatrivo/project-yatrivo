@@ -65,21 +65,27 @@ function resolveCorsOrigin(origin: string | undefined, callback: (error: Error |
 
   const hostname = originUrl.hostname.toLowerCase();
 
-  // 1. Always allow localhost / loopback on any port (supported in both dev and production)
-  if (isLocalhost(hostname)) {
+  // 1. In production, strictly reject localhost and loopback origins
+  if (isProduction && isLocalhost(hostname)) {
+    callback(new AppError(403, "CORS_ORIGIN_DENIED", `Origin '${origin}' is not permitted in production`));
+    return;
+  }
+
+  // 2. In development/testing ONLY: allow localhost / loopback on any port
+  if (!isProduction && isLocalhost(hostname)) {
     callback(null, true);
     return;
   }
 
-  // 2. Allow only the legitimate Yatrivo production domain: yatrivo.co.in and its subdomains
+  // 3. Allow only the legitimate Yatrivo production domain: yatrivo.co.in and its subdomains
   if (isLegitimateProductionDomain(hostname)) {
     callback(null, true);
     return;
   }
 
-  // 3. Explicit allowed origins from CORS_ORIGIN environment variable (wildcards disallowed in production)
+  // 4. Explicit allowed origins from CORS_ORIGIN environment variable (wildcards and localhost disallowed in production)
   const allowedConfigOrigins = isProduction
-    ? corsOrigins.filter((o) => o !== "*")
+    ? corsOrigins.filter((o) => o !== "*" && !o.includes("localhost") && !o.includes("127.0.0.1"))
     : corsOrigins;
 
   if (
@@ -90,7 +96,7 @@ function resolveCorsOrigin(origin: string | undefined, callback: (error: Error |
     return;
   }
 
-  // 4. In development/testing ONLY: allow verified LAN / local Wi-Fi private IP access
+  // 5. In development/testing ONLY: allow verified LAN / local Wi-Fi private IP access
   if (!isProduction && isPrivateLan(hostname)) {
     callback(null, true);
     return;

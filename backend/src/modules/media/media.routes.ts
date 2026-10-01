@@ -19,16 +19,20 @@ const upload = multer({
 
 export const mediaRouter = Router();
 
-// GET /api/v1/media - List media assets (admin or public query)
+// GET /api/v1/media - List media assets (admin only)
 mediaRouter.get(
   "/",
+  authenticate,
+  requireAdmin,
   validate({ query: mediaQuerySchema }),
   asyncHandler(mediaController.list)
 );
 
-// GET /api/v1/media/:id - Get single media asset
+// GET /api/v1/media/:id - Get single media asset (admin only)
 mediaRouter.get(
   "/:id",
+  authenticate,
+  requireAdmin,
   validate({ params: mediaIdParamSchema }),
   asyncHandler(mediaController.getOne)
 );

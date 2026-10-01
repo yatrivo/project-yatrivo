@@ -9,10 +9,20 @@ const sanitizedConnectionString = env.DATABASE_URL.replace(
   "sslmode=verify-full"
 );
 
+// Strict TLS certificate verification. In production, rejectUnauthorized is strictly true.
+// In development/test environments, it defaults to true unless explicitly overridden.
+const sslConfig = env.DATABASE_SSL
+  ? {
+      rejectUnauthorized: env.NODE_ENV === "production" ? true : process.env.DB_SSL_REJECT_UNAUTHORIZED !== "false"
+    }
+  : undefined;
+
 export const db = new Pool({
   connectionString: sanitizedConnectionString,
   max: env.DB_POOL_MAX,
-  ssl: env.DATABASE_SSL ? { rejectUnauthorized: false } : undefined
+  ssl: sslConfig,
+  connectionTimeoutMillis: 8000,
+  idleTimeoutMillis: 10000
 });
 
 db.on("error", (error) => {

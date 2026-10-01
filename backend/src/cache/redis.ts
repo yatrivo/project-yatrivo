@@ -1,4 +1,4 @@
-﻿import { env, isRedisConfigured } from "../config/env";
+import { env, isRedisConfigured } from "../config/env";
 
 type RedisCommandValue = string | number | boolean | null;
 
@@ -30,23 +30,33 @@ async function sendCommand<T>(command: RedisCommandValue[]): Promise<T> {
   return payload.result as T;
 }
 
+export function buildRedisKey(key: string): string {
+  const envPrefix = `yatrivo:${env.NODE_ENV || "development"}`;
+  if (key.startsWith("yatrivo:")) {
+    return key;
+  }
+  return `${envPrefix}:${key}`;
+}
+
 export const redis = {
   configured: isRedisConfigured,
+  buildKey: buildRedisKey,
   async ping(): Promise<string> {
     return sendCommand<string>(["PING"]);
   },
   async get(key: string): Promise<string | null> {
-    return sendCommand<string | null>(["GET", key]);
+    return sendCommand<string | null>(["GET", buildRedisKey(key)]);
   },
   async set(key: string, value: string, ttlSeconds?: number): Promise<string> {
+    const namespacedKey = buildRedisKey(key);
     if (ttlSeconds) {
-      return sendCommand<string>(["SET", key, value, "EX", ttlSeconds]);
+      return sendCommand<string>(["SET", namespacedKey, value, "EX", ttlSeconds]);
     }
 
-    return sendCommand<string>(["SET", key, value]);
+    return sendCommand<string>(["SET", namespacedKey, value]);
   },
   async del(key: string): Promise<number> {
-    return sendCommand<number>(["DEL", key]);
+    return sendCommand<number>(["DEL", buildRedisKey(key)]);
   }
 };
 

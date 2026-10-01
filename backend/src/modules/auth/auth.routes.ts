@@ -16,6 +16,13 @@ import {
 export const authRouter = Router();
 
 // Rate limiters for security sensitive auth endpoints (5 attempts per 15 minutes)
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many login attempts. Please wait 15 minutes before trying again.",
+  skipSuccessfulRequests: true
+});
+
 const forgotPasswordLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 5,
@@ -31,6 +38,7 @@ const resetPasswordLimiter = rateLimit({
 // Public auth endpoints (Admin and Super Admin access only)
 authRouter.post(
   "/auth/login",
+  loginLimiter,
   validate({ body: loginSchema }),
   asyncHandler(authController.login)
 );

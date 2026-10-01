@@ -6,6 +6,8 @@ interface RateLimitConfig {
   max: number;
   message?: string;
   keyGenerator?: (req: Request) => string;
+  skip?: (req: Request) => boolean;
+  skipSuccessfulRequests?: boolean;
 }
 
 interface ClientRecord {
@@ -19,10 +21,10 @@ export function rateLimit(options: RateLimitConfig): RequestHandler {
     max,
     message = "Too many requests. Please try again later.",
     keyGenerator = (req: Request) => {
-      const forwarded = req.headers["x-forwarded-for"];
-      const rawIp = typeof forwarded === "string" ? forwarded.split(",")[0].trim() : req.ip;
-      return rawIp || "unknown";
-    }
+      return req.ip || "unknown";
+    },
+    skip,
+    skipSuccessfulRequests = false
   } = options;
 
   const store = new Map<string, ClientRecord>();
@@ -43,6 +45,10 @@ export function rateLimit(options: RateLimitConfig): RequestHandler {
   }
 
   return (req: Request, res: Response, next: NextFunction) => {
+    if (skip && skip(req)) {
+      return next();
+    }
+
     const key = keyGenerator(req);
     const now = Date.now();
 
@@ -64,6 +70,14 @@ export function rateLimit(options: RateLimitConfig): RequestHandler {
     res.setHeader("X-RateLimit-Limit", max.toString());
     res.setHeader("X-RateLimit-Remaining", remaining.toString());
     res.setHeader("X-RateLimit-Reset", resetSeconds.toString());
+
+    if (skipSuccessfulRequests) {
+      res.on("finish", () => {
+        if (res.statusCode < 400 && record && record.count > 0) {
+          record.count -= 1;
+        }
+      });
+    }
 
     if (record.count > max) {
       res.setHeader("Retry-After", resetSeconds.toString());

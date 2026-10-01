@@ -25,7 +25,7 @@ const envSchema = z.object({
   REQUEST_BODY_LIMIT: z.string().default("1mb"),
   UPSTASH_REDIS_REST_URL: z.string().url().optional().or(z.literal("")),
   UPSTASH_REDIS_REST_TOKEN: z.string().optional().or(z.literal("")),
-  JWT_ACCESS_TOKEN_SECRET: z.string().optional().or(z.literal("")),
+  JWT_ACCESS_TOKEN_SECRET: z.string().min(32, "JWT_ACCESS_TOKEN_SECRET is required and must be at least 32 characters long"),
   JWT_REFRESH_TOKEN_SECRET: z.string().optional().or(z.literal("")),
   ACCESS_TOKEN_TTL: z.string().default("15m"),
   REFRESH_TOKEN_TTL_DAYS: z.coerce.number().int().positive().default(30),
@@ -43,9 +43,57 @@ const envSchema = z.object({
   EMAIL_API_KEY: z.string().optional().or(z.literal("")),
   RESEND_API_KEY: z.string().optional().or(z.literal("")),
   EMAIL_FROM: z.string().default("Yatrivo <noreply@yatrivo.com>"),
-  FRONTEND_URL: z.string().default("http://localhost:3000")
-});
+  FRONTEND_URL: z.string().optional()
+})
+  .superRefine((data, ctx) => {
+    if (data.NODE_ENV === "production") {
+      if (!data.FRONTEND_URL || data.FRONTEND_URL.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["FRONTEND_URL"],
+          message: "FRONTEND_URL is required in production"
+        });
+        return;
+      }
 
+      try {
+        const parsed = new URL(data.FRONTEND_URL);
+        if (parsed.protocol !== "https:") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["FRONTEND_URL"],
+            message: "FRONTEND_URL must use https:// in production"
+          });
+        }
+        const hostname = parsed.hostname.toLowerCase();
+        if (
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          hostname === "::1" ||
+          hostname === "0.0.0.0" ||
+          hostname.endsWith(".local")
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["FRONTEND_URL"],
+            message: "FRONTEND_URL cannot use localhost or private loopback addresses in production"
+          });
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["FRONTEND_URL"],
+          message: "FRONTEND_URL must be a valid URL"
+        });
+      }
+    }
+  })
+  .transform((data) => ({
+    ...data,
+    FRONTEND_URL: data.FRONTEND_URL || "http://localhost:3000"
+  }));
+
+export { envSchema };
 export const env = envSchema.parse(process.env);
 
 export const activePort = env.PORT || env.BACKEND_PORT;

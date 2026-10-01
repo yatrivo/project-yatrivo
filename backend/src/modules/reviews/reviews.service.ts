@@ -1,6 +1,9 @@
 import { AppError } from "../../errors/AppError";
 import { logger } from "../../config/logger";
 import { env } from "../../config/env";
+import { generateStorageKey, uploadBufferToStorage } from "../../storage/s3";
+import { validateAndProcessImage } from "../../utils/imageValidation";
+import { mediaRepository } from "../media/media.repository";
 import { reviewsRepository } from "./reviews.repository";
 import type {
   DepartureOperationalDto,
@@ -161,11 +164,11 @@ export const reviewsService = {
       requests: createdRequests,
       created: createdRequests.map((r) => ({
         id: r.bookingTravellerId || r.bookingId,
-        bookingId: r.bookingId,
+        bookingId: r.bookingId ?? null,
         bookingNumber: r.bookingNumber,
         customerName: r.customerName,
         passengerName: r.customerName,
-        customerPhone: r.customerPhone,
+        customerPhone: r.customerPhone || "",
         reviewToken: r.token,
         token: r.token,
         reviewLink: r.reviewLink,
@@ -202,6 +205,11 @@ export const reviewsService = {
       throw new AppError(400, "INVALID_BODY", "Review text must be at least 10 characters long");
     }
 
+    const tokenContext = await this.getRequestByToken(input.token);
+    if (tokenContext.isUsed || tokenContext.request.status !== "pending") {
+      throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
+    }
+
     const review = await reviewsRepository.submitReview(input);
 
     logger.info(
@@ -210,5 +218,66 @@ export const reviewsService = {
     );
 
     return review;
+  },
+
+  async uploadReviewPhoto(
+    token: string,
+    file: Express.Multer.File
+  ): Promise<{ id: string; url: string }> {
+    // 1. Validate token with existing rules
+    const tokenContext = await this.getRequestByToken(token);
+    if (tokenContext.isUsed || tokenContext.request.status !== "pending") {
+      throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
+    }
+
+    // 2. Validate file size
+    if (file.size > 10 * 1024 * 1024) {
+      throw new AppError(400, "FILE_TOO_LARGE", "File size exceeds maximum allowed limit of 10MB");
+    }
+
+    // 3. Content integrity validation & re-encoding using Sharp
+    const processed = await validateAndProcessImage(file.buffer, file.mimetype);
+
+    // 4. Force category server-side to 'reviews' and resolve destinationSlug from verified tokenContext
+    const destinationSlug = tokenContext.destinationSlug || "general";
+    const key = generateStorageKey("reviews", file.originalname, {
+      destinationSlug,
+      isReview: true
+    });
+
+    // 5. Upload sanitized buffer to S3
+    const uploadResult = await uploadBufferToStorage({
+      buffer: processed.buffer,
+      key,
+      contentType: processed.mimeType
+    });
+
+    // 6. Record asset in database under category 'reviews' with uploaded_by_user_id: null
+    const asset = await mediaRepository.createStorageAsset(
+      {
+        category: "reviews",
+        destinationId: null,
+        label: `Review Photo - ${tokenContext.customerName || "Customer"}`,
+        altText: `Photo from review of ${tokenContext.tripName || "Trip"}`,
+        storageBucket: uploadResult.bucket,
+        storageKey: uploadResult.key,
+        publicUrl: uploadResult.publicUrl,
+        mimeType: processed.mimeType,
+        fileSizeBytes: processed.buffer.length,
+        width: processed.width,
+        height: processed.height
+      },
+      null // No administrative user ownership
+    );
+
+    logger.info(
+      { mediaId: asset.id, storageKey: key, token: token.slice(0, 8) + "..." },
+      "Customer review photo uploaded successfully"
+    );
+
+    return {
+      id: asset.id,
+      url: uploadResult.publicUrl
+    };
   }
 };

@@ -13,13 +13,13 @@ import type {
   MediaFilters,
   MediaReferenceInfo
 } from "./media.types";
+import { validateAndProcessImage } from "../../utils/imageValidation";
 
 const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
-  "image/gif",
-  "image/svg+xml"
+  "image/gif"
 ]);
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -58,14 +58,6 @@ export const mediaService = {
       throw new AppError(400, "FILE_MISSING", "No file uploaded");
     }
 
-    if (!ALLOWED_MIME_TYPES.has(file.mimetype)) {
-      throw new AppError(
-        400,
-        "INVALID_FILE_TYPE",
-        `Invalid file type "${file.mimetype}". Allowed types: JPEG, PNG, WEBP, GIF, SVG`
-      );
-    }
-
     if (file.size > MAX_FILE_SIZE) {
       throw new AppError(
         400,
@@ -73,6 +65,9 @@ export const mediaService = {
         `File size exceeds maximum allowed limit of 10MB (${(file.size / 1024 / 1024).toFixed(2)}MB uploaded)`
       );
     }
+
+    // Verify and sanitize image content (detects corrupt data, MIME spoofing, SVG, etc.)
+    const processed = await validateAndProcessImage(file.buffer, file.mimetype);
 
     const VALID_CATEGORIES = new Set([
       "homepage",
@@ -114,11 +109,11 @@ export const mediaService = {
       isReview
     });
 
-    // 1. Upload to S3
+    // 1. Upload sanitized image buffer to S3
     const uploadResult = await uploadBufferToStorage({
-      buffer: file.buffer,
+      buffer: processed.buffer,
       key,
-      contentType: file.mimetype
+      contentType: processed.mimeType
     });
 
     // 2. Persist in database (with compensating S3 rollback on failure)
@@ -132,8 +127,10 @@ export const mediaService = {
           storageBucket: uploadResult.bucket,
           storageKey: uploadResult.key,
           publicUrl: uploadResult.publicUrl,
-          mimeType: file.mimetype,
-          fileSizeBytes: file.size
+          mimeType: processed.mimeType,
+          fileSizeBytes: processed.buffer.length,
+          width: processed.width,
+          height: processed.height
         },
         actorUserId
       );

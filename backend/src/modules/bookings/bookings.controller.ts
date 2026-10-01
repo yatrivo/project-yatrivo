@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { bookingsRepository } from "./bookings.repository";
+import type { BookingDto } from "./bookings.types";
 import { AppError } from "../../errors/AppError";
 import { recordAuditLog } from "../audit/audit.service";
 
@@ -68,6 +69,31 @@ const saveTravellersSchema = z.object({
   }))
 });
 
+export const bookingQuerySchema = z.object({
+  status: z.string().trim().optional(),
+  paymentStatus: z.string().trim().optional(),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).optional()
+});
+
+function toCustomerSafeBooking(booking: BookingDto) {
+  return {
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    primaryContactName: booking.primaryContactName,
+    primaryContactPhone: booking.primaryContactPhone,
+    primaryContactEmail: booking.primaryContactEmail,
+    destinationLabel: booking.destinationLabel,
+    tripName: booking.tripName,
+    tripDateLabel: booking.tripDateLabel,
+    travellerCount: booking.travellerCount,
+    status: booking.status,
+    travellers: booking.travellers || []
+  };
+}
+
 export const bookingsController = {
   async create(req: Request, res: Response): Promise<void> {
     if (!req.user) {
@@ -129,14 +155,14 @@ export const bookingsController = {
   },
 
   async list(req: Request, res: Response): Promise<void> {
-    const { status, paymentStatus, search, page, limit } = req.query;
+    const { status, paymentStatus, search, page, limit } = req.query as unknown as z.infer<typeof bookingQuerySchema>;
 
     const result = await bookingsRepository.findMany({
       status: typeof status === "string" ? status : undefined,
       paymentStatus: typeof paymentStatus === "string" ? paymentStatus : undefined,
       search: typeof search === "string" ? search : undefined,
       page: page ? parseInt(String(page), 10) : 1,
-      limit: limit ? parseInt(String(limit), 10) : 50
+      limit: limit ? Math.min(Math.max(1, parseInt(String(limit), 10)), 100) : 50
     });
 
     res.status(200).json(result);
@@ -161,22 +187,7 @@ export const bookingsController = {
       return;
     }
 
-    // Customer safe view (omit internal notes)
-    const customerSafeBooking = {
-      id: booking.id,
-      bookingNumber: booking.bookingNumber,
-      primaryContactName: booking.primaryContactName,
-      primaryContactPhone: booking.primaryContactPhone,
-      primaryContactEmail: booking.primaryContactEmail,
-      destinationLabel: booking.destinationLabel,
-      tripName: booking.tripName,
-      tripDateLabel: booking.tripDateLabel,
-      travellerCount: booking.travellerCount,
-      status: booking.status,
-      travellers: booking.travellers || []
-    };
-
-    res.status(200).json({ booking: customerSafeBooking });
+    res.status(200).json({ booking: toCustomerSafeBooking(booking) });
   },
 
   async saveTravellersCustomer(req: Request, res: Response): Promise<void> {
@@ -205,7 +216,7 @@ export const bookingsController = {
     res.status(200).json({
       success: true,
       message: "Traveller details submitted successfully.",
-      booking: updated
+      booking: toCustomerSafeBooking(updated)
     });
 
     await recordAuditLog({
@@ -343,6 +354,35 @@ export const bookingsController = {
       entityId: updated.id,
       details: `Payment of ₹${data.amount.toLocaleString("en-IN")} recorded for Booking #${updated.bookingNumber || id.slice(0, 8)} via ${data.method}`,
       afterData: { amount: data.amount, method: data.method, paymentStatus: updated.paymentStatus }
+    });
+  },
+
+  async reopen(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const id = String(req.params.id);
+    const updated = await bookingsRepository.reopen(id, {
+      id: req.user.id,
+      fullName: req.user.fullName || null,
+      role: req.user.role
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Booking reopened successfully",
+      booking: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Reopened Booking",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Booking #${updated.bookingNumber || id.slice(0, 8)} reopened to "awaiting_traveller_details"`,
+      beforeData: { status: "cancelled" },
+      afterData: { status: updated.status }
     });
   }
 };

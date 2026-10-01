@@ -177,6 +177,22 @@ export const reviewsApi = {
     return data.data || data.request;
   },
 
+  async uploadPhoto(file: File, token: string): Promise<{ url: string }> {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("token", token);
+
+    const res = await fetch(`${API_BASE}/api/v1/reviews/upload`, {
+      method: "POST",
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error?.message || data?.message || "Failed to upload photo");
+    }
+    return { url: data.url || data.data?.url };
+  },
+
   async submitReview(payload: {
     token: string;
     rating: number;

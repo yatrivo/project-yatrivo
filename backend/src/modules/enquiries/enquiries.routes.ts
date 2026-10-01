@@ -1,6 +1,8 @@
 import { Router } from "express";
+import { rateLimit } from "../../middleware/rateLimit";
+import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { enquiriesController } from "./enquiries.controller";
+import { enquiriesController, enquiryQuerySchema } from "./enquiries.controller";
 import {
   authenticate,
   optionalAuthenticate,
@@ -10,10 +12,19 @@ import {
 
 export const enquiriesRouter = Router();
 
+// Rate limiter for public enquiry submissions (10 per hour per client IP, exempts admins)
+const enquirySubmissionLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 10,
+  message: "Too many enquiries submitted from this network. Please try again later.",
+  skip: (req) => Boolean(req.user && (req.user.role === "admin" || req.user.role === "super_admin"))
+});
+
 // Public / Website submission or Authenticated manual creation
 enquiriesRouter.post(
   "/enquiries",
   optionalAuthenticate,
+  enquirySubmissionLimiter,
   asyncHandler(enquiriesController.create)
 );
 
@@ -25,17 +36,20 @@ enquiriesRouter.get(
   asyncHandler(enquiriesController.listAdmins)
 );
 
-// List enquiries (with optional role / assigned-to filtering)
+// List enquiries (Admin & Super Admin only)
 enquiriesRouter.get(
   "/enquiries",
-  optionalAuthenticate,
+  authenticate,
+  requireAdmin,
+  validate({ query: enquiryQuerySchema }),
   asyncHandler(enquiriesController.list)
 );
 
-// Single enquiry details with notes & events
+// Single enquiry details with notes & events (Admin & Super Admin only)
 enquiriesRouter.get(
   "/enquiries/:id",
-  optionalAuthenticate,
+  authenticate,
+  requireAdmin,
   asyncHandler(enquiriesController.getById)
 );
 
@@ -45,6 +59,14 @@ enquiriesRouter.patch(
   authenticate,
   requireAdmin,
   asyncHandler(enquiriesController.updateStatus)
+);
+
+// Reopen terminal enquiry (Admin & Super Admin only)
+enquiriesRouter.post(
+  "/enquiries/:id/reopen",
+  authenticate,
+  requireAdmin,
+  asyncHandler(enquiriesController.reopen)
 );
 
 // Assign / Reassign enquiry (Super Admin only - enforced by middleware and controller)

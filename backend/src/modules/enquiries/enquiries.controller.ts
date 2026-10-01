@@ -49,6 +49,15 @@ const actionSchema = z.object({
   notes: z.string().optional()
 });
 
+export const enquiryQuerySchema = z.object({
+  status: z.string().trim().optional(),
+  assignedTo: z.string().trim().optional(),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).optional()
+});
+
 export const enquiriesController = {
   async create(req: Request, res: Response): Promise<void> {
     const parseResult = createEnquirySchema.safeParse(req.body);
@@ -64,6 +73,26 @@ export const enquiriesController = {
     const actor = req.user
       ? { id: req.user.id, fullName: req.user.fullName || null, role: req.user.role }
       : undefined;
+
+    // Duplicate submission cooldown: prevent rapid duplicate submissions for anonymous users
+    if (!actor && data.customerPhone) {
+      const isDuplicate = await enquiriesRepository.findRecentDuplicate({
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail || undefined,
+        tripId: data.tripId || undefined,
+        destinationId: data.destinationId || undefined,
+        destinationLabel: data.destinationLabel || undefined,
+        cooldownMinutes: 5
+      });
+
+      if (isDuplicate) {
+        throw new AppError(
+          429,
+          "DUPLICATE_ENQUIRY",
+          "An enquiry with this contact information was recently received. Please wait a few minutes before submitting another request."
+        );
+      }
+    }
 
     const enquiry = await enquiriesRepository.create(
       {
@@ -102,14 +131,14 @@ export const enquiriesController = {
   },
 
   async list(req: Request, res: Response): Promise<void> {
-    const { status, assignedTo, search, page, limit } = req.query;
+    const { status, assignedTo, search, page, limit } = req.query as unknown as z.infer<typeof enquiryQuerySchema>;
 
     const result = await enquiriesRepository.findMany({
       status: typeof status === "string" ? status : undefined,
       assignedTo: typeof assignedTo === "string" ? assignedTo : undefined,
       search: typeof search === "string" ? search : undefined,
       page: page ? parseInt(String(page), 10) : 1,
-      limit: limit ? parseInt(String(limit), 10) : 50,
+      limit: limit ? Math.min(Math.max(1, parseInt(String(limit), 10)), 100) : 50,
       currentUserId: req.user?.id
     });
 
@@ -161,6 +190,37 @@ export const enquiriesController = {
       entityId: updated.id,
       details: `Enquiry #${updated.enquiryNumber || id.slice(0, 8)} status set to "${parseResult.data.status}"`,
       afterData: { status: parseResult.data.status }
+    });
+  },
+
+  async reopen(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const id = String(req.params.id);
+    const updated = await enquiriesRepository.reopen(
+      id,
+      {
+        id: req.user.id,
+        fullName: req.user.fullName || null,
+        role: req.user.role
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Enquiry reopened successfully",
+      enquiry: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Reopened Enquiry",
+      entityType: "enquiry",
+      entityId: updated.id,
+      details: `Enquiry #${updated.enquiryNumber || id.slice(0, 8)} reopened to "in_discussion"`,
+      afterData: { status: "in_discussion" }
     });
   },
 

@@ -1,3 +1,26 @@
+export type EnquiryStatus =
+  | "received"
+  | "contacted"
+  | "quoted"
+  | "in_discussion"
+  | "converted"
+  | "confirmed"
+  | "closed"
+  | "cancelled"
+  | "lost";
+
+export const ALLOWED_ENQUIRY_TRANSITIONS: Record<EnquiryStatus, EnquiryStatus[]> = {
+  received: ["contacted", "quoted", "in_discussion", "closed", "cancelled", "lost"],
+  contacted: ["quoted", "in_discussion", "closed", "cancelled", "lost"],
+  quoted: ["in_discussion", "confirmed", "converted", "closed", "cancelled", "lost"],
+  in_discussion: ["quoted", "confirmed", "converted", "closed", "cancelled", "lost"],
+  confirmed: ["converted", "closed", "cancelled"],
+  converted: ["closed", "cancelled"],
+  closed: [],
+  cancelled: [],
+  lost: []
+};
+
 export interface EnquiryNoteDto {
   id: string;
   enquiryId: string;

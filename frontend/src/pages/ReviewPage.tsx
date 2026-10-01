@@ -106,16 +106,13 @@ export default function ReviewPage() {
 
     setUploadingPhoto(true);
     try {
-      const destSlug = tokenData?.destinationSlug || "uttarakhand";
       for (let i = 0; i < files.length; i++) {
         if (reviewPhotos.length + i >= 5) break;
         const file = files[i];
-        const asset = await mediaApi.upload(file, {
-          category: "reviews",
-          destinationSlug: destSlug,
-          isReview: true
-        });
-        setReviewPhotos((prev) => [...prev, asset.url]);
+        if (token) {
+          const res = await reviewsApi.uploadPhoto(file, token);
+          setReviewPhotos((prev) => [...prev, res.url]);
+        }
       }
     } catch {
       // Fallback local preview if offline

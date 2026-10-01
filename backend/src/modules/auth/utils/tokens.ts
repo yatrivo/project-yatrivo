@@ -5,13 +5,10 @@ import { AppError } from "../../../errors/AppError";
 import type { AccessTokenPayload, UserRole } from "../auth.types";
 
 function getAccessSecret(): string {
-  if (env.JWT_ACCESS_TOKEN_SECRET && env.JWT_ACCESS_TOKEN_SECRET.trim().length > 0) {
-    return env.JWT_ACCESS_TOKEN_SECRET;
+  if (!env.JWT_ACCESS_TOKEN_SECRET || env.JWT_ACCESS_TOKEN_SECRET.trim().length < 32) {
+    throw new Error("JWT_ACCESS_TOKEN_SECRET must be configured with at least 32 characters");
   }
-  if (isProduction) {
-    throw new Error("JWT_ACCESS_TOKEN_SECRET must be configured in production");
-  }
-  return "dev-fallback-access-secret-yatrivo-backend-not-for-prod";
+  return env.JWT_ACCESS_TOKEN_SECRET;
 }
 
 export function parseTtlToSeconds(ttl: string): number {
@@ -58,7 +55,7 @@ export function generateAccessToken(user: { id: string; email: string; role: Use
 export function verifyAccessToken(token: string): AccessTokenPayload {
   const secret = getAccessSecret();
   try {
-    const decoded = jwt.verify(token, secret) as AccessTokenPayload;
+    const decoded = jwt.verify(token, secret, { algorithms: ["HS256"] }) as AccessTokenPayload;
     return decoded;
   } catch (error) {
     if (error instanceof jwt.TokenExpiredError) {

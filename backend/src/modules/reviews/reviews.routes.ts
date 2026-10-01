@@ -3,12 +3,28 @@ import { authenticate, optionalAuthenticate, requireAdmin } from "../../middlewa
 import { asyncHandler } from "../../utils/asyncHandler";
 import { reviewsController } from "./reviews.controller";
 
+import multer from "multer";
+
+const reviewUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 10 * 1024 * 1024 // 10MB
+  }
+});
+
 export const reviewsRouter = Router();
 
 // Public: Retrieve review request context by token (No login required)
 reviewsRouter.get(
   "/reviews/requests/:token",
   asyncHandler(reviewsController.getReviewRequest)
+);
+
+// Public: Upload photo for customer review (Secured via one-time review token)
+reviewsRouter.post(
+  "/reviews/upload",
+  reviewUpload.single("file"),
+  asyncHandler(reviewsController.uploadPhoto)
 );
 
 // Public: Submit a review with photos (No login required)

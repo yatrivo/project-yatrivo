@@ -37,27 +37,23 @@ export interface MeResponse {
   };
 }
 
-const STORAGE_KEY_ACCESS = "yatrivo_access_token";
-const STORAGE_KEY_REFRESH = "yatrivo_refresh_token";
+let inMemoryAccessToken: string | null = null;
 const STORAGE_KEY_USER = "yatrivo_admin_user";
 
 import { API_BASE } from "./baseUrl";
 
 export const tokenStorage = {
   getAccessToken(): string | null {
-    try {
-      return localStorage.getItem(STORAGE_KEY_ACCESS);
-    } catch {
-      return null;
-    }
+    return inMemoryAccessToken;
+  },
+
+  setAccessToken(token: string | null): void {
+    inMemoryAccessToken = token;
   },
 
   getRefreshToken(): string | null {
-    try {
-      return localStorage.getItem(STORAGE_KEY_REFRESH);
-    } catch {
-      return null;
-    }
+    // Refresh token is exclusively managed as an HttpOnly, Secure cookie by the browser
+    return null;
   },
 
   getUser(): AdminUser | null {
@@ -71,35 +67,37 @@ export const tokenStorage = {
 
   saveSession(tokens: AuthTokens, user: AdminUser): void {
     try {
-      localStorage.setItem(STORAGE_KEY_ACCESS, tokens.accessToken);
-      localStorage.setItem(STORAGE_KEY_REFRESH, tokens.refreshToken);
+      inMemoryAccessToken = tokens.accessToken;
       localStorage.setItem(STORAGE_KEY_USER, JSON.stringify(user));
+      // Ensure legacy tokens are removed from localStorage
+      localStorage.removeItem("yatrivo_access_token");
+      localStorage.removeItem("yatrivo_refresh_token");
     } catch (e) {
-      console.error("Failed to save auth tokens to localStorage", e);
+      console.error("Failed to save auth session", e);
     }
   },
 
   updateTokens(tokens: AuthTokens): void {
+    inMemoryAccessToken = tokens.accessToken;
     try {
-      localStorage.setItem(STORAGE_KEY_ACCESS, tokens.accessToken);
-      localStorage.setItem(STORAGE_KEY_REFRESH, tokens.refreshToken);
-    } catch (e) {
-      console.error("Failed to update tokens in localStorage", e);
-    }
+      localStorage.removeItem("yatrivo_access_token");
+      localStorage.removeItem("yatrivo_refresh_token");
+    } catch {}
   },
 
   clearSession(): void {
+    inMemoryAccessToken = null;
     try {
-      localStorage.removeItem(STORAGE_KEY_ACCESS);
-      localStorage.removeItem(STORAGE_KEY_REFRESH);
+      localStorage.removeItem("yatrivo_access_token");
+      localStorage.removeItem("yatrivo_refresh_token");
       localStorage.removeItem(STORAGE_KEY_USER);
     } catch (e) {
-      console.error("Failed to clear auth tokens from localStorage", e);
+      console.error("Failed to clear auth session", e);
     }
   },
 
   hasTokens(): boolean {
-    return Boolean(this.getAccessToken() || this.getRefreshToken());
+    return Boolean(inMemoryAccessToken || localStorage.getItem(STORAGE_KEY_USER));
   }
 };
 
@@ -115,6 +113,7 @@ export const authApi = {
   async login(credentials: { email: string; password: string }): Promise<LoginResponse["data"]> {
     const res = await fetch(`${API_BASE}/api/v1/auth/login`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(credentials)
     });
@@ -129,11 +128,12 @@ export const authApi = {
     return body.data;
   },
 
-  async refresh(refreshToken: string): Promise<AuthTokens> {
+  async refresh(refreshToken?: string): Promise<AuthTokens> {
     const res = await fetch(`${API_BASE}/api/v1/auth/refresh`, {
       method: "POST",
+      credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refreshToken })
+      body: JSON.stringify(refreshToken ? { refreshToken } : {})
     });
 
     const body = await parseJsonSafe(res);
@@ -146,11 +146,13 @@ export const authApi = {
     return body.data.tokens;
   },
 
-  async getMe(accessToken: string): Promise<AdminUser> {
+  async getMe(accessToken?: string): Promise<AdminUser> {
+    const token = accessToken || tokenStorage.getAccessToken();
     const res = await fetch(`${API_BASE}/api/v1/auth/me`, {
       method: "GET",
+      credentials: "include",
       headers: {
-        "Authorization": `Bearer ${accessToken}`,
+        ...(token ? { "Authorization": `Bearer ${token}` } : {}),
         "Content-Type": "application/json"
       }
     });
@@ -164,20 +166,18 @@ export const authApi = {
   },
 
   async logout(): Promise<void> {
-    const refreshToken = tokenStorage.getRefreshToken();
     const accessToken = tokenStorage.getAccessToken();
 
     try {
-      if (refreshToken || accessToken) {
-        await fetch(`${API_BASE}/api/v1/auth/logout`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {})
-          },
-          body: JSON.stringify({ refreshToken })
-        });
-      }
+      await fetch(`${API_BASE}/api/v1/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+          ...(accessToken ? { "Authorization": `Bearer ${accessToken}` } : {})
+        },
+        body: JSON.stringify({})
+      });
     } catch (e) {
       console.warn("Backend logout request error (clearing local session regardless):", e);
     } finally {

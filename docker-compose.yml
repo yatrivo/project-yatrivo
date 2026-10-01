@@ -20,4 +20,4 @@ services:
 			- PORT=4000
 		volumes:
 			- ./backend:/app
-		command: sh -c "node /app/index.js || echo 'No backend implemented'"
+		command: sh -c "node /app/dist/server.js"
