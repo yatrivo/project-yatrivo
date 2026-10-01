@@ -85,13 +85,13 @@ export interface ReviewRequestRecord {
 export interface ReviewRequestDto {
   id: string;
   token: string;
-  bookingId: string | null;
+  bookingId?: string | null;
   bookingTravellerId?: string | null;
   bookingNumber?: string | null;
   tripId: string | null;
   tripInstanceId: string | null;
   customerName: string;
-  customerPhone: string;
+  customerPhone?: string | null;
   customMessage: string | null;
   reviewLink: string;
   status: "pending" | "submitted";

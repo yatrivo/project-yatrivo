@@ -283,63 +283,54 @@ export const authService = {
     // 1. Check if an active, unconsumed token already exists within its 20-minute window
     const activeToken = await authRepository.findActivePasswordResetToken(user.id);
 
-      if (activeToken) {
-        // Check 1-minute (60 seconds) cooldown based on last_sent_at or created_at
-        const lastSentTime = activeToken.last_sent_at
-          ? new Date(activeToken.last_sent_at).getTime()
-          : new Date(activeToken.created_at).getTime();
-        const elapsedMs = Date.now() - lastSentTime;
+    if (activeToken) {
+      // Check 1-minute (60 seconds) cooldown based on last_sent_at or created_at
+      const lastSentTime = activeToken.last_sent_at
+        ? new Date(activeToken.last_sent_at).getTime()
+        : new Date(activeToken.created_at).getTime();
+      const elapsedMs = Date.now() - lastSentTime;
 
-        if (elapsedMs < 60_000) {
-          const remainingSeconds = Math.ceil((60_000 - elapsedMs) / 1000);
-          throw new AppError(
-            429,
-            "RATE_LIMITED",
-            `Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"} before requesting another reset email.`
-          );
-        }
-
-        // If the active token has raw_token available, reuse the EXACT SAME link until it expires!
-        if (activeToken.raw_token) {
-          await authRepository.touchPasswordResetTokenSent(activeToken.id);
-          const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${activeToken.raw_token}`;
-          await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
-          return;
-        }
+      if (elapsedMs < 60_000) {
+        const remainingSeconds = Math.ceil((60_000 - elapsedMs) / 1000);
+        throw new AppError(
+          429,
+          "RATE_LIMITED",
+          `Please wait ${remainingSeconds} second${remainingSeconds === 1 ? "" : "s"} before requesting another reset email.`
+        );
       }
+    }
 
-      // 2. If no active unexpired token exists (or legacy row without raw_token), generate a new 20-minute token
-      const { token, tokenHash, expiresAt } = generatePasswordResetToken();
+    // 2. Generate a new 20-minute token (only SHA-256 hash is persisted; raw token is sent only via email)
+    const { token, tokenHash, expiresAt } = generatePasswordResetToken();
 
-      await withTransaction(async (client) => {
-        // Invalidate any previous unused reset tokens for this user
-        await authRepository.invalidatePendingPasswordResetTokens(user.id, client);
-        await authRepository.createPasswordResetToken(
-          {
-            userId: user.id,
-            tokenHash,
-            rawToken: token,
-            expiresAt,
-            ipAddress: meta?.ipAddress
-          },
-          client
-        );
+    await withTransaction(async (client) => {
+      // Invalidate any previous unused reset tokens for this user
+      await authRepository.invalidatePendingPasswordResetTokens(user.id, client);
+      await authRepository.createPasswordResetToken(
+        {
+          userId: user.id,
+          tokenHash,
+          expiresAt,
+          ipAddress: meta?.ipAddress
+        },
+        client
+      );
 
-        await authRepository.recordAuditLog(
-          {
-            actorUserId: user.id,
-            actorNameSnapshot: user.full_name,
-            action: "auth.password_reset_requested",
-            details: "Password reset link token generated and dispatched via email",
-            ipAddress: meta?.ipAddress
-          },
-          client
-        );
-      });
+      await authRepository.recordAuditLog(
+        {
+          actorUserId: user.id,
+          actorNameSnapshot: user.full_name,
+          action: "auth.password_reset_requested",
+          details: "Password reset link token generated and dispatched via email",
+          ipAddress: meta?.ipAddress
+        },
+        client
+      );
+    });
 
-      // Construct reset URL pointing to frontend reset page
-      const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${token}`;
-      await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
+    // Construct reset URL pointing to frontend reset page
+    const resetUrl = `${env.FRONTEND_URL}/admin/reset-password?token=${token}`;
+    await emailService.sendPasswordResetEmail(user.email, resetUrl, user.full_name);
   },
 
   // Complete password reset using verified single-use token

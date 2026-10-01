@@ -164,11 +164,11 @@ export const reviewsService = {
       requests: createdRequests,
       created: createdRequests.map((r) => ({
         id: r.bookingTravellerId || r.bookingId,
-        bookingId: r.bookingId,
+        bookingId: r.bookingId ?? null,
         bookingNumber: r.bookingNumber,
         customerName: r.customerName,
         passengerName: r.customerName,
-        customerPhone: r.customerPhone,
+        customerPhone: r.customerPhone || "",
         reviewToken: r.token,
         token: r.token,
         reviewLink: r.reviewLink,
@@ -206,7 +206,7 @@ export const reviewsService = {
     }
 
     const tokenContext = await this.getRequestByToken(input.token);
-    if (tokenContext.isUsed) {
+    if (tokenContext.isUsed || tokenContext.request.status !== "pending") {
       throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
     }
 
@@ -226,8 +226,8 @@ export const reviewsService = {
   ): Promise<{ id: string; url: string }> {
     // 1. Validate token with existing rules
     const tokenContext = await this.getRequestByToken(token);
-    if (tokenContext.isUsed) {
-      throw new AppError(400, "TOKEN_ALREADY_USED", "This review has already been submitted.");
+    if (tokenContext.isUsed || tokenContext.request.status !== "pending") {
+      throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
     }
 
     // 2. Validate file size

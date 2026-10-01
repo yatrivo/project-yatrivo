@@ -530,21 +530,19 @@ export const reviewsRepository = {
 
     if (res.rows.length === 0) return null;
     const r = res.rows[0];
+    const isUsed = Boolean(r.used_at || r.status === "submitted");
 
     return {
       request: {
         id: r.id,
         token: r.token || token,
-        bookingId: r.booking_id,
-        bookingTravellerId: r.booking_traveller_id || null,
         bookingNumber: r.booking_number,
         tripId: r.trip_id,
         tripInstanceId: r.trip_instance_id,
         customerName: r.customer_name,
-        customerPhone: r.customer_phone,
         customMessage: r.custom_message,
         reviewLink: `/review?token=${r.token || token}`,
-        status: r.used_at ? "submitted" : "pending",
+        status: isUsed ? "submitted" : "pending",
         sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : null,
         createdAt: new Date(r.created_at).toISOString()
       },
@@ -557,7 +555,7 @@ export const reviewsRepository = {
       tripInstanceId: r.trip_instance_id,
       bookingNumber: r.booking_number,
       customerName: r.customer_name,
-      isUsed: Boolean(r.used_at)
+      isUsed
     };
   },
 

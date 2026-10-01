@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { z } from "zod";
 import { bookingsRepository } from "./bookings.repository";
+import type { BookingDto } from "./bookings.types";
 import { AppError } from "../../errors/AppError";
 import { recordAuditLog } from "../audit/audit.service";
 
@@ -76,6 +77,22 @@ export const bookingQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(100).default(50),
   offset: z.coerce.number().int().min(0).optional()
 });
+
+function toCustomerSafeBooking(booking: BookingDto) {
+  return {
+    id: booking.id,
+    bookingNumber: booking.bookingNumber,
+    primaryContactName: booking.primaryContactName,
+    primaryContactPhone: booking.primaryContactPhone,
+    primaryContactEmail: booking.primaryContactEmail,
+    destinationLabel: booking.destinationLabel,
+    tripName: booking.tripName,
+    tripDateLabel: booking.tripDateLabel,
+    travellerCount: booking.travellerCount,
+    status: booking.status,
+    travellers: booking.travellers || []
+  };
+}
 
 export const bookingsController = {
   async create(req: Request, res: Response): Promise<void> {
@@ -170,22 +187,7 @@ export const bookingsController = {
       return;
     }
 
-    // Customer safe view (omit internal notes)
-    const customerSafeBooking = {
-      id: booking.id,
-      bookingNumber: booking.bookingNumber,
-      primaryContactName: booking.primaryContactName,
-      primaryContactPhone: booking.primaryContactPhone,
-      primaryContactEmail: booking.primaryContactEmail,
-      destinationLabel: booking.destinationLabel,
-      tripName: booking.tripName,
-      tripDateLabel: booking.tripDateLabel,
-      travellerCount: booking.travellerCount,
-      status: booking.status,
-      travellers: booking.travellers || []
-    };
-
-    res.status(200).json({ booking: customerSafeBooking });
+    res.status(200).json({ booking: toCustomerSafeBooking(booking) });
   },
 
   async saveTravellersCustomer(req: Request, res: Response): Promise<void> {
@@ -214,7 +216,7 @@ export const bookingsController = {
     res.status(200).json({
       success: true,
       message: "Traveller details submitted successfully.",
-      booking: updated
+      booking: toCustomerSafeBooking(updated)
     });
 
     await recordAuditLog({
