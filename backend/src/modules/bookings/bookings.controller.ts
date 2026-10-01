@@ -68,6 +68,15 @@ const saveTravellersSchema = z.object({
   }))
 });
 
+export const bookingQuerySchema = z.object({
+  status: z.string().trim().optional(),
+  paymentStatus: z.string().trim().optional(),
+  search: z.string().trim().optional(),
+  page: z.coerce.number().int().positive().default(1),
+  limit: z.coerce.number().int().min(1).max(100).default(50),
+  offset: z.coerce.number().int().min(0).optional()
+});
+
 export const bookingsController = {
   async create(req: Request, res: Response): Promise<void> {
     if (!req.user) {
@@ -129,14 +138,14 @@ export const bookingsController = {
   },
 
   async list(req: Request, res: Response): Promise<void> {
-    const { status, paymentStatus, search, page, limit } = req.query;
+    const { status, paymentStatus, search, page, limit } = req.query as unknown as z.infer<typeof bookingQuerySchema>;
 
     const result = await bookingsRepository.findMany({
       status: typeof status === "string" ? status : undefined,
       paymentStatus: typeof paymentStatus === "string" ? paymentStatus : undefined,
       search: typeof search === "string" ? search : undefined,
       page: page ? parseInt(String(page), 10) : 1,
-      limit: limit ? parseInt(String(limit), 10) : 50
+      limit: limit ? Math.min(Math.max(1, parseInt(String(limit), 10)), 100) : 50
     });
 
     res.status(200).json(result);

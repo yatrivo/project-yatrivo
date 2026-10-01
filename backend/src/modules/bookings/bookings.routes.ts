@@ -1,6 +1,7 @@
 import { Router } from "express";
+import { validate } from "../../middleware/validate";
 import { asyncHandler } from "../../utils/asyncHandler";
-import { bookingsController } from "./bookings.controller";
+import { bookingsController, bookingQuerySchema } from "./bookings.controller";
 import { authenticate, requireAdmin } from "../auth/auth.middleware";
 
 export const bookingsRouter = Router();
@@ -28,6 +29,7 @@ bookingsRouter.get(
   "/bookings",
   authenticate,
   requireAdmin,
+  validate({ query: bookingQuerySchema }),
   asyncHandler(bookingsController.list)
 );
 

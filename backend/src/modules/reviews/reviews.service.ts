@@ -205,6 +205,11 @@ export const reviewsService = {
       throw new AppError(400, "INVALID_BODY", "Review text must be at least 10 characters long");
     }
 
+    const tokenContext = await this.getRequestByToken(input.token);
+    if (tokenContext.isUsed) {
+      throw new AppError(400, "TOKEN_ALREADY_USED", "This review link has already been used to submit a review.");
+    }
+
     const review = await reviewsRepository.submitReview(input);
 
     logger.info(

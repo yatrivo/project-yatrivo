@@ -20,6 +20,38 @@ function generateEnquiryNumber(): string {
 }
 
 export const enquiriesRepository = {
+  async findRecentDuplicate(params: {
+    customerPhone: string;
+    customerEmail?: string | null;
+    tripId?: string | null;
+    destinationId?: string | null;
+    destinationLabel?: string | null;
+    cooldownMinutes?: number;
+  }): Promise<boolean> {
+    const minutes = params.cooldownMinutes || 5;
+    const phone = params.customerPhone.trim();
+    const conditions: string[] = ["e.customer_phone = $1", "e.submitted_at > now() - ($2 || ' minutes')::interval"];
+    const queryParams: unknown[] = [phone, `${minutes}`];
+
+    if (params.tripId) {
+      queryParams.push(params.tripId);
+      conditions.push(`e.trip_id = $${queryParams.length}`);
+    } else if (params.destinationId) {
+      queryParams.push(params.destinationId);
+      conditions.push(`e.destination_id = $${queryParams.length}`);
+    } else if (params.destinationLabel) {
+      queryParams.push(params.destinationLabel.trim().toLowerCase());
+      conditions.push(`LOWER(COALESCE(e.destination_label, '')) = $${queryParams.length}`);
+    }
+
+    const res = await query(
+      `SELECT 1 FROM enquiries e WHERE ${conditions.join(" AND ")} LIMIT 1`,
+      queryParams
+    );
+
+    return res.rows.length > 0;
+  },
+
   async create(
     input: CreateEnquiryInput,
     actor?: { id: string; fullName: string | null; role: string }
