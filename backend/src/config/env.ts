@@ -43,9 +43,57 @@ const envSchema = z.object({
   EMAIL_API_KEY: z.string().optional().or(z.literal("")),
   RESEND_API_KEY: z.string().optional().or(z.literal("")),
   EMAIL_FROM: z.string().default("Yatrivo <noreply@yatrivo.com>"),
-  FRONTEND_URL: z.string().default("http://localhost:3000")
-});
+  FRONTEND_URL: z.string().optional()
+})
+  .superRefine((data, ctx) => {
+    if (data.NODE_ENV === "production") {
+      if (!data.FRONTEND_URL || data.FRONTEND_URL.trim() === "") {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["FRONTEND_URL"],
+          message: "FRONTEND_URL is required in production"
+        });
+        return;
+      }
 
+      try {
+        const parsed = new URL(data.FRONTEND_URL);
+        if (parsed.protocol !== "https:") {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["FRONTEND_URL"],
+            message: "FRONTEND_URL must use https:// in production"
+          });
+        }
+        const hostname = parsed.hostname.toLowerCase();
+        if (
+          hostname === "localhost" ||
+          hostname === "127.0.0.1" ||
+          hostname === "::1" ||
+          hostname === "0.0.0.0" ||
+          hostname.endsWith(".local")
+        ) {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            path: ["FRONTEND_URL"],
+            message: "FRONTEND_URL cannot use localhost or private loopback addresses in production"
+          });
+        }
+      } catch {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["FRONTEND_URL"],
+          message: "FRONTEND_URL must be a valid URL"
+        });
+      }
+    }
+  })
+  .transform((data) => ({
+    ...data,
+    FRONTEND_URL: data.FRONTEND_URL || "http://localhost:3000"
+  }));
+
+export { envSchema };
 export const env = envSchema.parse(process.env);
 
 export const activePort = env.PORT || env.BACKEND_PORT;

@@ -20,7 +20,9 @@ const sslConfig = env.DATABASE_SSL
 export const db = new Pool({
   connectionString: sanitizedConnectionString,
   max: env.DB_POOL_MAX,
-  ssl: sslConfig
+  ssl: sslConfig,
+  connectionTimeoutMillis: 8000,
+  idleTimeoutMillis: 10000
 });
 
 db.on("error", (error) => {

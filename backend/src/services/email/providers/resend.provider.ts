@@ -1,3 +1,4 @@
+import { isProduction } from "../../../config/env";
 import { logger } from "../../../config/logger";
 import type { EmailPayload, EmailProvider, EmailResult } from "../email.types";
 
@@ -5,16 +6,33 @@ export class ResendEmailProvider implements EmailProvider {
   public readonly name = "resend";
   private apiKey: string;
   private defaultFrom: string;
+  private isProd: boolean;
 
-  constructor(apiKey: string, defaultFrom: string) {
+  constructor(apiKey: string, defaultFrom: string, isProd: boolean = isProduction) {
     this.apiKey = apiKey.trim();
     this.defaultFrom = defaultFrom;
+    this.isProd = isProd;
   }
 
   async send(payload: EmailPayload): Promise<EmailResult> {
     const from = payload.from || this.defaultFrom;
 
     if (!this.apiKey) {
+      if (this.isProd) {
+        logger.error(
+          {
+            provider: "resend",
+            to: payload.to,
+            subject: payload.subject
+          },
+          "Resend email delivery aborted: RESEND_API_KEY is not configured in production"
+        );
+        return {
+          success: false,
+          error: "EMAIL_PROVIDER_UNCONFIGURED"
+        };
+      }
+
       logger.info(
         {
           provider: "resend (dev fallback)",
