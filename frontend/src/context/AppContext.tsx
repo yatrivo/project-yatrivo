@@ -303,50 +303,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const hasSavedToken = typeof window !== "undefined" && tokenStorage.hasTokens();
 
   const [savedItems, setSavedItems] = useState<Set<string>>(new Set());
-  const [enquiries, setEnquiries] = useState<Enquiry[]>([
-    {
-      id: "ENQ-001",
-      tripName: "Chopta Tungnath Adventure",
-      destination: "Chopta, Uttarakhand",
-      travelDate: "2026-10-15",
-      travellers: "4",
-      submittedAt: "2026-09-01T10:30:00Z",
-      status: "Contacted",
-      name: "Siddharth Verma",
-      phone: "+91 98765 43210",
-      email: "siddharth@example.com",
-      pickupCity: "Dehradun",
-      message: "Looking for a guided group trek with cabin stays.",
-    },
-    {
-      id: "ENQ-002",
-      tripName: "Auli Snow & Ski Collective",
-      destination: "Auli, Uttarakhand",
-      travelDate: "2026-12-20",
-      travellers: "2",
-      submittedAt: "2026-09-03T14:15:00Z",
-      status: "Received",
-      name: "Ananya Mehta",
-      phone: "+91 91234 56789",
-      email: "ananya@example.com",
-      pickupCity: "Delhi",
-      message: "First-time skiing. Need beginner-friendly package.",
-    },
-    {
-      id: "ENQ-003",
-      tripName: "Kedarnath Pilgrimage Trek",
-      destination: "Kedarnath, Uttarakhand",
-      travelDate: "2026-11-01",
-      travellers: "6",
-      submittedAt: "2026-09-05T18:45:00Z",
-      status: "Quoted",
-      name: "Riya Sharma",
-      phone: "+91 87654 32100",
-      email: "riya@example.com",
-      pickupCity: "Haridwar",
-      message: "Family pilgrimage with elderly members. Need support.",
-    },
-  ]);
+  const [enquiries, setEnquiries] = useState<Enquiry[]>([]);
   const [enquiryModalOpen, setEnquiryModalOpen] = useState(false);
   const [enquiryTripId, setEnquiryTripId] = useState("");
   const [enquiryDepartureId, setEnquiryDepartureId] = useState<string | undefined>(undefined);
@@ -396,11 +353,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     return DEFAULT_HOMEPAGE_CONTENT;
   });
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>(SEED_GALLERY_IMAGES);
-  const [bookings, setBookings] = useState<Booking[]>([
-    { id: "BK001", customerName: "Rahul Sharma", customerPhone: "+91 98765 43210", destination: "Chopta", tripName: "Chopta Tungnath Trek", tripDate: "Oct 15, 2026", travellers: [{ name: "Rahul Sharma", age: "28", gender: "Male" }, { name: "Anjali Sharma", age: "26", gender: "Female" }], totalAmount: "₹17,000", paymentStatus: "Paid", status: "Confirmed", bookingDate: "2026-09-10" },
-    { id: "BK002", customerName: "Priya Nair", customerPhone: "+91 90011 22334", destination: "Rishikesh", tripName: "Rishikesh Rapids & Camping", tripDate: "Nov 8, 2026", travellers: [{ name: "Priya Nair", age: "24", gender: "Female" }], totalAmount: "₹6,999", paymentStatus: "Partial", status: "Confirmed", bookingDate: "2026-09-15" },
-    { id: "BK003", customerName: "Ankit Gupta", customerPhone: "+91 97654 32109", destination: "Auli", tripName: "Auli Ski Adventure", tripDate: "Nov 20, 2026", travellers: [{ name: "Ankit Gupta", age: "32", gender: "Male" }, { name: "Sneha Gupta", age: "30", gender: "Female" }, { name: "Rohit Gupta", age: "8", gender: "Male" }], totalAmount: "₹43,500", paymentStatus: "Unpaid", status: "Confirmed", bookingDate: "2026-09-18" },
-  ]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
 
   // Unified navigate supporting both legacy page tokens and clean URL paths
   const navigate = useCallback((p: Page | string, params: { tripId?: string; destId?: string; tripInstanceId?: string; reviewToken?: string } = {}) => {
