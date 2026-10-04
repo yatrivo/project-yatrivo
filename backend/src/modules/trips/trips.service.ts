@@ -94,7 +94,7 @@ export const tripsService = {
       throw new AppError(404, "TRIP_NOT_FOUND", `Trip '${idOrSlug}' not found`);
     }
 
-    if (!isAdmin && trip.status !== "active") {
+    if (!isAdmin && trip.status !== "active" && trip.status !== "published") {
       throw new AppError(404, "TRIP_NOT_FOUND", `Trip '${idOrSlug}' not found`);
     }
 

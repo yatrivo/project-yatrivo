@@ -117,8 +117,12 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         if (fresh.faqs && fresh.faqs.length > 0) {
           setFaqs(fresh.faqs);
         }
-        if (fresh.itinerary && fresh.itinerary.length > 0) {
-          setDays(fresh.itinerary.map((d) => ({ title: d.title, description: d.description })));
+        if (fresh.itinerary !== undefined) {
+          if (fresh.itinerary.length > 0) {
+            setDays(fresh.itinerary.map((d: any) => ({ title: d.title || "", description: d.description || "" })));
+          } else if (id) {
+            setDays([]);
+          }
         }
         if (fresh.inclusions && fresh.inclusions.length > 0) {
           setInclusions(fresh.inclusions);
@@ -135,13 +139,6 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
     }
     return () => { isMounted = false; };
   }, [id]);
-  const [highlights, setHighlights] = useState<string[]>(() => {
-    if (Array.isArray(existingTrip?.highlights)) {
-      const strings = (existingTrip.highlights as any[]).filter((h) => typeof h === "string");
-      if (strings.length > 0) return strings;
-    }
-    return ["", ""];
-  });
 
   // Multi-destination state
   // Pre-populate from existingTrip.destinations if present, or fallback to existingTrip.destination
@@ -178,6 +175,12 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
   // Itinerary
   const [days, setDays] = useState<Day[]>(() => {
+    if (existingTrip?.itinerary && existingTrip.itinerary.length > 0) {
+      return existingTrip.itinerary.map((d: any) => ({
+        title: d.title || "",
+        description: d.description || ""
+      }));
+    }
     return [
       { title: "Day 1: Arrival & Basecamp", description: "Scenic mountain drive and orientation walk." },
       { title: "Day 2: Trek & Exploration", description: "Guided high altitude exploration and local dining." },
@@ -351,6 +354,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
       const cleanFaqs = faqs.filter((f) => Boolean(f.question.trim() && f.answer.trim()));
       const cleanInclusions = inclusions.filter((i) => Boolean(i.trim()));
       const cleanExclusions = exclusions.filter((e) => Boolean(e.trim()));
+      const cleanDays = days.filter((d) => Boolean(d.title.trim() && d.description.trim()));
 
       const payload = {
         name: tripName.trim(),
@@ -371,7 +375,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         primaryDestinationId: primaryDestinationId || selectedDestinationIds[0],
         highlights: cleanHighlightCards,
         faqs: cleanFaqs,
-        itinerary: days.map((d, index) => ({
+        itinerary: cleanDays.map((d, index) => ({
           dayNumber: index + 1,
           title: d.title.trim(),
           description: d.description.trim()
@@ -398,7 +402,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
         showToast(publish ? "Trip created and published!" : "Trip saved as draft!", "success");
       }
 
-      await refreshTrips();
+      await refreshTrips({ bypassCache: true });
       setAdminPage?.("trips");
       navigate("/admin/trips");
     } catch (err: unknown) {
@@ -675,39 +679,6 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                 />
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-[#4a5568] mb-2">Highlights</label>
-                <div className="space-y-2">
-                  {highlights.map((h, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input
-                        value={h}
-                        onChange={(e) => {
-                          const arr = [...highlights];
-                          arr[i] = e.target.value;
-                          setHighlights(arr);
-                        }}
-                        className="flex-1 border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none"
-                        placeholder={`Highlight ${i + 1}`}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setHighlights(highlights.filter((_, idx) => idx !== i))}
-                        className="text-red-400 hover:text-red-600 px-2"
-                      >
-                        ✕
-                      </button>
-                    </div>
-                  ))}
-                  <button
-                    type="button"
-                    onClick={() => setHighlights([...highlights, ""])}
-                    className="text-[#0f2922] text-sm hover:underline"
-                  >
-                    + Add Highlight
-                  </button>
-                </div>
-              </div>
             </div>
           )}
 

@@ -3,12 +3,10 @@ import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
 import { settingsApi, type CancellationRule } from "@/api/settings";
-import type { Trip, TripDestination, TripHighlightCard, TripFaqItem, TripInstance } from "@/data/trips";
+import type { Trip, TripDestination, TripHighlightCard, TripFaqItem, TripInstance, TripItineraryDay } from "@/data/trips";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import { YATRIVO_CONTACT } from "@/constants/contact";
-
-interface DayItem { day: string; title: string; desc: string; open: boolean }
 
 interface TripDetailPageProps {
   adminMode?: boolean;
@@ -363,17 +361,39 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
 
 
-  const [itinerary, setItinerary] = useState<DayItem[]>([
-    { day: "Day 1", title: "Dehradun to Chopta Basecamp", desc: "Scenic mountain drive via Devprayag where Alaknanda meets Bhagirathi. Arrive at our pine-wood meadow cabins. Welcome dinner with local Pahadi cuisine. Evening orientation walk.", open: true },
-    { day: "Day 2", title: "Trek to Tungnath Temple & Summit", desc: "Mindful morning ascent through dense rhododendron forests to the ancient Tungnath shrine (3,680m), pushing to Chandrashila peak (4,130m) for a 360° panoramic view of Nanda Devi, Trishul, Bandarpoonch.", open: false },
-    { day: "Day 3", title: "Deoria Tal Lake Exploration", desc: "Short scenic trek to pristine alpine Deoria Tal lake — perfectly reflecting Chaukhamba mountains. Evening stargazing session with a local astronomy guide. Campfire and folk music.", open: false },
-    { day: "Day 4", title: "Sunrise Devotion & Return Drive", desc: "Final organic breakfast. Checkout. Scenic drive back to Dehradun with planned stops at roadside tea stalls overlooking river valleys.", open: false },
-  ]);
+  // Dynamic Itinerary from Trip Data
+  const tripItinerary = (() => {
+    if (activeTrip?.itinerary && activeTrip.itinerary.length > 0) {
+      return activeTrip.itinerary.map((d: TripItineraryDay, idx: number) => {
+        const dayNum = d.dayNumber ?? idx + 1;
+        const rawTitle = d.title || `Day ${dayNum}`;
+        const title = rawTitle.replace(/^day\s*\d+\s*[:\-–]\s*/i, "").trim() || rawTitle;
+        return {
+          day: `Day ${dayNum}`,
+          title,
+          desc: d.description || "",
+          meals: d.meals,
+          stay: d.stay,
+        };
+      });
+    }
+    // Fallback default itinerary if trip has no configured itinerary
+    return [
+      { day: "Day 1", title: "Dehradun to Chopta Basecamp", desc: "Scenic mountain drive via Devprayag where Alaknanda meets Bhagirathi. Arrive at our pine-wood meadow cabins. Welcome dinner with local Pahadi cuisine. Evening orientation walk.", meals: null, stay: null },
+      { day: "Day 2", title: "Trek to Tungnath Temple & Summit", desc: "Mindful morning ascent through dense rhododendron forests to the ancient Tungnath shrine (3,680m), pushing to Chandrashila peak (4,130m) for a 360° panoramic view of Nanda Devi, Trishul, Bandarpoonch.", meals: null, stay: null },
+      { day: "Day 3", title: "Deoria Tal Lake Exploration", desc: "Short scenic trek to pristine alpine Deoria Tal lake — perfectly reflecting Chaukhamba mountains. Evening stargazing session with a local astronomy guide. Campfire and folk music.", meals: null, stay: null },
+      { day: "Day 4", title: "Sunrise Devotion & Return Drive", desc: "Final organic breakfast. Checkout. Scenic drive back to Dehradun with planned stops at roadside tea stalls overlooking river valleys.", meals: null, stay: null },
+    ];
+  })();
 
+  const [openDays, setOpenDays] = useState<Record<number, boolean>>({ 0: true });
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
 
   const toggleDay = (i: number) => {
-    setItinerary((prev) => prev.map((d, idx) => ({ ...d, open: idx === i ? !d.open : d.open })));
+    setOpenDays((prev) => ({
+      ...prev,
+      [i]: !(prev[i] ?? (i === 0))
+    }));
   };
 
   // Restrict direct visitor access to draft and archived packages
@@ -882,23 +902,38 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             )}
 
             {/* Itinerary */}
-            <section className="border-t border-[#e2e8f0] pt-10">
-              <h2 className="text-[#0f2922] text-2xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Itinerary</h2>
-              <div className="space-y-2">
-                {itinerary.map((d, i) => (
-                  <div key={i} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
-                    <button onClick={() => toggleDay(i)} className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-[#f7f8f5] transition-colors text-left cursor-pointer">
-                      <div className="flex items-center gap-3">
-                        <span className="bg-[#0f2922] text-white text-xs font-medium px-3 py-1 rounded-full shrink-0">{d.day}</span>
-                        <span className="text-[#0f2922] font-medium text-sm">{d.title}</span>
+            {tripItinerary.length > 0 && (
+              <section className="border-t border-[#e2e8f0] pt-10">
+                <h2 className="text-[#0f2922] text-2xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Itinerary</h2>
+                <div className="space-y-2">
+                  {tripItinerary.map((d, i) => {
+                    const isOpen = Boolean(openDays[i] ?? (i === 0));
+                    return (
+                      <div key={i} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
+                        <button onClick={() => toggleDay(i)} className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-[#f7f8f5] transition-colors text-left cursor-pointer">
+                          <div className="flex items-center gap-3">
+                            <span className="bg-[#0f2922] text-white text-xs font-medium px-3 py-1 rounded-full shrink-0">{d.day}</span>
+                            <span className="text-[#0f2922] font-medium text-sm">{d.title}</span>
+                          </div>
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2" className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6"/></svg>
+                        </button>
+                        {isOpen && (
+                          <div className="px-5 pb-4 text-[#4a5568] text-sm leading-relaxed border-t border-[#e2e8f0] pt-3">
+                            <p>{d.desc}</p>
+                            {(d.meals || d.stay) && (
+                              <div className="flex flex-wrap gap-4 mt-2 pt-2 border-t border-[#f1f5f9] text-xs text-[#718096]">
+                                {d.meals && <div><span className="font-semibold text-[#0f2922]">Meals:</span> {d.meals}</div>}
+                                {d.stay && <div><span className="font-semibold text-[#0f2922]">Stay:</span> {d.stay}</div>}
+                              </div>
+                            )}
+                          </div>
+                        )}
                       </div>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2" className={`shrink-0 transition-transform ${d.open ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6"/></svg>
-                    </button>
-                    {d.open && <div className="px-5 pb-4 text-[#4a5568] text-sm leading-relaxed border-t border-[#e2e8f0] pt-3">{d.desc}</div>}
-                  </div>
-                ))}
-              </div>
-            </section>
+                    );
+                  })}
+                </div>
+              </section>
+            )}
 
             {/* Inclusions */}
             <section className="grid sm:grid-cols-2 gap-5 border-t border-[#e2e8f0] pt-10">

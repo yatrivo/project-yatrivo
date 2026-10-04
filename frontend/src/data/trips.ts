@@ -36,6 +36,14 @@ export interface TripFaqItem {
   answer: string;
 }
 
+export interface TripItineraryDay {
+  dayNumber?: number;
+  title: string;
+  description: string;
+  meals?: string | null;
+  stay?: string | null;
+}
+
 export interface Trip {
   id: string;
   slug?: string;
@@ -52,6 +60,7 @@ export interface Trip {
   difficulty: "Easy" | "Moderate" | "Challenging" | "Strenuous";
   highlights: (TripHighlightCard | string)[];
   faqs?: TripFaqItem[];
+  itinerary?: TripItineraryDay[];
   inclusions: string[];
   exclusions: string[];
   cancellationPolicy: string;
@@ -102,6 +111,12 @@ export const INITIAL_TRIPS: Trip[] = [
     cancellationPolicy:
       "Full refund if cancelled 15+ days before departure. 50% refund for 7–14 days. No refund under 7 days.",
     badge: "BESTSELLER",
+    itinerary: [
+      { dayNumber: 1, title: "Dehradun to Chopta Basecamp", description: "Scenic mountain drive via Devprayag where Alaknanda meets Bhagirathi. Arrive at our pine-wood meadow cabins. Welcome dinner with local Pahadi cuisine. Evening orientation walk." },
+      { dayNumber: 2, title: "Trek to Tungnath Temple & Summit", description: "Mindful morning ascent through dense rhododendron forests to the ancient Tungnath shrine (3,680m), pushing to Chandrashila peak (4,130m) for a 360° panoramic view of Nanda Devi, Trishul, Bandarpoonch." },
+      { dayNumber: 3, title: "Deoria Tal Lake Exploration", description: "Short scenic trek to pristine alpine Deoria Tal lake — perfectly reflecting Chaukhamba mountains. Evening stargazing session with a local astronomy guide. Campfire and folk music." },
+      { dayNumber: 4, title: "Sunrise Devotion & Return Drive", description: "Final organic breakfast. Checkout. Scenic drive back to Dehradun with planned stops at roadside tea stalls overlooking river valleys." }
+    ],
   },
   {
     id: "rishikesh-rafting",

@@ -416,18 +416,73 @@ export const tripsRepository = {
       depsByTripId.set(dep.trip_id, arr);
     }
 
+    // Fetch itinerary for these trips
+    const itinRows = await query<{
+      trip_id: string;
+      day_number: number;
+      title: string;
+      description: string;
+      meals: string | null;
+      stay: string | null;
+    }>(
+      `SELECT trip_id, day_number, title, description, meals, stay
+       FROM trip_itinerary_days
+       WHERE trip_id = ANY($1)
+       ORDER BY day_number ASC`,
+      [tripIds]
+    );
+    const itinByTripId = new Map<string, TripItineraryDayDto[]>();
+    for (const itin of itinRows.rows) {
+      const arr = itinByTripId.get(itin.trip_id) || [];
+      arr.push({
+        dayNumber: itin.day_number,
+        title: itin.title,
+        description: itin.description,
+        meals: itin.meals,
+        stay: itin.stay
+      });
+      itinByTripId.set(itin.trip_id, arr);
+    }
+
+    // Fetch inclusions for these trips
+    const incRows = await query<{ trip_id: string; text: string }>(
+      `SELECT trip_id, text FROM trip_inclusions WHERE trip_id = ANY($1) ORDER BY sort_order ASC`,
+      [tripIds]
+    );
+    const incByTripId = new Map<string, string[]>();
+    for (const inc of incRows.rows) {
+      const arr = incByTripId.get(inc.trip_id) || [];
+      arr.push(inc.text);
+      incByTripId.set(inc.trip_id, arr);
+    }
+
+    // Fetch exclusions for these trips
+    const excRows = await query<{ trip_id: string; text: string }>(
+      `SELECT trip_id, text FROM trip_exclusions WHERE trip_id = ANY($1) ORDER BY sort_order ASC`,
+      [tripIds]
+    );
+    const excByTripId = new Map<string, string[]>();
+    for (const exc of excRows.rows) {
+      const arr = excByTripId.get(exc.trip_id) || [];
+      arr.push(exc.text);
+      excByTripId.set(exc.trip_id, arr);
+    }
+
     const trips = tripRows.rows.map((r) => {
       const destinations = destsByTripId.get(r.id) || [];
       const highlights = hlByTripId.get(r.id) || [];
       const departures = depsByTripId.get(r.id) || [];
+      const itinerary = itinByTripId.get(r.id) || [];
+      const inclusions = incByTripId.get(r.id) || [];
+      const exclusions = excByTripId.get(r.id) || [];
       return toTripDto(
         r,
         destinations,
         departures,
         highlights,
-        [],
-        [],
-        [],
+        itinerary,
+        inclusions,
+        exclusions,
         [],
         r.cover_asset_url
       );
