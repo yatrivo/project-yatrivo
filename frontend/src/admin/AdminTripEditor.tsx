@@ -916,22 +916,13 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
           {activeSection === "faqs" && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                    Trip FAQs
-                  </h2>
-                  <p className="text-[#718096] text-sm mt-1">
-                    Manage common questions and answers displayed on this trip's public page.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setFaqs([...faqs, { question: "", answer: "" }])}
-                  className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold px-3 py-2 rounded-lg transition cursor-pointer"
-                >
-                  + Add Question
-                </button>
+              <div>
+                <h2 className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                  Trip FAQs
+                </h2>
+                <p className="text-[#718096] text-sm mt-1">
+                  Manage common questions and answers displayed on this trip's public page.
+                </p>
               </div>
 
               <div className="space-y-3">
@@ -1011,11 +1002,19 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                     </div>
                   </div>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={() => setFaqs([...faqs, { question: "", answer: "" }])}
+                  className="w-full border-2 border-dashed border-[#e2e8f0] rounded-xl py-3 text-[#718096] hover:border-[#0f2922] hover:text-[#0f2922] text-sm font-medium transition cursor-pointer"
+                >
+                  + Add Question
+                </button>
               </div>
 
               {faqs.length === 0 && (
                 <div className="bg-[#f7f8f5] rounded-xl p-8 text-center text-sm text-[#718096]">
-                  No FAQs added yet. Click "+ Add Question" to create your first FAQ.
+                  No FAQs added yet. Click "+ Add Question" below to create your first FAQ.
                 </div>
               )}
             </div>
