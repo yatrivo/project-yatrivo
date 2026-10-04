@@ -39,14 +39,42 @@ function Stars({ rating }: { rating: number }) {
   );
 }
 
-function calculateReturnDate(startsOn: string, durationDays?: number | null): string {
+function calculateReturnDate(startsOn: string, durationDays?: number | null, durationLabel?: string | null): string {
   if (!startsOn) return "—";
   try {
-    const d = new Date(startsOn);
-    if (isNaN(d.getTime())) return "—";
-    const daysToAdd = Math.max(1, (durationDays ?? 1) - 1);
-    d.setDate(d.getDate() + daysToAdd);
-    return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
+    // Parse startsOn safely without timezone shift
+    const parts = startsOn.split("T")[0].split("-");
+    let year: number, month: number, day: number;
+    if (parts.length === 3) {
+      year = parseInt(parts[0], 10);
+      month = parseInt(parts[1], 10) - 1;
+      day = parseInt(parts[2], 10);
+    } else {
+      const parsed = new Date(startsOn);
+      if (isNaN(parsed.getTime())) return "—";
+      year = parsed.getFullYear();
+      month = parsed.getMonth();
+      day = parsed.getDate();
+    }
+
+    // Always prioritize the explicit duration from durationLabel (e.g. "3 Days / 2 Nights" -> 3)
+    let days: number | null = null;
+    if (durationLabel) {
+      const match = durationLabel.match(/(\d+)\s*(?:d|day|days)/i);
+      if (match) {
+        days = parseInt(match[1], 10);
+      }
+    }
+    if (!days && durationDays) {
+      days = durationDays;
+    }
+
+    // A N-day trip starting on Day D ends on Day D + (N - 1).
+    // e.g. 3-day trip starting Oct 2 ends on Oct 2 + (3 - 1) = Oct 4.
+    const numDays = Math.max(1, days ?? 1);
+    const returnDateObj = new Date(year, month, day + (numDays - 1));
+
+    return returnDateObj.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
   } catch {
     return "—";
   }
@@ -265,7 +293,7 @@ export default function AdminDepartureDetail() {
     );
   }
 
-  const returnDate = calculateReturnDate(dep.startsOn, dep.durationDays);
+  const returnDate = calculateReturnDate(dep.startsOn, dep.durationDays, dep.durationLabel);
 
   return (
     <div className="p-6 max-w-7xl mx-auto space-y-6">
@@ -359,14 +387,10 @@ export default function AdminDepartureDetail() {
               <div className="bg-[#f7f8f5] p-3 rounded-xl">
                 <div className="text-[11px] text-[#718096] uppercase font-semibold">Departure Date</div>
                 <div className="text-sm font-bold text-[#0f2922] mt-0.5">{dep.displayDate}</div>
-                <div className="text-[10px] text-[#a0aec0] font-mono mt-0.5">{dep.startsOn?.split("T")[0]}</div>
               </div>
               <div className="bg-[#f7f8f5] p-3 rounded-xl">
                 <div className="text-[11px] text-[#718096] uppercase font-semibold">Return Date</div>
                 <div className="text-sm font-bold text-[#0f2922] mt-0.5">{returnDate}</div>
-                <div className="text-[10px] text-[#a0aec0] mt-0.5">
-                  {dep.durationDays ? `${dep.durationDays} Days / ${dep.durationNights || dep.durationDays - 1} Nights` : "Standard duration"}
-                </div>
               </div>
             </div>
 

@@ -24,7 +24,7 @@ function getRefreshCookieOptions(): CookieOptions {
     httpOnly: true,
     secure: isProduction,
     sameSite: "lax",
-    path: "/api/v1/auth",
+    path: `/api/${env.API_VERSION}`,
     maxAge: (env.REFRESH_TOKEN_TTL_DAYS || 30) * 24 * 60 * 60 * 1000
   };
 }
@@ -97,7 +97,7 @@ export const authController = {
       httpOnly: true,
       secure: isProduction,
       sameSite: "lax",
-      path: "/api/v1/auth"
+      path: `/api/${env.API_VERSION}`
     });
 
     res.status(200).json({

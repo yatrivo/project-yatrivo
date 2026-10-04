@@ -37,6 +37,41 @@ function getExecutor(client?: PoolClient): QueryExecutor {
   };
 }
 
+export function parseDurationDaysAndNights(
+  label?: string | null,
+  overrideDays?: number | null,
+  overrideNights?: number | null
+): { durationDays: number | null; durationNights: number | null } {
+  let days: number | null = null;
+  let nights: number | null = null;
+
+  if (label) {
+    const dayMatch = label.match(/(\d+)\s*(?:d|day|days)/i);
+    const nightMatch = label.match(/(\d+)\s*(?:n|night|nights)/i);
+    if (dayMatch) {
+      days = parseInt(dayMatch[1], 10);
+    }
+    if (nightMatch) {
+      nights = parseInt(nightMatch[1], 10);
+    }
+  }
+
+  if (days === null && overrideDays !== undefined && overrideDays !== null) {
+    days = overrideDays;
+  }
+  if (nights === null && overrideNights !== undefined && overrideNights !== null) {
+    nights = overrideNights;
+  }
+
+  if (days !== null && nights === null) {
+    nights = Math.max(0, days - 1);
+  } else if (nights !== null && days === null) {
+    days = nights + 1;
+  }
+
+  return { durationDays: days, durationNights: nights };
+}
+
 export function toTripDto(
   record: TripRecord,
   destinations: TripDestinationDto[] = [],
@@ -87,6 +122,12 @@ export function toTripDto(
     }));
   }
 
+  const parsedDur = parseDurationDaysAndNights(
+    record.duration_label,
+    record.duration_days,
+    record.duration_nights
+  );
+
   return {
     id: record.id,
     slug: record.slug,
@@ -94,8 +135,8 @@ export function toTripDto(
     shortDescription: record.short_description || "",
     overview: record.overview || "",
     duration: record.duration_label,
-    durationDays: record.duration_days || undefined,
-    durationNights: record.duration_nights || undefined,
+    durationDays: parsedDur.durationDays || undefined,
+    durationNights: parsedDur.durationNights || undefined,
     category: record.category,
     difficulty: record.difficulty ? record.difficulty.charAt(0).toUpperCase() + record.difficulty.slice(1) : "Moderate",
     price: Math.round((record.price_from_paise || 0) / 100),
@@ -683,6 +724,12 @@ export const tripsRepository = {
         ];
     const normalizedFaqs = input.faqs || [];
 
+    const parsedDur = parseDurationDaysAndNights(
+      input.duration,
+      input.durationDays,
+      input.durationNights
+    );
+
     const insertRes = await query<TripRecord>(
       `INSERT INTO trips (
         slug, name, short_description, overview,
@@ -711,8 +758,8 @@ export const tripsRepository = {
         input.shortDescription || null,
         input.overview || null,
         input.duration,
-        input.durationDays || null,
-        input.durationNights || null,
+        parsedDur.durationDays,
+        parsedDur.durationNights,
         input.category || "trekking",
         input.difficulty || "moderate",
         pricePaise,
@@ -842,14 +889,25 @@ export const tripsRepository = {
     if (input.duration !== undefined) {
       params.push(input.duration);
       updates.push(`duration_label = $${params.length}`);
-    }
-    if (input.durationDays !== undefined) {
-      params.push(input.durationDays || null);
+
+      const parsedDur = parseDurationDaysAndNights(
+        input.duration,
+        input.durationDays,
+        input.durationNights
+      );
+      params.push(parsedDur.durationDays);
       updates.push(`duration_days = $${params.length}`);
-    }
-    if (input.durationNights !== undefined) {
-      params.push(input.durationNights || null);
+      params.push(parsedDur.durationNights);
       updates.push(`duration_nights = $${params.length}`);
+    } else {
+      if (input.durationDays !== undefined) {
+        params.push(input.durationDays || null);
+        updates.push(`duration_days = $${params.length}`);
+      }
+      if (input.durationNights !== undefined) {
+        params.push(input.durationNights || null);
+        updates.push(`duration_nights = $${params.length}`);
+      }
     }
     if (input.category !== undefined) {
       params.push(input.category);

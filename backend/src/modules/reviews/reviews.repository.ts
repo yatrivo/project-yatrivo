@@ -2,6 +2,7 @@ import type { PoolClient } from "pg";
 import { query, withTransaction } from "../../db/postgres";
 import { AppError } from "../../errors/AppError";
 import crypto from "node:crypto";
+import { parseDurationDaysAndNights } from "../trips/trips.repository";
 import type {
   DepartureOperationalDto,
   EnrolledTravellerDto,
@@ -388,6 +389,12 @@ export const reviewsRepository = {
         ? dep.remaining_capacity
         : dep.spots_total;
 
+    const parsedDur = parseDurationDaysAndNights(
+      dep.duration_label,
+      dep.duration_days,
+      dep.duration_nights
+    );
+
     return {
       id: dep.id,
       tripId: dep.trip_id,
@@ -405,8 +412,8 @@ export const reviewsRepository = {
       notes: dep.notes,
       coverImage: dep.cover_image_url,
       durationLabel: dep.duration_label,
-      durationDays: dep.duration_days,
-      durationNights: dep.duration_nights,
+      durationDays: parsedDur.durationDays,
+      durationNights: parsedDur.durationNights,
       startingPoint: dep.starting_point,
       enrolledTravellers,
       summary: {

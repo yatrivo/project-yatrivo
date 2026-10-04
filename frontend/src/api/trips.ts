@@ -73,18 +73,15 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
     headers.set("Authorization", `Bearer ${accessToken}`);
   }
 
-  let res = await fetch(url, { ...options, headers });
+  let res = await fetch(url, { ...options, headers, credentials: "include" });
 
   if (res.status === 401) {
-    const refreshToken = tokenStorage.getRefreshToken();
-    if (refreshToken) {
-      try {
-        const tokens = await authApi.refresh(refreshToken);
-        headers.set("Authorization", `Bearer ${tokens.accessToken}`);
-        res = await fetch(url, { ...options, headers });
-      } catch {
-        // Refresh failed, proceed with original response
-      }
+    try {
+      const tokens = await authApi.refresh();
+      headers.set("Authorization", `Bearer ${tokens.accessToken}`);
+      res = await fetch(url, { ...options, headers, credentials: "include" });
+    } catch {
+      // Refresh failed, proceed with original response
     }
   }
 
