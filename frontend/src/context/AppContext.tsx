@@ -636,6 +636,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const refreshEnquiries = useCallback(async () => {
+    if (!tokenStorage.getAccessToken()) {
+      return;
+    }
     try {
       const data = await enquiriesApi.list();
       if (data.enquiries && Array.isArray(data.enquiries)) {

@@ -41,6 +41,13 @@ bookingsRouter.get(
 );
 
 bookingsRouter.patch(
+  "/bookings/:id",
+  authenticate,
+  requireAdmin,
+  asyncHandler(bookingsController.update)
+);
+
+bookingsRouter.patch(
   "/bookings/:id/status",
   authenticate,
   requireAdmin,

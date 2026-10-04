@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
@@ -85,7 +85,7 @@ function getEventIcon(type: string): string {
 
 export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   const { id } = useParams<{ id: string }>();
-  const { showToast } = useApp();
+  const { showToast, tripInstances, trips } = useApp();
 
   const [booking, setBooking] = useState<BookingResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -99,19 +99,30 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   const [payNotes, setPayNotes] = useState("");
   const [isRecordingPay, setIsRecordingPay] = useState(false);
 
+  // Traveller Details Editing
+  const [isEditingTravellers, setIsEditingTravellers] = useState(false);
+  const [travellersForm, setTravellersForm] = useState<SaveTravellerPayload[]>([]);
+  const [editTravellerCount, setEditTravellerCount] = useState<number>(1);
+  const [editTotalAmount, setEditTotalAmount] = useState<string>("");
+  const [isSavingTravellers, setIsSavingTravellers] = useState(false);
+
+  // Quick Edit Booking Modal (Headcount, Departure Date & Price)
+  const [isQuickEditOpen, setIsQuickEditOpen] = useState(false);
+  const [quickEditCount, setQuickEditCount] = useState<number>(1);
+  const [quickEditAmount, setQuickEditAmount] = useState<string>("");
+  const [quickEditNotes, setQuickEditNotes] = useState<string>("");
+  const [quickEditDepartureId, setQuickEditDepartureId] = useState<string>("");
+  const [quickEditCustomDate, setQuickEditCustomDate] = useState<string>("");
+  const [isSavingQuickEdit, setIsSavingQuickEdit] = useState(false);
+
   useEffect(() => {
-    if (!payModalOpen) return;
+    if (!payModalOpen && !isQuickEditOpen) return;
     const originalOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = originalOverflow;
     };
-  }, [payModalOpen]);
-
-  // Traveller Details Editing
-  const [isEditingTravellers, setIsEditingTravellers] = useState(false);
-  const [travellersForm, setTravellersForm] = useState<SaveTravellerPayload[]>([]);
-  const [isSavingTravellers, setIsSavingTravellers] = useState(false);
+  }, [payModalOpen, isQuickEditOpen]);
 
   const fetchBooking = useCallback(async () => {
     if (!id) return;
@@ -120,6 +131,8 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
     try {
       const data = await bookingsApi.getById(id);
       setBooking(data);
+      setEditTravellerCount(data.travellerCount || 1);
+      setEditTotalAmount(String(data.totalAmount || ""));
 
       // Populate travellers form
       const existing = data.travellers || [];
@@ -178,6 +191,132 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
     }
   };
 
+  // Match existing departure or upcoming departures for this trip
+  const matchedDeparture = useMemo(() => {
+    if (!booking) return null;
+    if (booking.tripInstanceId) {
+      return tripInstances.find((ti) => ti.id === booking.tripInstanceId) || null;
+    }
+    return null;
+  }, [booking, tripInstances]);
+
+  const displayDepartureDate = useMemo(() => {
+    if (booking?.tripDateLabel?.trim()) return booking.tripDateLabel;
+    if (matchedDeparture?.displayDate) return matchedDeparture.displayDate;
+    if (matchedDeparture?.date) return matchedDeparture.date;
+    return "Not scheduled";
+  }, [booking?.tripDateLabel, matchedDeparture]);
+
+  // Available departures for this trip package
+  const tripDepartures = useMemo(() => {
+    if (!booking) return [];
+    return tripInstances
+      .filter((ti) => {
+        const matchesTrip =
+          (booking.tripId && ti.tripId === booking.tripId) ||
+          (booking.tripName && ti.tripTitle?.toLowerCase() === booking.tripName?.toLowerCase());
+        return matchesTrip;
+      })
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  }, [booking, tripInstances]);
+
+  // Quick edit booking details (Headcount, Departure Date & Price during negotiation)
+  const handleOpenQuickEdit = () => {
+    if (!booking) return;
+    setQuickEditCount(booking.travellerCount || 1);
+    setQuickEditAmount(String(booking.totalAmount || ""));
+    setQuickEditNotes(booking.internalNotes || "");
+    setQuickEditDepartureId(booking.tripInstanceId || "");
+    setQuickEditCustomDate(booking.tripDateLabel || "");
+    setIsQuickEditOpen(true);
+  };
+
+  const handleSaveQuickEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!booking) return;
+    setIsSavingQuickEdit(true);
+    try {
+      const amountNum = quickEditAmount ? parseInt(quickEditAmount.replace(/\D/g, ""), 10) : undefined;
+      const selectedDep = tripDepartures.find((d) => d.id === quickEditDepartureId);
+      const chosenDateLabel =
+        selectedDep?.displayDate ||
+        selectedDep?.date ||
+        (quickEditCustomDate.trim() ? quickEditCustomDate.trim() : undefined);
+
+      await bookingsApi.updateBooking(booking.id, {
+        travellerCount: quickEditCount,
+        totalAmount: amountNum,
+        tripInstanceId: quickEditDepartureId || undefined,
+        tripDateLabel: chosenDateLabel,
+        internalNotes: quickEditNotes.trim() || undefined
+      });
+      showToast(`Booking updated: ${quickEditCount} travellers reserved.`, "success");
+      setIsQuickEditOpen(false);
+      void fetchBooking();
+    } catch (err: unknown) {
+      showToast(err instanceof Error ? err.message : "Failed to update booking", "error");
+    } finally {
+      setIsSavingQuickEdit(false);
+    }
+  };
+
+  // Stepper / change for traveller count in detailed edit mode
+  const handleTravellerCountChange = (newCount: number) => {
+    const validCount = Math.max(1, Math.min(50, newCount));
+    setEditTravellerCount(validCount);
+
+    setTravellersForm((prev) => {
+      if (validCount > prev.length) {
+        const added: SaveTravellerPayload[] = [];
+        for (let i = prev.length; i < validCount; i++) {
+          added.push({
+            fullName: "",
+            gender: "Male",
+            age: null,
+            phone: "",
+            email: "",
+            documentType: "Aadhaar Card",
+            idNumber: "",
+            notes: ""
+          });
+        }
+        return [...prev, ...added];
+      } else if (validCount < prev.length) {
+        return prev.slice(0, validCount);
+      }
+      return prev;
+    });
+  };
+
+  const handleAddSlot = () => {
+    setTravellersForm((prev) => {
+      const next = [
+        ...prev,
+        {
+          fullName: "",
+          gender: "Male",
+          age: null,
+          phone: "",
+          email: "",
+          documentType: "Aadhaar Card",
+          idNumber: "",
+          notes: ""
+        }
+      ];
+      setEditTravellerCount(next.length);
+      return next;
+    });
+  };
+
+  const handleRemoveSlot = (index: number) => {
+    setTravellersForm((prev) => {
+      if (prev.length <= 1) return prev;
+      const next = prev.filter((_, i) => i !== index);
+      setEditTravellerCount(next.length);
+      return next;
+    });
+  };
+
   // Cancel edit travellers and revert form to saved booking state
   const handleCancelEditTravellers = () => {
     if (!booking) return;
@@ -211,6 +350,8 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
       }
     }
     setTravellersForm(rows);
+    setEditTravellerCount(booking.travellerCount || 1);
+    setEditTotalAmount(String(booking.totalAmount || ""));
     setIsEditingTravellers(false);
   };
 
@@ -221,8 +362,12 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
 
     setIsSavingTravellers(true);
     try {
-      await bookingsApi.saveTravellersAdmin(booking.id, travellersForm);
-      showToast("Traveller details saved successfully.", "success");
+      const totalAmountNum = editTotalAmount ? parseInt(editTotalAmount.replace(/\D/g, ""), 10) : undefined;
+      await bookingsApi.saveTravellersAdmin(booking.id, travellersForm, {
+        travellerCount: editTravellerCount,
+        totalAmount: totalAmountNum
+      });
+      showToast("Traveller headcount and details saved successfully.", "success");
       setIsEditingTravellers(false);
       void fetchBooking();
     } catch (err: unknown) {
@@ -451,6 +596,172 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
           document.body
         )}
 
+      {/* Quick Edit Booking (Headcount & Pricing) Modal */}
+      {isQuickEditOpen &&
+        createPortal(
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
+            <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setIsQuickEditOpen(false)} />
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+              <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+                <div>
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">NEGOTIATION & PAX AMENDMENT</div>
+                  <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                    Edit Headcount & Price
+                  </h3>
+                </div>
+                <button
+                  onClick={() => setIsQuickEditOpen(false)}
+                  className="text-white/70 hover:text-white transition p-1 cursor-pointer"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveQuickEdit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
+                <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4 text-xs">
+                  <div className="bg-[#f0f7f4] border border-[#c6e2d6] rounded-xl p-3.5 space-y-1 text-[#0f2922]">
+                    <div className="font-semibold text-xs flex items-center gap-1.5">
+                      <span className="inline-block w-2 h-2 rounded-full bg-emerald-500" />
+                      <span>{booking.tripName || "Trip Package"}</span>
+                    </div>
+                    <p className="text-[11px] text-[#4a5568]">
+                      Destination: <strong className="text-[#0f2922]">{booking.destinationLabel || "Uttarakhand"}</strong>
+                    </p>
+                  </div>
+
+                  {/* Scheduled Departure Date Selection */}
+                  <div>
+                    <label className="block text-[#4a5568] font-semibold mb-1">
+                      Scheduled Departure Date
+                    </label>
+                    <select
+                      value={quickEditDepartureId}
+                      onChange={(e) => {
+                        const depId = e.target.value;
+                        setQuickEditDepartureId(depId);
+                        const dep = tripDepartures.find((d) => d.id === depId);
+                        if (dep) {
+                          setQuickEditCustomDate(dep.displayDate || dep.date);
+                        }
+                      }}
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922] mb-1.5"
+                    >
+                      <option value="">
+                        {tripDepartures.length === 0
+                          ? "No upcoming scheduled batches"
+                          : "Choose from scheduled departures..."}
+                      </option>
+                      {tripDepartures.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.displayDate || d.date} ({d.batchType || "Batch"} • ₹{d.effectivePrice?.toLocaleString("en-IN") || d.basePrice?.toLocaleString("en-IN")})
+                        </option>
+                      ))}
+                    </select>
+
+                    <input
+                      type="text"
+                      value={quickEditCustomDate}
+                      onChange={(e) => setQuickEditCustomDate(e.target.value)}
+                      placeholder="e.g. 15 Jul - 20 Jul 2026 or Custom Date"
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                    />
+                    <span className="text-[10px] text-[#a0aec0] block mt-0.5">
+                      Select an existing batch or type a customized departure date label.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#4a5568] font-semibold mb-1">
+                      Number of Travellers (Seats) <span className="text-red-500">*</span>
+                    </label>
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center border border-[#e2e8f0] rounded-lg overflow-hidden bg-white shadow-2xs">
+                        <button
+                          type="button"
+                          disabled={quickEditCount <= 1}
+                          onClick={() => setQuickEditCount((prev) => Math.max(1, prev - 1))}
+                          className="px-3 py-2 text-sm font-bold text-[#0f2922] hover:bg-[#f7f8f5] disabled:opacity-30 transition cursor-pointer"
+                        >
+                          −
+                        </button>
+                        <input
+                          type="number"
+                          min={1}
+                          max={50}
+                          value={quickEditCount}
+                          onChange={(e) => setQuickEditCount(Math.max(1, Math.min(50, parseInt(e.target.value, 10) || 1)))}
+                          className="w-14 text-center text-xs font-bold text-[#0f2922] focus:outline-none border-x border-[#e2e8f0] py-2"
+                        />
+                        <button
+                          type="button"
+                          max={50}
+                          onClick={() => setQuickEditCount((prev) => Math.min(50, prev + 1))}
+                          className="px-3 py-2 text-sm font-bold text-[#0f2922] hover:bg-[#f7f8f5] transition cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+                      <span className="text-[11px] text-[#718096]">
+                        {quickEditCount} {quickEditCount === 1 ? "seat" : "seats"} reserved on departure.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#4a5568] font-semibold mb-1">
+                      Total Negotiated Package Price (₹)
+                    </label>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-[#718096]">₹</span>
+                      <input
+                        type="text"
+                        value={quickEditAmount}
+                        onChange={(e) => setQuickEditAmount(e.target.value)}
+                        placeholder="e.g. 24,000"
+                        className="w-full pl-7 pr-3 py-2 text-xs font-semibold border border-[#e2e8f0] rounded-lg focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                      />
+                    </div>
+                    <span className="text-[10px] text-[#a0aec0] block mt-1">
+                      Total paid so far: ₹{booking.paidAmount.toLocaleString("en-IN")} • Balance due updates automatically.
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="block text-[#4a5568] font-semibold mb-1">Internal Notes (Optional)</label>
+                    <textarea
+                      rows={2}
+                      value={quickEditNotes}
+                      onChange={(e) => setQuickEditNotes(e.target.value)}
+                      placeholder="e.g. Negotiated group discount on phone call."
+                      className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setIsQuickEditOpen(false)}
+                    className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white rounded-lg transition cursor-pointer font-semibold text-xs"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSavingQuickEdit}
+                    className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white rounded-lg transition cursor-pointer font-semibold text-xs shadow-xs"
+                  >
+                    {isSavingQuickEdit ? "Saving..." : "Update Booking"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
+
       {/* Top Back Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <Link
@@ -492,7 +803,18 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
           {booking.tripName || "Himalayan Expedition"}
         </h1>
         <p className="text-xs text-[#718096] mt-0.5">
-          Destination: <span className="font-semibold text-[#0f2922]">{booking.destinationLabel || "Uttarakhand"}</span> • Scheduled Departure: <span className="font-semibold text-[#0f2922]">{booking.tripDateLabel}</span>
+          Destination: <span className="font-semibold text-[#0f2922]">{booking.destinationLabel || "Uttarakhand"}</span> • Scheduled Departure:{" "}
+          <span className="font-semibold text-[#0f2922]">
+            {displayDepartureDate}
+          </span>
+          <button
+            type="button"
+            onClick={handleOpenQuickEdit}
+            className="ml-2 text-[11px] font-semibold text-[#e8622a] hover:underline cursor-pointer"
+            title="Edit departure date or batch"
+          >
+            (Change)
+          </button>
         </p>
       </div>
 
@@ -545,11 +867,31 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                 <div className="flex justify-between items-center">
                   <div>
                     <span className="text-[#718096] block text-[11px]">Departure Date</span>
-                    <span className="font-semibold text-[#0f2922]">{booking.tripDateLabel}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-semibold text-[#0f2922]">{displayDepartureDate}</span>
+                      <button
+                        type="button"
+                        onClick={handleOpenQuickEdit}
+                        className="text-[11px] font-semibold text-[#e8622a] hover:underline cursor-pointer"
+                        title="Edit departure date or batch"
+                      >
+                        (Edit)
+                      </button>
+                    </div>
                   </div>
                   <div>
                     <span className="text-[#718096] block text-[11px]">Travellers</span>
-                    <span className="font-bold text-[#0f2922]">{booking.travellerCount}</span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="font-bold text-[#0f2922] text-sm">{booking.travellerCount}</span>
+                      <button
+                        type="button"
+                        onClick={handleOpenQuickEdit}
+                        className="text-[11px] font-semibold text-[#e8622a] hover:underline cursor-pointer"
+                        title="Edit number of travellers & pricing"
+                      >
+                        (Edit)
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -561,11 +903,11 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
             <div className="flex items-center justify-between flex-wrap gap-2 border-b border-[#e2e8f0] pb-3">
               <div>
                 <h3 className="font-bold text-[#0f2922] text-sm">
-                  Traveller Details ({isEditingTravellers ? travellersForm.length : (booking.travellers?.filter(t => t.fullName?.trim()).length || booking.travellerCount)})
+                  Traveller Details ({isEditingTravellers ? editTravellerCount : (booking.travellers?.filter(t => t.fullName?.trim()).length || booking.travellerCount)})
                 </h3>
                 <p className="text-[#718096] text-xs">
                   {isEditingTravellers
-                    ? "Editing traveller manifest. Click Save when finished."
+                    ? "Editing traveller manifest and headcount. Click Save when finished."
                     : "Verified traveller manifests and passenger information."}
                 </p>
               </div>
@@ -592,21 +934,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                   </button>
                   <button
                     type="button"
-                    onClick={() => {
-                      setTravellersForm((prev) => [
-                        ...prev,
-                        {
-                          fullName: "",
-                          gender: "Male",
-                          age: null,
-                          phone: "",
-                          email: "",
-                          documentType: "Aadhaar Card",
-                          idNumber: "",
-                          notes: ""
-                        }
-                      ]);
-                    }}
+                    onClick={handleAddSlot}
                     className="text-xs font-semibold text-[#0f2922] hover:text-[#e8622a] border border-[#e2e8f0] px-3 py-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
                   >
                     + Add Slot
@@ -711,6 +1039,67 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
             ) : (
               // Edit Mode Form
               <form onSubmit={handleSaveTravellers} className="space-y-4">
+                {/* Headcount & Negotiation Pricing Bar */}
+                <div className="bg-[#f0f7f4] border border-[#c6e2d6] rounded-xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-[#0f2922] uppercase tracking-wider">Number of Travellers</span>
+                      <span className="text-[10px] bg-emerald-100 text-emerald-800 font-semibold px-2 py-0.5 rounded-full">
+                        {editTravellerCount} {editTravellerCount === 1 ? "Pax" : "Pax"}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-[#4a5568]">
+                      Adjust headcount during customer negotiation. Detail slots expand or trim automatically.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-4 flex-wrap">
+                    {/* Stepper controls */}
+                    <div className="flex items-center border border-[#c6e2d6] rounded-lg overflow-hidden bg-white shadow-2xs">
+                      <button
+                        type="button"
+                        disabled={editTravellerCount <= 1}
+                        onClick={() => handleTravellerCountChange(editTravellerCount - 1)}
+                        className="px-3 py-1.5 text-sm font-bold text-[#0f2922] hover:bg-[#e6f2ec] disabled:opacity-30 disabled:hover:bg-transparent transition cursor-pointer"
+                        title="Decrease travellers"
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={1}
+                        max={50}
+                        value={editTravellerCount}
+                        onChange={(e) => handleTravellerCountChange(parseInt(e.target.value, 10) || 1)}
+                        className="w-12 text-center text-xs font-bold text-[#0f2922] focus:outline-none border-x border-[#c6e2d6] py-1.5"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleTravellerCountChange(editTravellerCount + 1)}
+                        className="px-3 py-1.5 text-sm font-bold text-[#0f2922] hover:bg-[#e6f2ec] transition cursor-pointer"
+                        title="Increase travellers"
+                      >
+                        +
+                      </button>
+                    </div>
+
+                    {/* Total Negotiated Amount */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-semibold text-[#0f2922]">Total Price:</span>
+                      <div className="relative">
+                        <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs font-bold text-[#718096]">₹</span>
+                        <input
+                          type="text"
+                          value={editTotalAmount}
+                          onChange={(e) => setEditTotalAmount(e.target.value)}
+                          placeholder="e.g. 19,998"
+                          className="w-28 pl-6 pr-2.5 py-1.5 text-xs font-bold bg-white border border-[#c6e2d6] rounded-lg text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 {travellersForm.map((t, index) => (
                   <div
                     key={index}
@@ -726,10 +1115,8 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                       {travellersForm.length > 1 && (
                         <button
                           type="button"
-                          onClick={() => {
-                            setTravellersForm((prev) => prev.filter((_, i) => i !== index));
-                          }}
-                          className="text-[#a0aec0] hover:text-red-600 transition text-[11px] font-normal"
+                          onClick={() => handleRemoveSlot(index)}
+                          className="text-[#a0aec0] hover:text-red-600 transition text-[11px] font-normal cursor-pointer"
                         >
                           Remove Slot
                         </button>
@@ -840,7 +1227,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                     disabled={isSavingTravellers}
                     className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white text-xs font-semibold px-5 py-2.5 rounded-lg transition cursor-pointer shadow-xs"
                   >
-                    {isSavingTravellers ? "Saving Travellers..." : "Save Travellers"}
+                    {isSavingTravellers ? "Saving..." : "Save Travellers & Headcount"}
                   </button>
                 </div>
               </form>
@@ -1021,6 +1408,18 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                 </button>
               )}
 
+              {/* Quick Edit Headcount & Price Button */}
+              <button
+                type="button"
+                onClick={handleOpenQuickEdit}
+                className="w-full bg-[#1a3d31] hover:bg-[#235342] text-white border border-[#2d5a47] text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
+              >
+                <svg className="w-3.5 h-3.5 text-[#e8622a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                <span>Edit Headcount / Price</span>
+              </button>
+
               {/* Edit Travellers Button */}
               {!isEditingTravellers ? (
                 <button
@@ -1031,7 +1430,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                   <svg className="w-3.5 h-3.5 text-white/70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  <span>Edit Travellers</span>
+                  <span>Edit Traveller Details</span>
                 </button>
               ) : (
                 <button
@@ -1039,7 +1438,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
                   onClick={handleCancelEditTravellers}
                   className="w-full bg-[#1a3d31] hover:bg-[#235342] text-[#e8622a] border border-[#e8622a]/40 text-xs font-medium py-2 px-3 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5"
                 >
-                  <span>Cancel Edit Mode</span>
+                  <span>Cancel Traveller Edit</span>
                 </button>
               )}
 

@@ -242,7 +242,8 @@ export const bookingsApi = {
 
   async saveTravellersAdmin(
     bookingId: string,
-    travellers: SaveTravellerPayload[]
+    travellers: SaveTravellerPayload[],
+    options?: { travellerCount?: number; totalAmount?: number }
   ): Promise<{ success: boolean; message: string; booking: BookingResponse }> {
     const url = `${API_BASE}/api/v1/bookings/${encodeURIComponent(bookingId)}/travellers`;
     const res = await authFetch(url, {
@@ -250,12 +251,46 @@ export const bookingsApi = {
       headers: {
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({ travellers })
+      body: JSON.stringify({
+        travellers,
+        travellerCount: options?.travellerCount,
+        totalAmount: options?.totalAmount
+      })
     });
 
     const body = await res.json();
     if (!res.ok) {
       throw new Error(body?.message || "Failed to update traveller details");
+    }
+    return body;
+  },
+
+  async updateBooking(
+    bookingId: string,
+    payload: {
+      travellerCount?: number;
+      totalAmount?: number;
+      primaryContactName?: string;
+      primaryContactPhone?: string;
+      primaryContactEmail?: string;
+      tripInstanceId?: string;
+      tripDateLabel?: string;
+      internalNotes?: string;
+      status?: BookingStatus;
+    }
+  ): Promise<{ success: boolean; message: string; booking: BookingResponse }> {
+    const url = `${API_BASE}/api/v1/bookings/${encodeURIComponent(bookingId)}`;
+    const res = await authFetch(url, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const body = await res.json();
+    if (!res.ok) {
+      throw new Error(body?.message || "Failed to update booking details");
     }
     return body;
   },

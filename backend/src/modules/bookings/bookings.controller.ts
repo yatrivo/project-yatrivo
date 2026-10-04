@@ -56,6 +56,8 @@ const recordPaymentSchema = z.object({
 });
 
 const saveTravellersSchema = z.object({
+  travellerCount: z.coerce.number().int().min(1).max(100).optional(),
+  totalAmount: z.coerce.number().min(0).optional(),
   travellers: z.array(z.object({
     id: z.string().optional(),
     fullName: z.string().trim().min(1, "Full name is required"),
@@ -67,6 +69,18 @@ const saveTravellersSchema = z.object({
     idNumber: z.string().optional().nullable(),
     notes: z.string().optional().nullable()
   }))
+});
+
+const updateBookingSchema = z.object({
+  travellerCount: z.coerce.number().int().min(1).max(100).optional(),
+  totalAmount: z.coerce.number().min(0).optional(),
+  primaryContactName: z.string().trim().min(1).optional(),
+  primaryContactPhone: z.string().trim().min(1).optional(),
+  primaryContactEmail: z.string().trim().email().optional().nullable().or(z.literal("")),
+  tripInstanceId: z.string().trim().optional().nullable(),
+  tripDateLabel: z.string().trim().optional().nullable(),
+  internalNotes: z.string().trim().optional().nullable(),
+  status: z.enum(["draft", "awaiting_traveller_details", "details_received", "confirmed", "completed", "cancelled"]).optional()
 });
 
 export const bookingQuerySchema = z.object({
@@ -252,6 +266,10 @@ export const bookingsController = {
         type: "admin",
         userId: req.user.id,
         name: req.user.fullName || "Admin"
+      },
+      {
+        travellerCount: parseResult.data.travellerCount,
+        totalAmount: parseResult.data.totalAmount
       }
     );
 
@@ -267,8 +285,51 @@ export const bookingsController = {
       entityType: "booking",
       entityId: updated.id,
       details: `Updated ${parseResult.data.travellers.length} traveller details for Booking #${updated.bookingNumber || id.slice(0, 8)}`,
-      afterData: { travellerCount: parseResult.data.travellers.length }
+      afterData: {
+        travellerCount: parseResult.data.travellerCount ?? parseResult.data.travellers.length,
+        totalAmount: parseResult.data.totalAmount
+      }
     });
+  },
+
+  async update(req: Request, res: Response): Promise<void> {
+    if (!req.user) {
+      throw new AppError(401, "UNAUTHORIZED", "Authentication required");
+    }
+
+    const id = String(req.params.id);
+    const parseResult = updateBookingSchema.safeParse(req.body);
+    if (!parseResult.success) {
+      res.status(400).json({
+        message: "Invalid booking update payload",
+        errors: parseResult.error.flatten().fieldErrors
+      });
+      return;
+    }
+
+    const updated = await bookingsRepository.updateBooking(
+      id,
+      parseResult.data,
+      {
+        userId: req.user.id,
+        name: req.user.fullName || "Admin"
+      }
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Booking updated successfully.",
+      booking: updated
+    });
+
+    await recordAuditLog({
+      req,
+      action: "Updated Booking",
+      entityType: "booking",
+      entityId: updated.id,
+      details: `Updated booking #${updated.bookingNumber || id.slice(0, 8)}`,
+      afterData: parseResult.data
+    }).catch(() => {});
   },
 
   async updateStatus(req: Request, res: Response): Promise<void> {

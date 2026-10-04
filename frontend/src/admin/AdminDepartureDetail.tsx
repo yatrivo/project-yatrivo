@@ -142,6 +142,7 @@ export default function AdminDepartureDetail() {
   const renderedPreviewMessage = useMemo(() => {
     if (!dep || !previewTraveller) return template;
     const token = previewTraveller.reviewToken || "TOKEN";
+    const siteUrl = typeof window !== "undefined" ? window.location.origin : "";
     const link = `${siteUrl}/review?token=${token}`;
 
     return template

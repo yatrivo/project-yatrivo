@@ -378,7 +378,8 @@ export const bookingsRepository = {
               b.primary_contact_name, b.primary_contact_phone, b.primary_contact_email,
               b.destination_id, b.destination_label,
               b.trip_id, b.trip_label,
-              b.trip_instance_id, b.trip_date_label,
+              b.trip_instance_id,
+              COALESCE(b.trip_date_label, ti.display_date, ti.starts_on::text) as trip_date_label,
               b.traveller_count, b.final_amount_paise,
               b.payment_status, b.status, b.details_token,
               b.payment_notes, b.internal_notes,
@@ -386,11 +387,12 @@ export const bookingsRepository = {
               COALESCE(u.full_name, u.email, 'Admin') as created_by_name,
               COALESCE(SUM(CASE WHEN bp.status IN ('paid', 'success') THEN bp.amount_paise ELSE 0 END), 0)::text as paid_amount_paise
        FROM bookings b
+       LEFT JOIN trip_instances ti ON ti.id = b.trip_instance_id
        LEFT JOIN enquiries e ON e.id = b.enquiry_id
        LEFT JOIN users u ON u.id = b.created_by_user_id
        LEFT JOIN booking_payments bp ON bp.booking_id = b.id
        ${whereClause}
-       GROUP BY b.id, e.enquiry_number, u.full_name, u.email
+       GROUP BY b.id, ti.display_date, ti.starts_on, e.enquiry_number, u.full_name, u.email
        ORDER BY b.created_at DESC
        LIMIT $${dataParams.length - 1} OFFSET $${dataParams.length}`,
       dataParams
@@ -476,7 +478,8 @@ export const bookingsRepository = {
               b.primary_contact_name, b.primary_contact_phone, b.primary_contact_email,
               b.destination_id, b.destination_label,
               b.trip_id, b.trip_label,
-              b.trip_instance_id, b.trip_date_label,
+              b.trip_instance_id,
+              COALESCE(b.trip_date_label, ti.display_date, ti.starts_on::text) as trip_date_label,
               b.traveller_count, b.final_amount_paise,
               b.payment_status, b.status, b.details_token,
               b.completed_at::text, b.cancelled_at::text,
@@ -484,6 +487,7 @@ export const bookingsRepository = {
               b.booking_date::text, b.created_at::text, b.updated_at::text,
               COALESCE(u.full_name, u.email, 'Admin') as created_by_name
        FROM bookings b
+       LEFT JOIN trip_instances ti ON ti.id = b.trip_instance_id
        LEFT JOIN enquiries e ON e.id = b.enquiry_id
        LEFT JOIN users u ON u.id = b.created_by_user_id
        WHERE ${whereCond}
@@ -661,7 +665,8 @@ export const bookingsRepository = {
   async saveTravellers(
     bookingId: string,
     travellers: SaveTravellerItem[],
-    actor: { type: "customer" | "admin"; userId?: string; name?: string }
+    actor: { type: "customer" | "admin"; userId?: string; name?: string },
+    options?: { travellerCount?: number; totalAmount?: number }
   ): Promise<BookingDto> {
     const existing = await this.findById(bookingId);
     if (!existing) {
@@ -699,13 +704,31 @@ export const bookingsRepository = {
       );
     }
 
+    // Determine new traveller count:
+    // If actor is admin and travellerCount is provided, use that.
+    // Otherwise, ensure travellerCount is at least the number of travellers entered.
+    const newCount = options?.travellerCount
+      ? Math.max(1, options.travellerCount)
+      : Math.max(existing.travellerCount, travellers.filter((t) => t.fullName && t.fullName.trim()).length);
+
+    const countChanged = newCount !== existing.travellerCount;
+    const newAmountPaise = options?.totalAmount !== undefined ? Math.round(options.totalAmount * 100) : existing.finalAmountPaise;
+
     // Transition status to details_received if it was awaiting_traveller_details or draft
+    let newStatus = existing.status;
     if (existing.status === "awaiting_traveller_details" || existing.status === "draft") {
-      await query(
-        `UPDATE bookings SET status = 'details_received', updated_at = now() WHERE id = $1`,
-        [existing.id]
-      );
+      newStatus = "details_received";
     }
+
+    await query(
+      `UPDATE bookings SET
+        traveller_count = $1,
+        final_amount_paise = $2,
+        status = $3,
+        updated_at = now()
+       WHERE id = $4`,
+      [newCount, newAmountPaise, newStatus, existing.id]
+    );
 
     // Log timeline event
     if (actor.type === "customer") {
@@ -716,7 +739,7 @@ export const bookingsRepository = {
           existing.id,
           existing.status,
           JSON.stringify({
-            travellerCount: travellers.length,
+            travellerCount: newCount,
             submittedVia: "customer_portal"
           })
         ]
@@ -728,13 +751,126 @@ export const bookingsRepository = {
         [
           existing.id,
           JSON.stringify({
-            travellerCount: travellers.length,
+            travellerCount: newCount,
+            oldCount: existing.travellerCount,
             updatedByName: actor.name || "Admin"
           }),
           await resolveValidUserId(actor.userId)
         ]
       ).catch(() => {});
     }
+
+    const updated = await this.findById(existing.id);
+    return updated!;
+  },
+
+  async updateBooking(
+    bookingId: string,
+    input: {
+      travellerCount?: number;
+      totalAmount?: number;
+      primaryContactName?: string;
+      primaryContactPhone?: string;
+      primaryContactEmail?: string | null;
+      tripInstanceId?: string | null;
+      tripDateLabel?: string | null;
+      internalNotes?: string | null;
+      status?: BookingStatus;
+    },
+    actor: { userId?: string; name?: string }
+  ): Promise<BookingDto> {
+    const existing = await this.findById(bookingId);
+    if (!existing) {
+      throw new AppError(404, "NOT_FOUND", "Booking not found");
+    }
+
+    const updates: string[] = ["updated_at = now()"];
+    const params: any[] = [existing.id];
+    const detailsObj: Record<string, any> = {};
+
+    if (input.travellerCount !== undefined && input.travellerCount > 0) {
+      params.push(input.travellerCount);
+      updates.push(`traveller_count = $${params.length}`);
+      detailsObj.oldTravellerCount = existing.travellerCount;
+      detailsObj.newTravellerCount = input.travellerCount;
+    }
+
+    if (input.totalAmount !== undefined && input.totalAmount >= 0) {
+      params.push(Math.round(input.totalAmount * 100));
+      updates.push(`final_amount_paise = $${params.length}`);
+      detailsObj.oldTotalAmount = existing.totalAmount;
+      detailsObj.newTotalAmount = input.totalAmount;
+    }
+
+    if (input.primaryContactName !== undefined && input.primaryContactName.trim()) {
+      params.push(input.primaryContactName.trim());
+      updates.push(`primary_contact_name = $${params.length}`);
+    }
+
+    if (input.primaryContactPhone !== undefined && input.primaryContactPhone.trim()) {
+      params.push(input.primaryContactPhone.trim());
+      updates.push(`primary_contact_phone = $${params.length}`);
+    }
+
+    if (input.primaryContactEmail !== undefined) {
+      params.push(input.primaryContactEmail?.trim() || null);
+      updates.push(`primary_contact_email = $${params.length}`);
+    }
+
+    if (input.tripInstanceId !== undefined) {
+      if (input.tripInstanceId && UUID_REGEX.test(input.tripInstanceId)) {
+        const instRes = await query<{ id: string; starts_on: string; display_date: string | null }>(
+          `SELECT id, starts_on::text, display_date FROM trip_instances WHERE id = $1 LIMIT 1`,
+          [input.tripInstanceId]
+        );
+        if (instRes.rows.length > 0) {
+          params.push(instRes.rows[0].id);
+          updates.push(`trip_instance_id = $${params.length}`);
+          if (!input.tripDateLabel) {
+            params.push(instRes.rows[0].display_date || instRes.rows[0].starts_on);
+            updates.push(`trip_date_label = $${params.length}`);
+          }
+        }
+      } else if (!input.tripInstanceId) {
+        params.push(null);
+        updates.push(`trip_instance_id = $${params.length}`);
+      }
+    }
+
+    if (input.tripDateLabel !== undefined) {
+      params.push(input.tripDateLabel?.trim() || null);
+      updates.push(`trip_date_label = $${params.length}`);
+    }
+
+    if (input.internalNotes !== undefined) {
+      params.push(input.internalNotes?.trim() || null);
+      updates.push(`internal_notes = $${params.length}`);
+    }
+
+    if (input.status !== undefined) {
+      params.push(input.status);
+      updates.push(`status = $${params.length}`);
+    }
+
+    await query(
+      `UPDATE bookings SET ${updates.join(", ")} WHERE id = $1`,
+      params
+    );
+
+    const actorUserId = await resolveValidUserId(actor?.userId);
+
+    await query(
+      `INSERT INTO booking_events (booking_id, event_type, title, details, actor_type, created_by_user_id)
+       VALUES ($1, 'booking_updated', 'Booking details updated by admin', $2, 'admin', $3)`,
+      [
+        existing.id,
+        JSON.stringify({
+          updatedByName: actor.name || "Admin",
+          ...detailsObj
+        }),
+        actorUserId
+      ]
+    ).catch(() => {});
 
     const updated = await this.findById(existing.id);
     return updated!;

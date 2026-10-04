@@ -57,7 +57,6 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
-  const [destinationId, setDestinationId] = useState("");
   const [tripId, setTripId] = useState("");
   const [departureId, setDepartureId] = useState("");
   const [travellers, setTravellers] = useState(2);
@@ -67,24 +66,38 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
 
-  // Filter trips for selected destination
-  const filteredTrips = useMemo(() => {
-    if (!destinationId) return trips;
-    return trips.filter((t) => {
-      const destMatch = t.destination === destinationId;
-      const arrayMatch = Array.isArray(t.destinations) && t.destinations.includes(destinationId);
-      return destMatch || arrayMatch;
-    });
-  }, [trips, destinationId]);
+  // Only active packages (exclude archived and draft trips)
+  const activeTrips = useMemo(() => {
+    return trips
+      .filter((t) => t.status === "published" || t.status === "active" || (!t.status && t.status !== "archived" && t.status !== "draft"))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [trips]);
 
-  // Filter available upcoming departures for selected trip
+  // Filter available active upcoming departures for selected trip
   const availableDepartures = useMemo(() => {
     if (!tripId) return [];
-    return tripInstances.filter((ti) => ti.tripId === tripId && ti.status === "upcoming");
+    return tripInstances
+      .filter((ti) => ti.tripId === tripId && ti.status === "upcoming")
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [tripInstances, tripId]);
 
   const selectedTrip = trips.find((t) => t.id === tripId);
-  const selectedDest = destinations.find((d) => d.id === destinationId);
+  const selectedDest = useMemo(() => {
+    if (!selectedTrip) return null;
+    return (
+      destinations.find(
+        (d) =>
+          d.id === selectedTrip.destinationId ||
+          d.id === selectedTrip.destination ||
+          d.slug === selectedTrip.destination ||
+          (Array.isArray(selectedTrip.destinations) &&
+            selectedTrip.destinations.some((td) => td.id === d.id || td.slug === d.id))
+      ) ||
+      (selectedTrip.destinations?.[0]
+        ? { id: selectedTrip.destinations[0].id, name: selectedTrip.destinations[0].name }
+        : null)
+    );
+  }, [destinations, selectedTrip]);
   const selectedDeparture = availableDepartures.find((d) => d.id === departureId);
 
   // Auto-fill price suggestion when departure is chosen
@@ -107,6 +120,8 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
     const errs: string[] = [];
     if (!name.trim()) errs.push("Customer name is required.");
     if (!phone.trim()) errs.push("Customer phone number is required.");
+    if (!tripId) errs.push("Please select a trip/package.");
+    if (!departureId) errs.push("Please select a scheduled departure.");
     setErrors(errs);
     if (errs.length > 0) return;
 
@@ -117,8 +132,8 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
         primaryContactName: name.trim(),
         primaryContactPhone: phone.trim(),
         primaryContactEmail: email.trim() || undefined,
-        destinationId: selectedDest?.id,
-        destinationLabel: selectedDest?.name || undefined,
+        destinationId: selectedDest?.id || selectedTrip?.destinationId || (typeof selectedTrip?.destination === "string" ? selectedTrip.destination : undefined),
+        destinationLabel: selectedDest?.name || selectedTrip?.destinations?.[0]?.name || (typeof selectedTrip?.destination === "string" ? selectedTrip.destination : undefined),
         tripId: selectedTrip?.id,
         tripName: selectedTrip?.name || undefined,
         tripInstanceId: selectedDeparture?.id,
@@ -221,61 +236,56 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
             </div>
           </div>
 
-          {/* Trip Hierarchy */}
+          {/* Trip & Departure Selection */}
           <div className="border-t border-[#e2e8f0] pt-3.5 space-y-3">
             <div className="font-semibold text-[#0f2922] uppercase tracking-wider text-[11px]">
               Trip & Departure Selection
             </div>
 
             <div>
-              <label className="block text-[#4a5568] font-semibold mb-1">1. Destination</label>
-              <select
-                value={destinationId}
-                onChange={(e) => {
-                  setDestinationId(e.target.value);
-                  setTripId("");
-                  setDepartureId("");
-                }}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
-              >
-                <option value="">Select destination...</option>
-                {destinations.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-[#4a5568] font-semibold mb-1">2. Trip / Package</label>
+              <label className="block text-[#4a5568] font-semibold mb-1">
+                1. Trip / Package <span className="text-red-500">*</span>
+              </label>
               <select
                 value={tripId}
-                disabled={filteredTrips.length === 0}
                 onChange={(e) => {
                   setTripId(e.target.value);
                   setDepartureId("");
                 }}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922] disabled:bg-gray-50"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
               >
                 <option value="">Select package...</option>
-                {filteredTrips.map((t) => (
+                {activeTrips.map((t) => (
                   <option key={t.id} value={t.id}>
                     {t.name}
                   </option>
                 ))}
               </select>
+              {selectedDest && (
+                <div className="text-[11px] text-[#718096] mt-1.5 flex items-center gap-1.5">
+                  <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                  <span>Destination: <strong className="text-[#0f2922]">{selectedDest.name}</strong></span>
+                </div>
+              )}
             </div>
 
             <div>
-              <label className="block text-[#4a5568] font-semibold mb-1">3. Scheduled Departure</label>
+              <label className="block text-[#4a5568] font-semibold mb-1">
+                2. Scheduled Departure <span className="text-red-500">*</span>
+              </label>
               <select
                 value={departureId}
                 disabled={!tripId || availableDepartures.length === 0}
                 onChange={(e) => setDepartureId(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922] disabled:bg-gray-50"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922] disabled:bg-gray-50 disabled:text-[#a0aec0]"
               >
-                <option value="">Select departure...</option>
+                <option value="">
+                  {!tripId
+                    ? "Select a package first..."
+                    : availableDepartures.length === 0
+                    ? "No upcoming active departures for this package"
+                    : "Select departure..."}
+                </option>
                 {availableDepartures.map((ti) => (
                   <option key={ti.id} value={ti.id}>
                     {ti.displayDate || ti.date} — ₹{ti.price.toLocaleString("en-IN")} ({ti.spotsLeft} spots left)
@@ -285,7 +295,9 @@ function AddBookingModal({ onClose, onCreated }: AddBookingModalProps) {
             </div>
 
             <div>
-              <label className="block text-[#4a5568] font-semibold mb-1">4. Number of Travellers</label>
+              <label className="block text-[#4a5568] font-semibold mb-1">
+                3. Number of Travellers <span className="text-red-500">*</span>
+              </label>
               <input
                 type="number"
                 min="1"
@@ -373,10 +385,13 @@ interface Props {
 
 export default function AdminBookings({ setAdminPage }: Props = {}) {
   const navigate = useNavigate();
-  const { showToast } = useApp();
+  const { showToast, trips, tripInstances } = useApp();
   const [bookings, setBookings] = useState<BookingResponse[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [tripFilter, setTripFilter] = useState<string>("all");
+  const [departureFilter, setDepartureFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [addModalOpen, setAddModalOpen] = useState(false);
@@ -394,15 +409,86 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
     }
   }, []);
 
+  const handleRefresh = async () => {
+    if (isRefreshing) return;
+    setIsRefreshing(true);
+    try {
+      const data = await bookingsApi.list();
+      setBookings(data.bookings || []);
+    } catch (err) {
+      console.warn("Failed to refresh bookings:", err);
+    } finally {
+      setTimeout(() => {
+        setIsRefreshing(false);
+      }, 500);
+    }
+  };
+
   useEffect(() => {
     void loadBookings();
   }, [loadBookings]);
+
+  // Unique list of trips that exist across all trips or bookings
+  const tripOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    trips.forEach((t) => map.set(t.id, t.name));
+    bookings.forEach((b) => {
+      if (b.tripId && b.tripName) map.set(b.tripId, b.tripName);
+      else if (b.tripName && !map.has(b.tripName)) map.set(b.tripName, b.tripName);
+    });
+    return Array.from(map.entries()).map(([id, name]) => ({ id, name }));
+  }, [trips, bookings]);
+
+  // Departures matching the selected trip (only populated when a specific package is selected)
+  const departureOptions = useMemo(() => {
+    if (tripFilter === "all") {
+      return [];
+    }
+
+    // Filter instances for the selected trip
+    const matchingInstances = tripInstances.filter((ti) => {
+      return (
+        ti.tripId === tripFilter ||
+        (trips.find((t) => t.id === tripFilter)?.name?.toLowerCase() === ti.tripTitle?.toLowerCase())
+      );
+    });
+
+    const map = new Map<string, string>();
+    matchingInstances.forEach((ti) => {
+      map.set(ti.id, ti.displayDate || ti.date);
+    });
+
+    // Also include any bookings with this trip that have custom tripDateLabels
+    bookings.forEach((b) => {
+      const matchesTrip = b.tripId === tripFilter || b.tripName === tripFilter;
+      if (matchesTrip) {
+        if (b.tripInstanceId && !map.has(b.tripInstanceId)) {
+          map.set(b.tripInstanceId, b.tripDateLabel || "Scheduled");
+        } else if (b.tripDateLabel && !map.has(b.tripDateLabel)) {
+          map.set(b.tripDateLabel, b.tripDateLabel);
+        }
+      }
+    });
+
+    return Array.from(map.entries()).map(([id, label]) => ({ id, label }));
+  }, [tripFilter, tripInstances, trips, bookings]);
 
   // Filtering
   const filtered = useMemo(() => {
     return bookings.filter((b) => {
       if (statusFilter !== "all" && b.status !== statusFilter) {
         return false;
+      }
+      if (tripFilter !== "all") {
+        const matchesTrip = b.tripId === tripFilter || b.tripName === tripFilter;
+        if (!matchesTrip) return false;
+      }
+      if (departureFilter !== "all") {
+        const matchesDep =
+          b.tripInstanceId === departureFilter ||
+          b.tripDateLabel === departureFilter ||
+          (b.tripDateLabel && b.tripDateLabel.toLowerCase().includes(departureFilter.toLowerCase()));
+        if (!matchesDep) return false;
       }
       if (search.trim()) {
         const q = search.toLowerCase();
@@ -411,13 +497,14 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
         const mEmail = (b.primaryContactEmail || "").toLowerCase().includes(q);
         const mNumber = b.bookingNumber.toLowerCase().includes(q);
         const mTrip = (b.tripName || "").toLowerCase().includes(q);
-        if (!mName && !mPhone && !mEmail && !mNumber && !mTrip) {
+        const mDate = (b.tripDateLabel || "").toLowerCase().includes(q);
+        if (!mName && !mPhone && !mEmail && !mNumber && !mTrip && !mDate) {
           return false;
         }
       }
       return true;
     });
-  }, [bookings, statusFilter, search]);
+  }, [bookings, statusFilter, tripFilter, departureFilter, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PER_PAGE));
   const paginated = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
@@ -450,11 +537,17 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => void loadBookings()}
-            className="p-2 border border-[#e2e8f0] text-[#718096] hover:text-[#0f2922] hover:bg-[#f7f8f5] rounded-lg transition cursor-pointer"
+            onClick={() => void handleRefresh()}
+            disabled={isRefreshing}
+            className="p-2 border border-[#e2e8f0] text-[#718096] hover:text-[#0f2922] hover:bg-[#f7f8f5] rounded-lg transition cursor-pointer disabled:opacity-70"
             title="Refresh bookings"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg
+              className={`w-4 h-4 transition-transform ${isRefreshing ? "animate-spin text-[#0f2922]" : ""}`}
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
           </button>
@@ -470,45 +563,127 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
         </div>
       </div>
 
-      {/* Tabs + Filters */}
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-          <div className="flex gap-1 bg-[#f7f8f5] rounded-lg p-1">
-            {STATUS_TABS.map((t) => (
-              <button
-                key={t.value}
-                onClick={() => {
-                  setStatusFilter(t.value);
+      {/* Dropdown Filters + Search */}
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5 shadow-2xs">
+        <div className="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
+          {/* Dropdown Filters Row */}
+          <div className="flex flex-wrap items-center gap-2.5">
+            {/* Status Dropdown */}
+            <div className="min-w-[160px] flex-1 sm:flex-initial">
+              <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#718096] mb-1">
+                Booking Status
+              </label>
+              <select
+                value={statusFilter}
+                onChange={(e) => {
+                  setStatusFilter(e.target.value);
                   setPage(1);
                 }}
-                className={`px-3 py-1.5 rounded-md text-sm font-medium transition cursor-pointer ${
-                  statusFilter === t.value
-                    ? "bg-white text-[#0f2922] shadow-xs font-semibold"
-                    : "text-[#718096] hover:text-[#0f2922]"
-                }`}
+                className="w-full bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs font-medium text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer hover:bg-white transition"
               >
-                {t.label}
-              </button>
-            ))}
+                {STATUS_TABS.map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Trip / Package Dropdown */}
+            <div className="min-w-[200px] flex-1 sm:flex-initial">
+              <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#718096] mb-1">
+                Trip / Package
+              </label>
+              <select
+                value={tripFilter}
+                onChange={(e) => {
+                  setTripFilter(e.target.value);
+                  setDepartureFilter("all");
+                  setPage(1);
+                }}
+                className="w-full bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs font-medium text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer hover:bg-white transition"
+              >
+                <option value="all">All Packages ({tripOptions.length})</option>
+                {tripOptions.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Departure Dropdown - only shown when a package is selected */}
+            {tripFilter !== "all" && (
+              <div className="min-w-[200px] flex-1 sm:flex-initial">
+                <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#718096] mb-1">
+                  Departure Date
+                </label>
+                <select
+                  value={departureFilter}
+                  onChange={(e) => {
+                    setDepartureFilter(e.target.value);
+                    setPage(1);
+                  }}
+                  className="w-full bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs font-medium text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer hover:bg-white transition"
+                >
+                  <option value="all">All Departures ({departureOptions.length})</option>
+                  {departureOptions.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
+            {/* Reset Filters button if any filter active */}
+            {(statusFilter !== "all" || tripFilter !== "all" || departureFilter !== "all" || search) && (
+              <div className="self-end pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStatusFilter("all");
+                    setTripFilter("all");
+                    setDepartureFilter("all");
+                    setSearch("");
+                    setPage(1);
+                  }}
+                  className="text-xs text-[#e8622a] hover:underline font-semibold py-2 px-1 cursor-pointer transition flex items-center gap-1"
+                  title="Reset all filters"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  <span>Reset Filters</span>
+                </button>
+              </div>
+            )}
           </div>
-          <div className="relative sm:ml-auto">
-            <svg
-              className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-            <input
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search by name or trip..."
-              className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-sm w-60 focus:outline-none focus:border-[#0f2922] bg-white text-[#0f2922]"
-            />
+
+          {/* Search Bar Alongside */}
+          <div className="w-full lg:w-72 self-end">
+            <label className="block text-[10px] uppercase tracking-wider font-semibold text-[#718096] mb-1">
+              Search
+            </label>
+            <div className="relative">
+              <svg
+                className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+                placeholder="Search by customer, phone, trip..."
+                className="pl-9 pr-4 py-2 border border-[#e2e8f0] rounded-lg text-xs w-full focus:outline-none focus:border-[#0f2922] bg-[#f7f8f5] hover:bg-white text-[#0f2922] transition"
+              />
+            </div>
           </div>
         </div>
       </div>
