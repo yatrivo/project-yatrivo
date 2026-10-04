@@ -103,7 +103,10 @@ export function DestinationModal({
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={isSaving ? undefined : onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+      <form
+        onSubmit={handleSubmit}
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]"
+      >
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <h3 className="text-white font-semibold" style={{ fontFamily: "var(--font-serif, serif)" }}>{title}</h3>
           <button
@@ -117,8 +120,7 @@ export function DestinationModal({
             </svg>
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 overflow-hidden">
-          <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
             {errors.length > 0 && (
               <div className="bg-red-50 border border-red-200 rounded-lg px-4 py-2.5 text-red-600 text-sm space-y-1">
                 {errors.map((e, i) => <p key={i}>{e}</p>)}
@@ -431,8 +433,7 @@ export function DestinationModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>,
+      </div>,
     document.body
   );
 }

@@ -114,7 +114,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
             )
           );
         }
-        if (fresh.faqs && fresh.faqs.length > 0) {
+        if (fresh.faqs !== undefined) {
           setFaqs(fresh.faqs);
         }
         if (fresh.itinerary !== undefined) {
