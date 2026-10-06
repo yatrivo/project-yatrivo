@@ -42,6 +42,7 @@ interface EditModalProps {
 }
 
 function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
+  const bookedSpots = Math.max(0, instance.spotsTotal - instance.spotsLeft);
   const [price, setPrice] = useState(String(instance.price));
   const [spotsTotal, setSpotsTotal] = useState(String(instance.spotsTotal));
   const [spotsLeft, setSpotsLeft] = useState(String(instance.spotsLeft));
@@ -101,13 +102,20 @@ function EditModal({ instance, tripName, onSave, onClose }: EditModalProps) {
             </div>
             <div>
               <label className="block text-xs font-semibold text-[#4a5568] mb-1">Total Spots</label>
-              <input type="number" value={spotsTotal} onChange={(e) => setSpotsTotal(e.target.value)}
+              <input type="number" value={spotsTotal} onChange={(e) => {
+                setSpotsTotal(e.target.value);
+                const newTotal = Number(e.target.value) || 0;
+                setSpotsLeft(String(Math.max(0, newTotal - bookedSpots)));
+              }}
                 className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4a5568] mb-1">Spots Left</label>
-              <input type="number" value={spotsLeft} onChange={(e) => setSpotsLeft(e.target.value)}
-                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]" />
+              <label className="block text-xs font-semibold text-[#4a5568] mb-1" title="Remaining capacity calculated from active bookings">
+                Spots Left <span className="text-[10px] text-[#718096] font-normal">({bookedSpots} booked)</span>
+              </label>
+              <input type="number" value={spotsLeft} readOnly disabled
+                className="w-full border border-[#e2e8f0] bg-[#f7f8f5] rounded-lg px-3 py-2 text-sm text-[#718096] cursor-not-allowed"
+                title="Spots Left is automatically calculated as Total Spots minus active Booked Spots." />
             </div>
           </div>
           <div>

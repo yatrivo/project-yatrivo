@@ -4,6 +4,20 @@ import { bookingsRepository } from "./bookings.repository";
 import type { BookingDto } from "./bookings.types";
 import { AppError } from "../../errors/AppError";
 import { recordAuditLog } from "../audit/audit.service";
+import { redis } from "../../cache/redis";
+
+async function invalidateTripCachesForBooking(tripId?: string | null): Promise<void> {
+  if (!redis.configured) return;
+  try {
+    const keys = ["trips:list:public"];
+    if (tripId) {
+      keys.push(`trip:${tripId}`);
+    }
+    await Promise.all(keys.map((k) => redis.del(k)));
+  } catch {
+    // Ignore Redis errors
+  }
+}
 
 const createBookingSchema = z.object({
   enquiryId: z.string().optional().or(z.literal("")),
@@ -158,6 +172,8 @@ export const bookingsController = {
       booking
     });
 
+    await invalidateTripCachesForBooking(booking.tripId);
+
     await recordAuditLog({
       req,
       action: "Created Booking",
@@ -233,6 +249,8 @@ export const bookingsController = {
       booking: toCustomerSafeBooking(updated)
     });
 
+    await invalidateTripCachesForBooking(updated.tripId);
+
     await recordAuditLog({
       req,
       actorNameSnapshot: `Customer: ${booking.primaryContactName}`,
@@ -279,6 +297,8 @@ export const bookingsController = {
       booking: updated
     });
 
+    await invalidateTripCachesForBooking(updated.tripId);
+
     await recordAuditLog({
       req,
       action: "Updated Travellers",
@@ -322,6 +342,8 @@ export const bookingsController = {
       booking: updated
     });
 
+    await invalidateTripCachesForBooking(updated.tripId);
+
     await recordAuditLog({
       req,
       action: "Updated Booking",
@@ -361,6 +383,8 @@ export const bookingsController = {
       success: true,
       booking: updated
     });
+
+    await invalidateTripCachesForBooking(updated.tripId);
 
     await recordAuditLog({
       req,

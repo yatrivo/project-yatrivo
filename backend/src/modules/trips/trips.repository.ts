@@ -430,10 +430,13 @@ export const tripsRepository = {
       is_cancelled: boolean;
       completed_at: string | null;
       notes: string | null;
+      remaining_capacity: number | string | null;
     }>(
       `SELECT ti.id, ti.trip_id, ti.starts_on::text, ti.ends_on::text, ti.display_date,
-              ti.price_paise, ti.spots_total, ti.is_cancelled, ti.completed_at::text, ti.notes
+              ti.price_paise, ti.spots_total, ti.is_cancelled, ti.completed_at::text, ti.notes,
+              c.remaining_capacity
        FROM trip_instances ti
+       LEFT JOIN trip_instance_capacity c ON c.trip_instance_id = ti.id
        WHERE ti.trip_id = ANY($1)
        ORDER BY ti.starts_on ASC`,
       [tripIds]
@@ -443,6 +446,9 @@ export const tripsRepository = {
     for (const dep of depRows.rows) {
       const arr = depsByTripId.get(dep.trip_id) || [];
       const status = dep.is_cancelled ? "cancelled" : dep.completed_at ? "completed" : "upcoming";
+      const spotsLeft = dep.remaining_capacity !== null && dep.remaining_capacity !== undefined
+        ? Number(dep.remaining_capacity)
+        : dep.spots_total;
       arr.push({
         id: dep.id,
         tripId: dep.trip_id,
@@ -450,7 +456,7 @@ export const tripsRepository = {
         displayDate: dep.display_date || dep.starts_on,
         price: Math.round(dep.price_paise / 100),
         spotsTotal: dep.spots_total,
-        spotsLeft: dep.spots_total, // default without bookings
+        spotsLeft,
         status,
         notes: dep.notes
       });
@@ -658,7 +664,7 @@ export const tripsRepository = {
 
     const departures: TripDepartureDto[] = depRows.rows.map((dep) => {
       const status = dep.is_cancelled ? "cancelled" : dep.completed_at ? "completed" : "upcoming";
-      const spotsLeft = dep.remaining_capacity !== null && dep.remaining_capacity !== undefined ? dep.remaining_capacity : dep.spots_total;
+      const spotsLeft = dep.remaining_capacity !== null && dep.remaining_capacity !== undefined ? Number(dep.remaining_capacity) : dep.spots_total;
       return {
         id: dep.id,
         tripId: r.id,
@@ -1221,7 +1227,7 @@ export const tripsRepository = {
 
     const r = updated.rows[0];
     const status = r.is_cancelled ? "cancelled" : r.completed_at ? "completed" : "upcoming";
-    const spotsLeft = r.remaining_capacity !== null && r.remaining_capacity !== undefined ? r.remaining_capacity : r.spots_total;
+    const spotsLeft = r.remaining_capacity !== null && r.remaining_capacity !== undefined ? Number(r.remaining_capacity) : r.spots_total;
 
     return {
       id: r.id,

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, Link } from "react-router-dom";
+import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { mediaApi } from "@/api/media";
 import { reviewsApi, type TokenContextResponse } from "@/api/reviews";
@@ -55,8 +55,9 @@ function StarPicker({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 export default function ReviewPage() {
+  const { token: pathToken } = useParams<{ token?: string }>();
   const [searchParams] = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const token = pathToken || searchParams.get("token") || "";
   const { trips } = useApp();
 
   // State for token data
