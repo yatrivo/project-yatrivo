@@ -189,11 +189,10 @@ export default function AdminDepartureDetail() {
 
   const handleToggleSelectAll = () => {
     if (!dep) return;
-    const eligible = dep.enrolledTravellers.filter((t) => t.reviewRequestStatus !== "submitted");
-    if (selectedBookingIds.size === eligible.length) {
+    if (selectedBookingIds.size === dep.enrolledTravellers.length) {
       setSelectedBookingIds(new Set());
     } else {
-      setSelectedBookingIds(new Set(eligible.map((t) => t.id)));
+      setSelectedBookingIds(new Set(dep.enrolledTravellers.map((t) => t.id)));
     }
   };
 
@@ -328,20 +327,20 @@ export default function AdminDepartureDetail() {
           <p className="text-xs text-[#a0aec0] mt-1 font-mono">Departure ID: {dep.id}</p>
         </div>
 
-        {dep.status === "completed" && (
-          <button
-            onClick={() => {
-              setCreatedRequests(null);
-              setShowAskModal(true);
-            }}
-            className="inline-flex items-center gap-2 bg-[#e8622a] hover:bg-[#d0521c] text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition transform active:scale-98 cursor-pointer"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            Ask for Reviews ({dep.summary.totalEligibleTravellers})
-          </button>
-        )}
+        <button
+          onClick={() => {
+            setSelectedBookingIds(new Set(dep.enrolledTravellers.map((t) => t.id)));
+            setPreviewBookingId(dep.enrolledTravellers[0]?.id || null);
+            setCreatedRequests(null);
+            setShowAskModal(true);
+          }}
+          className="inline-flex items-center gap-2 bg-[#e8622a] hover:bg-[#d0521c] text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition transform active:scale-98 cursor-pointer"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          </svg>
+          Send Review Requests & Links
+        </button>
       </div>
 
       {/* Summary Card */}
@@ -428,7 +427,11 @@ export default function AdminDepartureDetail() {
               </div>
               <div className="border border-[#e2e8f0] p-3 rounded-xl">
                 <div className="text-xl font-bold text-emerald-600">{dep.summary.reviewsReceived}</div>
-                <div className="text-[11px] text-[#718096] mt-0.5">Reviews Received</div>
+                <div className="text-[11px] text-[#718096] mt-0.5">
+                  {dep.summary.reviewsPendingApproval > 0
+                    ? `${dep.summary.reviewsPendingApproval} Pending Approval`
+                    : `${dep.summary.reviewsPublished} Published`}
+                </div>
               </div>
             </div>
 
@@ -449,64 +452,6 @@ export default function AdminDepartureDetail() {
           </div>
         </div>
       </div>
-
-      {/* Post-Trip Reviews Operational Section (if completed) */}
-      {dep.status === "completed" && (
-        <div className="bg-gradient-to-r from-[#0f2922]/5 via-white to-amber-50/30 rounded-2xl border border-[#0f2922]/15 p-6 shadow-xs">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-                <h2 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
-                  Post-Trip Review Operations
-                </h2>
-              </div>
-              <p className="text-xs text-[#718096] mt-0.5">
-                This departure has concluded. Engage enrolled travellers to gather reviews and publish customer stories.
-              </p>
-            </div>
-            <button
-              onClick={() => {
-                setCreatedRequests(null);
-                setShowAskModal(true);
-              }}
-              className="inline-flex items-center gap-2 bg-[#0f2922] hover:bg-[#1b4332] text-white px-4 py-2.5 rounded-xl font-medium text-xs shadow-sm transition cursor-pointer self-start md:self-auto"
-            >
-              <svg className="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-              </svg>
-              Compose & Send Review Requests
-            </button>
-          </div>
-
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5">
-              <div className="text-xs text-[#718096] font-medium">Eligible Travellers</div>
-              <div className="text-2xl font-bold text-[#0f2922] mt-1">{dep.summary.totalEligibleTravellers}</div>
-              <div className="text-[10px] text-[#a0aec0] mt-0.5">Confirmed bookings</div>
-            </div>
-            <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5">
-              <div className="text-xs text-[#718096] font-medium">Requests Sent</div>
-              <div className="text-2xl font-bold text-amber-600 mt-1">{dep.summary.reviewRequestsSent}</div>
-              <div className="text-[10px] text-[#a0aec0] mt-0.5">
-                {dep.summary.totalEligibleTravellers > 0
-                  ? `${Math.round((dep.summary.reviewRequestsSent / dep.summary.totalEligibleTravellers) * 100)}% reach`
-                  : "0%"}
-              </div>
-            </div>
-            <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5">
-              <div className="text-xs text-[#718096] font-medium">Reviews Received</div>
-              <div className="text-2xl font-bold text-emerald-600 mt-1">{dep.summary.reviewsReceived}</div>
-              <div className="text-[10px] text-[#a0aec0] mt-0.5">{dep.summary.reviewsPublished} published</div>
-            </div>
-            <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5">
-              <div className="text-xs text-[#718096] font-medium">Pending Approval</div>
-              <div className="text-2xl font-bold text-purple-600 mt-1">{dep.summary.reviewsPendingApproval}</div>
-              <div className="text-[10px] text-[#a0aec0] mt-0.5">Awaiting moderation</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Enrolled Travellers Table */}
       <div className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden shadow-xs">
@@ -879,11 +824,11 @@ export default function AdminDepartureDetail() {
                         <div>
                           {traveller.reviewRequestStatus === "submitted" ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-100 text-emerald-800">
-                              Already Reviewed
+                              Reviewed (Will Regenerate)
                             </span>
                           ) : traveller.reviewRequestStatus === "sent" ? (
                             <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-100 text-amber-800">
-                              Previously Sent
+                              Active Link (Can Resend)
                             </span>
                           ) : (
                             <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-600">

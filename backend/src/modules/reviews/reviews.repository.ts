@@ -12,6 +12,7 @@ import type {
   ReviewRequestDto,
   ReviewRequestRecord,
   ReviewStatus,
+  ReviewVerificationDto,
   SubmitReviewInput
 } from "./reviews.types";
 
@@ -484,19 +485,7 @@ export const reviewsRepository = {
     };
   },
 
-  async findRequestByToken(token: string): Promise<{
-    request: ReviewRequestDto;
-    tripName: string;
-    packageName: string;
-    destinationName: string;
-    destinationSlug: string;
-    tripDate: string;
-    tripId: string;
-    tripInstanceId: string;
-    bookingNumber: string;
-    customerName: string;
-    isUsed: boolean;
-  } | null> {
+  async findRequestByToken(token: string): Promise<ReviewVerificationDto | null> {
     const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
     const res = await query<{
       id: string;
@@ -514,6 +503,10 @@ export const reviewsRepository = {
       sent_at: string | null;
       created_at: string;
       trip_name: string;
+      trip_slug: string;
+      trip_description: string | null;
+      cover_image_url: string | null;
+      duration_label: string | null;
       destination_name: string | null;
       destination_slug: string | null;
       display_date: string;
@@ -521,6 +514,10 @@ export const reviewsRepository = {
     }>(
       `SELECT rr.*,
               t.name as trip_name,
+              t.slug as trip_slug,
+              t.short_description as trip_description,
+              t.cover_image_url,
+              t.duration_label,
               d.name as destination_name,
               d.slug as destination_slug,
               ti.display_date,
@@ -539,7 +536,49 @@ export const reviewsRepository = {
     const r = res.rows[0];
     const isUsed = Boolean(r.used_at || r.status === "submitted");
 
+    let existingReview = null;
+    if (isUsed) {
+      const existingRes = await query<{
+        rating: number;
+        body: string;
+        photo_urls: string[] | null;
+        submitted_at: string;
+      }>(
+        `SELECT rating, body, photo_urls, submitted_at::text
+         FROM reviews
+         WHERE review_request_id = $1
+         ORDER BY submitted_at DESC
+         LIMIT 1`,
+        [r.id]
+      );
+      if (existingRes.rows.length > 0) {
+        const er = existingRes.rows[0];
+        existingReview = {
+          rating: er.rating,
+          body: er.body,
+          photoUrls: er.photo_urls || [],
+          submittedAt: er.submitted_at
+        };
+      }
+    }
+
     return {
+      token: r.token || token,
+      customerName: r.customer_name,
+      customerPhone: r.customer_phone,
+      tripName: r.trip_name,
+      tripSlug: r.trip_slug || "",
+      tripDescription: r.trip_description || null,
+      coverImage: r.cover_image_url || null,
+      destinationName: r.destination_name || "Uttarakhand",
+      destinationSlug: r.destination_slug || "uttarakhand",
+      departureDate: r.display_date,
+      tripDate: r.display_date,
+      duration: r.duration_label,
+      bookingNumber: r.booking_number,
+      alreadySubmitted: isUsed,
+      isUsed,
+      existingReview,
       request: {
         id: r.id,
         token: r.token || token,
@@ -552,17 +591,7 @@ export const reviewsRepository = {
         status: isUsed ? "submitted" : "pending",
         sentAt: r.sent_at ? new Date(r.sent_at).toISOString() : null,
         createdAt: new Date(r.created_at).toISOString()
-      },
-      tripName: r.trip_name,
-      packageName: r.trip_name,
-      destinationName: r.destination_name || "Uttarakhand",
-      destinationSlug: r.destination_slug || "uttarakhand",
-      tripDate: r.display_date,
-      tripId: r.trip_id,
-      tripInstanceId: r.trip_instance_id,
-      bookingNumber: r.booking_number,
-      customerName: r.customer_name,
-      isUsed
+      }
     };
   },
 

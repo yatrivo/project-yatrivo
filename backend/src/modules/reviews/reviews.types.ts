@@ -163,3 +163,28 @@ export interface SubmitReviewInput {
   reviewerName?: string;
   photos?: string[];
 }
+
+export interface ReviewVerificationDto {
+  token: string;
+  customerName: string;
+  customerPhone?: string | null;
+  tripName: string;
+  tripSlug: string;
+  tripDescription?: string | null;
+  coverImage?: string | null;
+  destinationName: string;
+  destinationSlug: string;
+  departureDate: string;
+  tripDate: string;
+  duration?: string | null;
+  bookingNumber: string;
+  alreadySubmitted: boolean;
+  isUsed: boolean;
+  existingReview?: {
+    rating: number;
+    body: string;
+    photoUrls: string[];
+    submittedAt: string;
+  } | null;
+  request: ReviewRequestDto;
+}
