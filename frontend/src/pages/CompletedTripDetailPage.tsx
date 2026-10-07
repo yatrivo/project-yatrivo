@@ -20,6 +20,7 @@ export default function CompletedTripDetailPage() {
   const { instanceId } = useParams<{ instanceId: string }>();
   const { pageParams, openEnquiryModal, tripInstances, trips, destinations, reviews } = useApp();
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
 
   const currentId = instanceId || pageParams.tripInstanceId;
   const instance = tripInstances.find((i) => i.id === currentId);
@@ -57,10 +58,36 @@ export default function CompletedTripDetailPage() {
     );
   }
 
-  const destReviews = reviews.filter(
-    (r) => r.destination === destination.id && r.status === "published"
+  const instanceReviews = reviews.filter(
+    (r) => r.status === "published" && r.tripInstanceId === instance.id
   );
-  const displayedReviews = showAllReviews ? destReviews : destReviews.slice(0, 4);
+  const tripReviews = reviews.filter(
+    (r) => r.status === "published" && (r.tripId === trip.id || (trip.slug && r.tripId === trip.slug))
+  );
+  const destReviews = reviews.filter(
+    (r) =>
+      r.status === "published" &&
+      (r.destinationId === destination.id ||
+        (destination.slug && r.destinationSlug === destination.slug) ||
+        r.destination === destination.name ||
+        r.destination === destination.id)
+  );
+
+  const relevantReviews =
+    instanceReviews.length > 0
+      ? instanceReviews
+      : tripReviews.length > 0
+      ? tripReviews
+      : destReviews;
+
+  const reviewsHeading =
+    instanceReviews.length > 0
+      ? `Reviews from This Departure (${instance.displayDate})`
+      : tripReviews.length > 0
+      ? `Reviews for ${trip.name}`
+      : `Reviews for ${destination.name}`;
+
+  const displayedReviews = showAllReviews ? relevantReviews : relevantReviews.slice(0, 4);
 
   return (
     <div>
@@ -102,10 +129,27 @@ export default function CompletedTripDetailPage() {
           <section>
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">MEMORIES</div>
             <h2 className="text-[#0f2922] text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>Trip Gallery</h2>
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {instance.completedPhotos.map((photo, i) => (
-                <div key={i} className="break-inside-avoid rounded-2xl overflow-hidden">
-                  <img src={photo} alt={`Trip photo ${i + 1}`} className="w-full object-cover" />
+                <div
+                  key={i}
+                  onClick={() => setLightboxPhoto(photo)}
+                  className="group relative aspect-[4/3] rounded-2xl overflow-hidden bg-[#f7f8f5] border border-[#e2e8f0] shadow-xs hover:shadow-lg transition-all duration-300 cursor-pointer"
+                >
+                  <img
+                    src={photo}
+                    alt={`Trip photo ${i + 1}`}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/25 transition-colors duration-300 flex items-center justify-center">
+                    <span className="opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 text-white text-xs px-3 py-1.5 rounded-full backdrop-blur-xs flex items-center gap-1.5 shadow-sm">
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v6m3-3H7" />
+                      </svg>
+                      View Full Photo
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
@@ -150,42 +194,70 @@ export default function CompletedTripDetailPage() {
         </section>
 
         {/* Reviews */}
-        {destReviews.length > 0 && (
-          <section>
-            <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">WHAT TRAVELLERS SAY</div>
-            <h2 className="text-[#0f2922] text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>Reviews for {destination.name}</h2>
-            <div className="space-y-4">
-              {displayedReviews.map((review) => (
-                <div key={review.id} className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-                  <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
-                      {review.avatar}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                        <div>
-                          <span className="text-[#0f2922] font-medium text-sm">{review.name}</span>
-                          <span className="text-[#4a5568] text-xs ml-2">· {review.tripName}</span>
-                        </div>
-                        <span className="text-[#4a5568] text-xs shrink-0">{new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
+        <section>
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">WHAT TRAVELLERS SAY</div>
+          <h2 className="text-[#0f2922] text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>{reviewsHeading}</h2>
+          {relevantReviews.length > 0 ? (
+            <>
+              <div className="space-y-4">
+                {displayedReviews.map((review) => (
+                  <div key={review.id} className="bg-white border border-[#e2e8f0] rounded-2xl p-5 shadow-xs">
+                    <div className="flex items-start gap-4">
+                      <div className="w-10 h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                        {review.avatar}
                       </div>
-                      <StarRating rating={review.rating} />
-                      <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic">"{review.text}"</p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
+                          <div>
+                            <span className="text-[#0f2922] font-medium text-sm">{review.name}</span>
+                            <span className="text-[#4a5568] text-xs ml-2">· {review.tripName}</span>
+                          </div>
+                          <span className="text-[#4a5568] text-xs shrink-0">
+                            {review.date ? (isNaN(Date.parse(review.date)) ? review.date : new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })) : "Recent"}
+                          </span>
+                        </div>
+                        <StarRating rating={review.rating} />
+                        <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic">"{review.text}"</p>
+                        {review.photos && review.photos.length > 0 && (
+                          <div className="flex flex-wrap gap-2 mt-3 pt-2 border-t border-[#f1f5f9]">
+                            {review.photos.map((photoUrl, pIdx) => (
+                              <a
+                                key={pIdx}
+                                href={photoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#e2e8f0] hover:opacity-90 transition-opacity"
+                              >
+                                <img
+                                  src={photoUrl}
+                                  alt={`${review.name} trip photo ${pIdx + 1}`}
+                                  className="w-full h-full object-cover"
+                                />
+                              </a>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+              {relevantReviews.length > 4 && !showAllReviews && (
+                <button
+                  onClick={() => setShowAllReviews(true)}
+                  className="mt-4 text-sm text-[#0f2922] border border-[#0f2922] px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
+                >
+                  View All {relevantReviews.length} Reviews
+                </button>
+              )}
+            </>
+          ) : (
+            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-2xl p-6 text-center text-sm text-[#718096]">
+              <p className="mb-1 text-[#0f2922] font-medium">No reviews published for this expedition yet.</p>
+              <p className="text-xs">Once verified by our team, traveller reviews and expedition memories will be featured here.</p>
             </div>
-            {destReviews.length > 4 && !showAllReviews && (
-              <button
-                onClick={() => setShowAllReviews(true)}
-                className="mt-4 text-sm text-[#0f2922] border border-[#0f2922] px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all"
-              >
-                View All {destReviews.length} Reviews
-              </button>
-            )}
-          </section>
-        )}
+          )}
+        </section>
 
         {/* CTA */}
         <section className="bg-[#0f2922] rounded-3xl p-8 sm:p-10 text-center">
@@ -204,6 +276,32 @@ export default function CompletedTripDetailPage() {
           </button>
         </section>
       </div>
+
+      {/* Lightbox Modal */}
+      {lightboxPhoto && (
+        <div
+          className="fixed inset-0 z-50 bg-black/85 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6"
+          onClick={() => setLightboxPhoto(null)}
+        >
+          <div className="relative max-w-5xl max-h-[90vh] flex flex-col items-center">
+            <button
+              onClick={() => setLightboxPhoto(null)}
+              className="absolute -top-11 right-0 text-white/80 hover:text-white p-1.5 transition cursor-pointer"
+              title="Close image"
+            >
+              <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={lightboxPhoto}
+              alt="Trip gallery preview"
+              className="max-h-[85vh] max-w-full rounded-2xl object-contain shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

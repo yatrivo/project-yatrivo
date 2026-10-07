@@ -749,11 +749,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
         id: r.id,
         name: r.reviewerName,
         tripName: r.tripName || "Himalayan Expedition",
+        tripId: r.tripId,
+        tripInstanceId: r.tripInstanceId || undefined,
         destination: r.destinationName || "Uttarakhand",
+        destinationId: r.destinationId || undefined,
+        destinationSlug: r.destinationSlug || undefined,
         rating: (r.rating || 5) as 1 | 2 | 3 | 4 | 5,
         text: r.body,
         date: r.submittedAt ? new Date(r.submittedAt).toLocaleDateString("en-US", { month: "short", year: "numeric" }) : "Recently",
         status: r.status,
+        avatar: r.reviewerName ? r.reviewerName.charAt(0).toUpperCase() : "Y",
+        photos: r.photoUrls || [],
       })));
     } catch (err) {
       console.warn("Failed to load reviews from backend:", err);

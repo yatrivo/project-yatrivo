@@ -431,9 +431,11 @@ export const tripsRepository = {
       completed_at: string | null;
       notes: string | null;
       remaining_capacity: number | string | null;
+      completed_photos: string[] | null;
     }>(
       `SELECT ti.id, ti.trip_id, ti.starts_on::text, ti.ends_on::text, ti.display_date,
               ti.price_paise, ti.spots_total, ti.is_cancelled, ti.completed_at::text, ti.notes,
+              ti.completed_photos,
               c.remaining_capacity
        FROM trip_instances ti
        LEFT JOIN trip_instance_capacity c ON c.trip_instance_id = ti.id
@@ -458,7 +460,8 @@ export const tripsRepository = {
         spotsTotal: dep.spots_total,
         spotsLeft,
         status,
-        notes: dep.notes
+        notes: dep.notes,
+        completedPhotos: dep.completed_photos || []
       });
       depsByTripId.set(dep.trip_id, arr);
     }
@@ -650,10 +653,12 @@ export const tripsRepository = {
       is_cancelled: boolean;
       completed_at: string | null;
       notes: string | null;
+      completed_photos: string[] | null;
       remaining_capacity: number | null;
     }>(
       `SELECT ti.id, ti.starts_on::text, ti.ends_on::text, ti.display_date,
               ti.price_paise, ti.spots_total, ti.is_cancelled, ti.completed_at::text, ti.notes,
+              ti.completed_photos,
               c.remaining_capacity
        FROM trip_instances ti
        LEFT JOIN trip_instance_capacity c ON c.trip_instance_id = ti.id
@@ -674,7 +679,8 @@ export const tripsRepository = {
         spotsTotal: dep.spots_total,
         spotsLeft,
         status,
-        notes: dep.notes
+        notes: dep.notes,
+        completedPhotos: dep.completed_photos || []
       };
     });
 
@@ -1150,7 +1156,8 @@ export const tripsRepository = {
       spotsTotal: row.spots_total,
       spotsLeft: row.spots_total,
       status: "upcoming",
-      notes: row.notes
+      notes: row.notes,
+      completedPhotos: []
     };
   },
 
@@ -1186,6 +1193,10 @@ export const tripsRepository = {
       params.push(input.notes || null);
       updates.push(`notes = $${params.length}`);
     }
+    if (input.completedPhotos !== undefined) {
+      params.push(input.completedPhotos);
+      updates.push(`completed_photos = $${params.length}`);
+    }
     if (input.status !== undefined) {
       if (input.status === "completed") {
         updates.push(`completed_at = now()`);
@@ -1213,11 +1224,13 @@ export const tripsRepository = {
       price_paise: number;
       spots_total: number;
       notes: string | null;
+      completed_photos: string[] | null;
       is_cancelled: boolean;
       completed_at: string | null;
       remaining_capacity: number | null;
     }>(
       `SELECT ti.id, ti.trip_id, ti.starts_on::text, ti.display_date, ti.price_paise, ti.spots_total, ti.notes,
+              ti.completed_photos,
               ti.is_cancelled, ti.completed_at::text, c.remaining_capacity
        FROM trip_instances ti
        LEFT JOIN trip_instance_capacity c ON c.trip_instance_id = ti.id
@@ -1238,7 +1251,8 @@ export const tripsRepository = {
       spotsTotal: r.spots_total,
       spotsLeft,
       status,
-      notes: r.notes
+      notes: r.notes,
+      completedPhotos: r.completed_photos || []
     };
   },
 

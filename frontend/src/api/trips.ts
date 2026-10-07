@@ -63,6 +63,7 @@ export interface UpdateDeparturePayload {
   spotsTotal?: number;
   status?: "upcoming" | "completed" | "cancelled";
   notes?: string;
+  completedPhotos?: string[];
 }
 
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {

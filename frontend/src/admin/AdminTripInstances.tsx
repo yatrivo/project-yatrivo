@@ -164,7 +164,12 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const { trips, destinations } = useApp();
   const trip = trips.find((t) => t.id === instance.tripId);
   const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
-  const [photos, setPhotos] = useState<string[]>(instance.completedPhotos ?? ["", "", ""]);
+  const [photos, setPhotos] = useState<string[]>(() => {
+    if (instance.completedPhotos && instance.completedPhotos.length > 0) {
+      return instance.completedPhotos;
+    }
+    return ["", "", ""];
+  });
 
   useEffect(() => {
     const originalOverflow = document.body.style.overflow;
@@ -188,6 +193,20 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     const next = [...photos];
     next[i] = val;
     setPhotos(next);
+  };
+
+  const addPhotoSlot = () => {
+    if (photos.length < 8) {
+      setPhotos([...photos, ""]);
+    }
+  };
+
+  const removePhotoSlot = (i: number) => {
+    if (photos.length <= 1) {
+      setPhotos([""]);
+    } else {
+      setPhotos(photos.filter((_, idx) => idx !== i));
+    }
   };
 
   return createPortal(
@@ -214,7 +233,18 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
           <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
 
           <div className="space-y-3">
-            <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
+              {photos.length < 8 && (
+                <button
+                  type="button"
+                  onClick={addPhotoSlot}
+                  className="text-[11px] text-[#e8622a] hover:text-[#c44f1c] font-semibold cursor-pointer"
+                >
+                  + Add photo
+                </button>
+              )}
+            </div>
             {photos.map((url, i) => (
               <div key={i} className="flex gap-2 items-center">
                 <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
@@ -229,6 +259,16 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
                     category: "completed_trips"
                   }}
                 />
+                {photos.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removePhotoSlot(i)}
+                    className="text-[#a0aec0] hover:text-red-500 p-1 text-xs transition cursor-pointer"
+                    title="Remove photo slot"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -310,14 +350,15 @@ export default function AdminTripInstances() {
   };
 
   const handleComplete = async (updated: TripInstance) => {
-    setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? { ...inst, status: "completed" as const } : inst)));
+    setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? { ...inst, status: "completed" as const, completedPhotos: updated.completedPhotos } : inst)));
     setCompletingInstance(null);
     try {
       await tripsApi.updateDeparture(updated.id, {
         status: "completed",
         notes: updated.notes,
+        completedPhotos: updated.completedPhotos,
       });
-      await refreshTrips();
+      await refreshTrips({ bypassCache: true });
       showToast("Trip marked as completed.", "success");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to complete departure";

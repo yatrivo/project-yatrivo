@@ -145,7 +145,7 @@ export default function TravelWithUsPage() {
               const destLabel = trip.destinations && trip.destinations.length > 0
                 ? trip.destinations.map((d) => d.name).join(", ")
                 : (destinations.find((d) => d.id === trip.destination || d.slug === trip.destination)?.name || (trip.destination && trip.destination.length > 30 ? "Uttarakhand" : trip.destination) || "Uttarakhand");
-              const coverImg = inst.completedPhotos?.[0] ?? trip.image;
+              const coverImg = trip.image;
               return (
                 <Link
                   key={inst.id}

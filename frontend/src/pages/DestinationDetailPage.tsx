@@ -38,7 +38,15 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
       t.destination === destId ||
       (dest && (t.destination === dest.id || t.destination === dest.slug)))
   );
-  const destReviews = reviews.filter((r) => (r.destination === destId || (dest && (r.destination === dest.id || r.destination === dest.slug))) && r.status === "published");
+  const destReviews = reviews.filter(
+    (r) =>
+      r.status === "published" &&
+      (r.destination === destId ||
+        (dest && r.destinationId === dest.id) ||
+        (dest?.slug && r.destinationSlug === dest.slug) ||
+        (dest && r.destination === dest.name) ||
+        (dest && (r.destination === dest.id || r.destination === dest.slug)))
+  );
 
   // Upcoming trip instances for this destination, sorted by date
   const upcomingInstances = tripInstances
