@@ -5,6 +5,7 @@ import { generateStorageKey, uploadBufferToStorage } from "../../storage/s3";
 import { validateAndProcessImage } from "../../utils/imageValidation";
 import { mediaRepository } from "../media/media.repository";
 import { reviewsRepository } from "./reviews.repository";
+import { whatsAppService } from "../../services/whatsapp/whatsapp.service";
 import type {
   DepartureOperationalDto,
   ReviewDto,
@@ -148,6 +149,22 @@ export const reviewsService = {
 
       createdRequests.push(request);
 
+      // Dispatch WhatsApp message automatically to the recipient's phone number
+      if (passengerPhone) {
+        await whatsAppService.sendMessage({
+          recipientPhone: passengerPhone,
+          message: request.customMessage,
+          type: "review_request",
+          metadata: {
+            tripInstanceId: departure.id,
+            bookingId: traveller.bookingId,
+            travellerId: traveller.travellerId,
+            customerName: passengerName,
+            reviewToken: request.token
+          }
+        });
+      }
+
       logger.info(
         {
           departureId: instanceId,
@@ -156,7 +173,7 @@ export const reviewsService = {
           customerName: passengerName,
           token: request.token
         },
-        "Review request created and prepared for WhatsApp delivery"
+        "Review request created and dispatched via WhatsApp"
       );
     }
 

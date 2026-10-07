@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
-import { reviewsApi, type DepartureOperational, type EnrolledTraveller, type ReviewItem, type ReviewRequestPreview } from "@/api/reviews";
+import { reviewsApi, type DepartureOperational, type EnrolledTraveller, type ReviewItem } from "@/api/reviews";
 
 const DEFAULT_WHATSAPP_TEMPLATE = `Hi {{customer_name}}, hope you had an unforgettable experience on the {{trip_name}} trip to {{destination}}! 🌄
 
@@ -95,7 +95,6 @@ export default function AdminDepartureDetail() {
   const [template, setTemplate] = useState(DEFAULT_WHATSAPP_TEMPLATE);
   const [previewBookingId, setPreviewBookingId] = useState<string>("");
   const [isSending, setIsSending] = useState(false);
-  const [createdRequests, setCreatedRequests] = useState<ReviewRequestPreview[] | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Photo lightbox modal
@@ -226,13 +225,13 @@ export default function AdminDepartureDetail() {
         bookingIds: Array.from(selectedBookingIds),
         template
       });
-      setCreatedRequests(res.created);
-      showToast(`Review request links generated for ${res.created.length} travellers!`, "success");
+      setShowAskModal(false);
+      showToast(`Review requests successfully sent via WhatsApp to ${res.created.length} travellers!`, "success");
       // Refresh operational data to show new sent statuses
       const refreshed = await reviewsApi.getDepartureOperational(id);
       setDep(refreshed);
     } catch (err: any) {
-      showToast(err?.message || "Failed to generate review requests.", "error");
+      showToast(err?.message || "Failed to send review requests via WhatsApp.", "error");
     } finally {
       setIsSending(false);
     }
@@ -330,16 +329,15 @@ export default function AdminDepartureDetail() {
         <button
           onClick={() => {
             setSelectedBookingIds(new Set(dep.enrolledTravellers.map((t) => t.id)));
-            setPreviewBookingId(dep.enrolledTravellers[0]?.id || null);
-            setCreatedRequests(null);
+            setPreviewBookingId(dep.enrolledTravellers[0]?.id || "");
             setShowAskModal(true);
           }}
-          className="inline-flex items-center gap-2 bg-[#e8622a] hover:bg-[#d0521c] text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition transform active:scale-98 cursor-pointer"
+          className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebc59] text-white px-4 py-2.5 rounded-xl font-medium text-sm shadow-sm transition transform active:scale-98 cursor-pointer"
         >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+          <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
           </svg>
-          Send Review Requests & Links
+          Send WhatsApp Review Requests
         </button>
       </div>
 
@@ -572,27 +570,39 @@ export default function AdminDepartureDetail() {
                       <td className="px-4 py-3.5 text-right whitespace-nowrap">
                         <div className="flex items-center justify-end gap-1.5">
                           {reviewUrl ? (
-                            <button
-                              onClick={() => {
-                                navigator.clipboard.writeText(reviewUrl);
-                                showToast("Review link copied to clipboard!", "success");
-                              }}
-                              className="px-2 py-1 text-xs border border-[#e2e8f0] rounded-lg text-[#4a5568] hover:text-[#0f2922] hover:border-[#0f2922] transition cursor-pointer"
-                              title="Copy unique review form link"
-                            >
-                              Copy Link
-                            </button>
+                            <>
+                              <button
+                                onClick={() => {
+                                  navigator.clipboard.writeText(reviewUrl);
+                                  showToast("Review link copied to clipboard!", "success");
+                                }}
+                                className="px-2 py-1 text-xs border border-[#e2e8f0] rounded-lg text-[#4a5568] hover:text-[#0f2922] hover:border-[#0f2922] transition cursor-pointer"
+                                title="Copy unique review form link"
+                              >
+                                Copy Link
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedBookingIds(new Set([traveller.id]));
+                                  setPreviewBookingId(traveller.id);
+                                  setShowAskModal(true);
+                                }}
+                                className="px-2.5 py-1 text-xs bg-[#25D366] text-white rounded-lg hover:bg-[#1ebc59] transition cursor-pointer"
+                                title="Resend review request via WhatsApp"
+                              >
+                                Resend
+                              </button>
+                            </>
                           ) : (
                             <button
                               onClick={() => {
                                 setSelectedBookingIds(new Set([traveller.id]));
                                 setPreviewBookingId(traveller.id);
-                                setCreatedRequests(null);
                                 setShowAskModal(true);
                               }}
-                              className="px-2.5 py-1 text-xs bg-[#0f2922] text-white rounded-lg hover:bg-[#1b4332] transition cursor-pointer"
+                              className="px-2.5 py-1 text-xs bg-[#25D366] text-white rounded-lg hover:bg-[#1ebc59] transition cursor-pointer"
                             >
-                              Ask Review
+                              Send WhatsApp
                             </button>
                           )}
                         </div>
@@ -943,59 +953,6 @@ export default function AdminDepartureDetail() {
                 </div>
               </div>
 
-              {/* Step 4: Generated Review Requests Actions List (after sending) */}
-              {createdRequests && (
-                <div className="border border-emerald-200 bg-emerald-50/50 rounded-2xl p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                      <h4 className="text-sm font-bold text-emerald-900">
-                        {createdRequests.length} Review Links Successfully Generated!
-                      </h4>
-                    </div>
-                  </div>
-                  <p className="text-xs text-emerald-800">
-                    Click "Open in WhatsApp" to launch WhatsApp Web or mobile app with the pre-filled message, or copy the link directly:
-                  </p>
-
-                  <div className="divide-y divide-emerald-100 max-h-48 overflow-y-auto">
-                    {createdRequests.map((req) => {
-                      const cleanPhone = req.customerPhone.replace(/\D/g, "");
-                      const fullPhone = cleanPhone.startsWith("91") ? cleanPhone : `91${cleanPhone}`;
-                      const waUrl = `https://wa.me/${fullPhone}?text=${encodeURIComponent(req.personalizedMessage)}`;
-
-                      return (
-                        <div key={req.reviewToken || `${req.bookingId}_${req.customerName}`} className="py-2.5 flex items-center justify-between gap-3 text-xs">
-                          <div>
-                            <span className="font-bold text-[#0f2922]">{req.customerName}</span>
-                            <span className="text-[#718096] ml-2">📱 {req.customerPhone}</span>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                navigator.clipboard.writeText(req.reviewLink);
-                                showToast(`Copied review link for ${req.customerName}`, "success");
-                              }}
-                              className="px-2.5 py-1 text-xs bg-white border border-emerald-300 rounded-lg text-emerald-800 hover:bg-emerald-100 transition cursor-pointer"
-                            >
-                              Copy Link
-                            </button>
-                            <a
-                              href={waUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs bg-[#25D366] hover:bg-[#1ebc59] text-white font-medium rounded-lg shadow-xs transition"
-                            >
-                              Open in WhatsApp ↗
-                            </a>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Modal Footer */}
@@ -1005,28 +962,29 @@ export default function AdminDepartureDetail() {
                 onClick={() => setShowAskModal(false)}
                 className="px-4 py-2 border border-[#e2e8f0] rounded-xl text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] hover:border-[#0f2922] transition cursor-pointer"
               >
-                {createdRequests ? "Done / Close" : "Cancel"}
+                Cancel
               </button>
 
-              {!createdRequests && (
-                <button
-                  type="button"
-                  disabled={isSending || selectedBookingIds.size === 0 || !isReviewLinkIncluded}
-                  onClick={handleSendRequests}
-                  className="inline-flex items-center gap-2 bg-[#e8622a] hover:bg-[#d0521c] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
-                >
-                  {isSending ? (
-                    <>
-                      <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Generating Links...
-                    </>
-                  ) : (
-                    <>
-                      Generate & Send Requests ({selectedBookingIds.size})
-                    </>
-                  )}
-                </button>
-              )}
+              <button
+                type="button"
+                disabled={isSending || selectedBookingIds.size === 0 || !isReviewLinkIncluded}
+                onClick={handleSendRequests}
+                className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#1ebc59] text-white px-5 py-2.5 rounded-xl font-bold text-xs shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isSending ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    Sending via WhatsApp...
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                      <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981z" />
+                    </svg>
+                    Send WhatsApp Requests ({selectedBookingIds.size})
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>,
