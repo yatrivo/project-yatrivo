@@ -195,6 +195,7 @@ export const reviewsRepository = {
       price_paise: number;
       spots_total: number;
       notes: string | null;
+      completed_photos: string[] | null;
       is_cancelled: boolean;
       completed_at: string | null;
       remaining_capacity: number | null;
@@ -204,7 +205,7 @@ export const reviewsRepository = {
               t.duration_label, t.duration_days, t.duration_nights, t.starting_point,
               t.cover_image_url,
               d.name as destination_name, d.slug as destination_slug,
-              ti.starts_on::text, ti.display_date, ti.price_paise, ti.spots_total, ti.notes,
+              ti.starts_on::text, ti.display_date, ti.price_paise, ti.spots_total, ti.notes, ti.completed_photos,
               ti.is_cancelled, ti.completed_at::text, c.remaining_capacity
        FROM trip_instances ti
        JOIN trips t ON t.id = ti.trip_id
@@ -411,6 +412,7 @@ export const reviewsRepository = {
       spotsLeft,
       status,
       notes: dep.notes,
+      completedPhotos: dep.completed_photos || [],
       coverImage: dep.cover_image_url,
       durationLabel: dep.duration_label,
       durationDays: parsedDur.durationDays,

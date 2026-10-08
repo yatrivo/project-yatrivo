@@ -189,18 +189,18 @@ export type UpdateTripInput = Partial<CreateTripInput>;
 
 export interface CreateDepartureInput {
   date: string; // YYYY-MM-DD
-  displayDate?: string;
-  price?: number; // in Rupees, defaults to trip price
+  displayDate?: string | null;
+  price?: number | null; // in Rupees, defaults to trip price
   spotsTotal: number;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface UpdateDepartureInput {
-  date?: string;
-  displayDate?: string;
-  price?: number;
-  spotsTotal?: number;
+  date?: string | null;
+  displayDate?: string | null;
+  price?: number | null;
+  spotsTotal?: number | null;
   status?: "upcoming" | "completed" | "cancelled";
-  notes?: string;
-  completedPhotos?: string[];
+  notes?: string | null;
+  completedPhotos?: string[] | null;
 }

@@ -28,12 +28,12 @@ export const dashboardRepository = {
         (
           SELECT COUNT(*)
           FROM trip_instances
-          WHERE is_cancelled = false AND completed_at IS NULL AND starts_on >= CURRENT_DATE
+          WHERE is_cancelled = false AND completed_at IS NULL
         )::int AS upcoming_trips,
         (
           SELECT COUNT(*)
           FROM trip_instances
-          WHERE completed_at IS NOT NULL OR (starts_on < CURRENT_DATE AND is_cancelled = false)
+          WHERE completed_at IS NOT NULL
         )::int AS completed_trips;
     `);
 
@@ -149,7 +149,7 @@ export const dashboardRepository = {
         ti.price_paise,
         CASE
           WHEN ti.is_cancelled THEN 'cancelled'
-          WHEN ti.completed_at IS NOT NULL OR ti.starts_on < CURRENT_DATE THEN 'completed'
+          WHEN ti.completed_at IS NOT NULL THEN 'completed'
           ELSE 'upcoming'
         END AS status
       FROM trip_instances ti

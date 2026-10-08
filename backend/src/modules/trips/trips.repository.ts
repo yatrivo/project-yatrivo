@@ -1131,7 +1131,7 @@ export const tripsRepository = {
       d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
 
     let pricePaise = 0;
-    if (input.price !== undefined) {
+    if (input.price !== undefined && input.price !== null) {
       pricePaise = Math.round(input.price * 100);
     } else {
       const t = await query<{ price_from_paise: number }>(`SELECT price_from_paise FROM trips WHERE id = $1`, [tripId]);
@@ -1173,19 +1173,19 @@ export const tripsRepository = {
     const updates: string[] = ["updated_at = now()"];
     const params: unknown[] = [instanceId];
 
-    if (input.date !== undefined) {
+    if (input.date !== undefined && input.date !== null) {
       params.push(input.date);
       updates.push(`starts_on = $${params.length}`);
     }
     if (input.displayDate !== undefined) {
-      params.push(input.displayDate);
+      params.push(input.displayDate || null);
       updates.push(`display_date = $${params.length}`);
     }
-    if (input.price !== undefined) {
+    if (input.price !== undefined && input.price !== null) {
       params.push(Math.round(input.price * 100));
       updates.push(`price_paise = $${params.length}`);
     }
-    if (input.spotsTotal !== undefined) {
+    if (input.spotsTotal !== undefined && input.spotsTotal !== null) {
       params.push(input.spotsTotal);
       updates.push(`spots_total = $${params.length}`);
     }
@@ -1194,19 +1194,30 @@ export const tripsRepository = {
       updates.push(`notes = $${params.length}`);
     }
     if (input.completedPhotos !== undefined) {
-      params.push(input.completedPhotos);
+      params.push(input.completedPhotos || []);
       updates.push(`completed_photos = $${params.length}`);
     }
     if (input.status !== undefined) {
       if (input.status === "completed") {
         updates.push(`completed_at = now()`);
         updates.push(`is_cancelled = false`);
+        if (userId) {
+          params.push(userId);
+          updates.push(`completed_by_user_id = $${params.length}`);
+        }
       } else if (input.status === "cancelled") {
         updates.push(`is_cancelled = true`);
         updates.push(`cancelled_at = now()`);
+        if (userId) {
+          params.push(userId);
+          updates.push(`cancelled_by_user_id = $${params.length}`);
+        }
       } else if (input.status === "upcoming") {
         updates.push(`completed_at = null`);
+        updates.push(`completed_by_user_id = null`);
         updates.push(`is_cancelled = false`);
+        updates.push(`cancelled_at = null`);
+        updates.push(`cancelled_by_user_id = null`);
       }
     }
     if (userId) {

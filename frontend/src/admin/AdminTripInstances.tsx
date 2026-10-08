@@ -164,6 +164,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const { trips, destinations } = useApp();
   const trip = trips.find((t) => t.id === instance.tripId);
   const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
+  const [notes, setNotes] = useState(instance.notes ?? "");
   const [photos, setPhotos] = useState<string[]>(() => {
     if (instance.completedPhotos && instance.completedPhotos.length > 0) {
       return instance.completedPhotos;
@@ -185,6 +186,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
       ...instance,
       status: "completed",
       spotsLeft: 0,
+      notes: notes.trim() || undefined,
       completedPhotos: cleaned.length > 0 ? cleaned : undefined,
     });
   };
@@ -209,6 +211,8 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     }
   };
 
+  const isAlreadyCompleted = instance.status === "completed";
+
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
@@ -218,7 +222,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
           <div>
             <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE STATUS</div>
             <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
-              Mark as Completed
+              {isAlreadyCompleted ? "Edit Completed Departure" : "Mark as Completed"}
             </h3>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
@@ -231,6 +235,19 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
         {/* Scrollable Body */}
         <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
           <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+              Trip Completion Notes (optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+              placeholder="e.g. Batch completed smoothly. Clear skies, summit achieved by all passengers..."
+            />
+          </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
@@ -274,7 +291,9 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
           </div>
 
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
-            This will mark the trip as completed and set spots remaining to 0.
+            {isAlreadyCompleted
+              ? "Update notes and photos for this completed departure."
+              : "This will mark the trip as completed and set spots remaining to 0."}
           </div>
         </div>
 
@@ -292,7 +311,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
             onClick={handleSave}
             className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs"
           >
-            Confirm Complete
+            {isAlreadyCompleted ? "Save Changes" : "Confirm Complete"}
           </button>
         </div>
       </div>
@@ -330,6 +349,7 @@ export default function AdminTripInstances() {
   });
 
   const handleSaveEdit = async (updated: TripInstance) => {
+    const prevInstances = tripInstances;
     setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? updated : inst)));
     setEditingInstance(null);
     try {
@@ -338,29 +358,32 @@ export default function AdminTripInstances() {
         displayDate: updated.displayDate,
         price: updated.price,
         spotsTotal: updated.spotsTotal,
-        notes: updated.notes,
+        notes: updated.notes?.trim() || null,
         status: updated.status,
       });
       await refreshTrips({ bypassCache: true });
       showToast("Trip departure updated.", "success");
     } catch (err: unknown) {
+      setTripInstances(prevInstances);
       const msg = err instanceof Error ? err.message : "Failed to update departure";
       showToast(msg, "error");
     }
   };
 
   const handleComplete = async (updated: TripInstance) => {
+    const prevInstances = tripInstances;
     setTripInstances(tripInstances.map((inst) => (inst.id === updated.id ? { ...inst, status: "completed" as const, completedPhotos: updated.completedPhotos } : inst)));
     setCompletingInstance(null);
     try {
       await tripsApi.updateDeparture(updated.id, {
         status: "completed",
-        notes: updated.notes,
-        completedPhotos: updated.completedPhotos,
+        notes: updated.notes?.trim() || null,
+        completedPhotos: updated.completedPhotos && updated.completedPhotos.length > 0 ? updated.completedPhotos : [],
       });
       await refreshTrips({ bypassCache: true });
       showToast("Trip marked as completed.", "success");
     } catch (err: unknown) {
+      setTripInstances(prevInstances);
       const msg = err instanceof Error ? err.message : "Failed to complete departure";
       showToast(msg, "error");
     }
@@ -370,6 +393,7 @@ export default function AdminTripInstances() {
     if (!window.confirm(`Are you sure you want to cancel the departure on ${inst.displayDate || inst.date}? It will be moved to cancelled departures.`)) {
       return;
     }
+    const prevInstances = tripInstances;
     setTripInstances(
       tripInstances.map((i) => (i.id === inst.id ? { ...i, status: "cancelled" as const } : i))
     );
@@ -377,9 +401,10 @@ export default function AdminTripInstances() {
       await tripsApi.updateDeparture(inst.id, {
         status: "cancelled",
       });
-      await refreshTrips();
+      await refreshTrips({ bypassCache: true });
       showToast("Trip departure cancelled.", "info");
     } catch (err: unknown) {
+      setTripInstances(prevInstances);
       const msg = err instanceof Error ? err.message : "Failed to cancel departure";
       showToast(msg, "error");
     }
@@ -513,6 +538,15 @@ export default function AdminTripInstances() {
                               Cancel
                             </button>
                           </>
+                        )}
+                        {inst.status === "completed" && (
+                          <button
+                            onClick={() => setCompletingInstance(inst)}
+                            className="text-[#0f2922] hover:text-[#e8622a] transition text-xs border border-[#e2e8f0] hover:border-[#0f2922] px-2.5 py-1 rounded-lg cursor-pointer"
+                            title="Edit completed departure photos and notes"
+                          >
+                            Photos & Notes
+                          </button>
                         )}
                       </div>
                     </td>

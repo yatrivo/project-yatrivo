@@ -189,18 +189,18 @@ export const departureDateSchema = z
 
 export const createDepartureSchema = z.object({
   date: departureDateSchema,
-  displayDate: z.string().trim().optional(),
-  price: z.coerce.number().nonnegative().optional(),
+  displayDate: z.string().trim().optional().nullable(),
+  price: z.coerce.number().nonnegative().optional().nullable(),
   spotsTotal: z.coerce.number().int().positive("Total spots must be at least 1"),
-  notes: z.string().trim().optional()
+  notes: z.string().trim().optional().nullable()
 });
 
 export const updateDepartureSchema = z.object({
-  date: departureDateSchema.optional(),
-  displayDate: z.string().trim().optional(),
-  price: z.coerce.number().nonnegative().optional(),
-  spotsTotal: z.coerce.number().int().positive().optional(),
+  date: departureDateSchema.optional().nullable(),
+  displayDate: z.string().trim().optional().nullable(),
+  price: z.coerce.number().nonnegative().optional().nullable(),
+  spotsTotal: z.coerce.number().int().positive().optional().nullable(),
   status: z.enum(["upcoming", "completed", "cancelled"]).optional(),
-  notes: z.string().trim().optional(),
-  completedPhotos: z.array(z.string().trim()).optional()
+  notes: z.string().trim().optional().nullable(),
+  completedPhotos: z.array(z.string().trim()).optional().nullable()
 });

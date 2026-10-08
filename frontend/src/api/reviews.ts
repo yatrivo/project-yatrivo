@@ -63,6 +63,7 @@ export interface DepartureOperational {
   spotsLeft: number;
   status: "upcoming" | "completed" | "cancelled";
   notes?: string | null;
+  completedPhotos?: string[];
   coverImage?: string | null;
   durationLabel?: string | null;
   durationDays?: number | null;

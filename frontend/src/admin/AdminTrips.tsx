@@ -149,6 +149,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const { trips, destinations } = useApp();
   const trip = trips.find((t) => t.id === instance.tripId);
   const dest = destinations.find((d) => d.id === trip?.destination || d.slug === trip?.destination || d.name === trip?.destination);
+  const [notes, setNotes] = useState(instance.notes ?? "");
   const [photos, setPhotos] = useState<string[]>(() => {
     if (instance.completedPhotos && instance.completedPhotos.length > 0) {
       return instance.completedPhotos;
@@ -166,7 +167,13 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
 
   const handleSave = () => {
     const cleaned = photos.map((p) => p.trim()).filter(Boolean);
-    onSave({ ...instance, status: "completed", spotsLeft: 0, completedPhotos: cleaned.length > 0 ? cleaned : undefined });
+    onSave({
+      ...instance,
+      status: "completed",
+      spotsLeft: 0,
+      notes: notes.trim() || undefined,
+      completedPhotos: cleaned.length > 0 ? cleaned : undefined
+    });
   };
 
   const updatePhoto = (i: number, val: string) => {
@@ -189,6 +196,8 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     }
   };
 
+  const isAlreadyCompleted = instance.status === "completed";
+
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
@@ -196,7 +205,9 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <div>
             <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">DEPARTURE STATUS</div>
-            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>Mark as Completed</h3>
+            <h3 className="text-white font-bold text-base" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              {isAlreadyCompleted ? "Edit Completed Departure" : "Mark as Completed"}
+            </h3>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white transition p-1 cursor-pointer">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -207,6 +218,20 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
 
         <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
           <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
+
+          <div>
+            <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+              Trip Completion Notes (optional)
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+              placeholder="e.g. Batch completed smoothly. Clear skies, summit achieved by all passengers..."
+            />
+          </div>
+
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
@@ -248,13 +273,17 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
             ))}
           </div>
           <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
-            This will mark the trip as completed and set spots remaining to 0.
+            {isAlreadyCompleted
+              ? "Update notes and photos for this completed departure."
+              : "This will mark the trip as completed and set spots remaining to 0."}
           </div>
         </div>
 
         <div className="bg-[#f7f8f5] px-6 py-3.5 border-t border-[#e2e8f0] flex items-center justify-end gap-3 shrink-0">
           <button onClick={onClose} className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer">Cancel</button>
-          <button onClick={handleSave} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs">Confirm Complete</button>
+          <button onClick={handleSave} className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs">
+            {isAlreadyCompleted ? "Save Changes" : "Confirm Complete"}
+          </button>
         </div>
       </div>
     </div>,
@@ -474,6 +503,25 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
             )}
           </div>
 
+          {/* Completed photos if present */}
+          {instance.completedPhotos && instance.completedPhotos.length > 0 && (
+            <div>
+              <h4 className="text-sm font-semibold text-[#0f2922] mb-2">
+                Completed Trip Photos ({instance.completedPhotos.length})
+              </h4>
+              <div className="grid grid-cols-3 gap-2">
+                {instance.completedPhotos.map((url, i) => (
+                  <img
+                    key={i}
+                    src={url}
+                    alt={`Completed trip ${i + 1}`}
+                    className="w-full h-20 object-cover rounded-lg border border-[#e2e8f0]"
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Bookings placeholder */}
           <div>
             <h4 className="text-sm font-semibold text-[#0f2922] mb-2">Bookings <span className="ml-1.5 text-xs font-normal text-[#a0aec0]">(coming soon)</span></h4>
@@ -487,6 +535,13 @@ function TripInstanceDetailPanel({ instance, trip, onClose, onEdit, onComplete, 
             <button onClick={() => onEdit(instance)} className="flex-1 border border-[#e2e8f0] text-[#0f2922] hover:bg-white text-sm font-medium py-2.5 rounded-lg transition cursor-pointer">Edit</button>
             <button onClick={() => onComplete(instance)} className="flex-1 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer">Mark Complete</button>
             <button onClick={() => onCancel(instance)} className="px-3 border border-red-200 text-red-500 hover:bg-red-50 text-sm font-medium py-2.5 rounded-lg transition cursor-pointer">Cancel</button>
+          </div>
+        )}
+        {instance.status === "completed" && (
+          <div className="px-6 py-4 border-t border-[#e2e8f0] bg-[#f7f8f5] flex gap-2 shrink-0">
+            <button onClick={() => onComplete(instance)} className="flex-1 bg-[#0f2922] hover:bg-[#1b4332] text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer">
+              Edit Completed Photos & Notes
+            </button>
           </div>
         )}
       </div>
@@ -772,15 +827,15 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
         displayDate: updated.displayDate,
         price: updated.price,
         spotsTotal: updated.spotsTotal,
-        notes: updated.notes
+        notes: updated.notes?.trim() || null
       });
       setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
       setEditingInstance(null);
+      await refreshTrips({ bypassCache: true });
       showToast("Trip departure updated.", "success");
-    } catch {
-      setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? updated : i)));
-      setEditingInstance(null);
-      showToast("Trip departure updated locally.", "info");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update departure";
+      showToast(msg, "error");
     }
   };
 
@@ -788,30 +843,36 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
     try {
       await tripsApi.updateDeparture(updated.id, {
         status: "completed",
-        notes: updated.notes,
-        completedPhotos: updated.completedPhotos,
+        notes: updated.notes?.trim() || null,
+        completedPhotos: updated.completedPhotos && updated.completedPhotos.length > 0 ? updated.completedPhotos : [],
       });
       await refreshTrips({ bypassCache: true });
-    } catch {
-      // fallback
+      const completedInst = { ...updated, status: "completed" as const, spotsLeft: 0 };
+      setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? completedInst : i)));
+      setCompletingInstance(null);
+      showToast("Trip marked as completed.", "success");
+      if (detailInstance?.id === updated.id) setDetailInstance(completedInst);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to complete departure";
+      showToast(msg, "error");
     }
-    const completedInst = { ...updated, status: "completed" as const };
-    setTripInstances((prev) => prev.map((i) => (i.id === updated.id ? completedInst : i)));
-    setCompletingInstance(null);
-    showToast("Trip marked as completed.", "success");
-    if (detailInstance?.id === updated.id) setDetailInstance(completedInst);
   };
 
   const handleCancel = async (inst: TripInstance) => {
+    if (!window.confirm(`Are you sure you want to cancel the departure on ${inst.displayDate || inst.date}? It will be moved to cancelled departures.`)) {
+      return;
+    }
     try {
       await tripsApi.updateDeparture(inst.id, { status: "cancelled" });
-    } catch {
-      // fallback
+      await refreshTrips({ bypassCache: true });
+      const cancelledInst = { ...inst, status: "cancelled" as const };
+      setTripInstances((prev) => prev.map((i) => (i.id === inst.id ? cancelledInst : i)));
+      showToast("Trip departure cancelled.", "info");
+      if (detailInstance?.id === inst.id) setDetailInstance(cancelledInst);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to cancel departure";
+      showToast(msg, "error");
     }
-    const cancelledInst = { ...inst, status: "cancelled" as const };
-    setTripInstances((prev) => prev.map((i) => (i.id === inst.id ? cancelledInst : i)));
-    showToast("Trip departure cancelled.", "info");
-    if (detailInstance?.id === inst.id) setDetailInstance(cancelledInst);
   };
 
   const handleAddInstance = async (newInst: TripInstance) => {
@@ -822,13 +883,14 @@ export default function AdminTrips({ setAdminPage }: Props = {}) {
           displayDate: newInst.displayDate,
           price: newInst.price,
           spotsTotal: newInst.spotsTotal,
-          notes: newInst.notes
+          notes: newInst.notes?.trim() || null
         });
         setTripInstances((prev) => [...prev, created]);
-        showToast("Departure added.", "success");
-      } catch {
-        setTripInstances((prev) => [...prev, newInst]);
-        showToast("Departure added locally.", "info");
+        await refreshTrips({ bypassCache: true });
+        showToast("Departure added successfully.", "success");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Failed to add departure";
+        showToast(msg, "error");
       }
     }
     setAddingInstanceTrip(null);

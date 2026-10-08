@@ -50,20 +50,20 @@ export type UpdateTripPayload = Partial<CreateTripPayload>;
 
 export interface CreateDeparturePayload {
   date: string; // YYYY-MM-DD
-  displayDate?: string;
-  price?: number;
+  displayDate?: string | null;
+  price?: number | null;
   spotsTotal: number;
-  notes?: string;
+  notes?: string | null;
 }
 
 export interface UpdateDeparturePayload {
-  date?: string;
-  displayDate?: string;
-  price?: number;
-  spotsTotal?: number;
+  date?: string | null;
+  displayDate?: string | null;
+  price?: number | null;
+  spotsTotal?: number | null;
   status?: "upcoming" | "completed" | "cancelled";
-  notes?: string;
-  completedPhotos?: string[];
+  notes?: string | null;
+  completedPhotos?: string[] | null;
 }
 
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
