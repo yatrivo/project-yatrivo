@@ -628,9 +628,19 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-[#f7f8f5] rounded-xl p-4 border border-dashed border-[#cbd5e1] text-center">
-                    <p className="text-sm font-medium text-[#0f2922] mb-1">No fixed group departures currently scheduled.</p>
-                    <p className="text-xs text-[#718096]">We organize customized and private departures on any dates of your choice.</p>
+                  <div className="bg-[#f7f8f5] rounded-xl p-5 border border-dashed border-[#cbd5e1] text-center">
+                    <div className="w-8 h-8 rounded-full bg-white text-[#0f2922] flex items-center justify-center mx-auto mb-2 border border-[#e2e8f0]">
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                        <line x1="16" y1="2" x2="16" y2="6"/>
+                        <line x1="8" y1="2" x2="8" y2="6"/>
+                        <line x1="3" y1="10" x2="21" y2="10"/>
+                      </svg>
+                    </div>
+                    <p className="text-sm font-semibold text-[#0f2922] mb-1">No upcoming departures scheduled for now</p>
+                    <p className="text-xs text-[#718096] leading-relaxed">
+                      We organize customized and private departures on any dates of your choice. You can still reach out to plan your dates!
+                    </p>
                   </div>
                 )}
               </section>
@@ -1148,43 +1158,69 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
               )}
 
               {/* Upcoming Departures Card (For user) */}
-              {!isAdmin && upcomingDepartures.length > 0 && (
+              {!isAdmin && (
                 <div className="hidden lg:block border border-[#e2e8f0] rounded-2xl p-5 bg-white">
-                  <div className="text-[#e8622a] text-xs uppercase tracking-wider font-semibold mb-3">
-                    SCHEDULED DEPARTURES
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="text-[#e8622a] text-xs uppercase tracking-wider font-semibold">
+                      SCHEDULED DEPARTURES
+                    </div>
+                    {upcomingDepartures.length > 0 && (
+                      <span className="text-[11px] text-[#718096]">
+                        {upcomingDepartures.length} {upcomingDepartures.length === 1 ? "batch" : "batches"}
+                      </span>
+                    )}
                   </div>
-                  <div className="space-y-2.5">
-                    {upcomingDepartures.map((d) => (
-                      <div
-                        key={d.id}
-                        className="flex items-center justify-between p-3 rounded-xl border border-[#e2e8f0] hover:border-[#0f2922] transition-colors"
-                      >
-                        <div>
-                          <div className="text-sm font-semibold text-[#0f2922]">{d.displayDate}</div>
-                          <div className="text-[11px] text-[#718096]">
-                            {d.spotsLeft} {d.spotsLeft === 1 ? "spot" : "spots"} remaining
-                          </div>
-                          {d.notes && (
-                            <div className="text-[11px] text-[#4a5568] mt-1.5 italic flex items-center gap-1.5 bg-[#f7f8f5] px-2.5 py-1 rounded-md border border-[#e2e8f0]/60">
-                              <span className="text-[#e8622a] text-xs">✦</span>
-                              <span className="line-clamp-1">{d.notes}</span>
+                  {upcomingDepartures.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {upcomingDepartures.map((d) => (
+                        <div
+                          key={d.id}
+                          className="flex items-center justify-between p-3 rounded-xl border border-[#e2e8f0] hover:border-[#0f2922] transition-colors"
+                        >
+                          <div>
+                            <div className="text-sm font-semibold text-[#0f2922]">{d.displayDate}</div>
+                            <div className="text-[11px] text-[#718096]">
+                              {d.spotsLeft} {d.spotsLeft === 1 ? "spot" : "spots"} remaining
                             </div>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="text-sm font-bold text-[#e8622a]">
-                            ₹{d.price.toLocaleString("en-IN")}
+                            {d.notes && (
+                              <div className="text-[11px] text-[#4a5568] mt-1.5 italic flex items-center gap-1.5 bg-[#f7f8f5] px-2.5 py-1 rounded-md border border-[#e2e8f0]/60">
+                                <span className="text-[#e8622a] text-xs">✦</span>
+                                <span className="line-clamp-1">{d.notes}</span>
+                              </div>
+                            )}
                           </div>
-                          <button
-                            onClick={() => openEnquiryModal(tripId, d.id)}
-                            className="text-[11px] text-[#0f2922] hover:text-[#e8622a] font-medium underline cursor-pointer"
-                          >
-                            Book this date
-                          </button>
+                          <div className="text-right">
+                            <div className="text-sm font-bold text-[#e8622a]">
+                              ₹{d.price.toLocaleString("en-IN")}
+                            </div>
+                            <button
+                              onClick={() => openEnquiryModal(tripId, d.id)}
+                              className="text-[11px] text-[#0f2922] hover:text-[#e8622a] font-medium underline cursor-pointer"
+                            >
+                              Book this date
+                            </button>
+                          </div>
                         </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="bg-[#f7f8f5] rounded-xl p-4 border border-dashed border-[#cbd5e1] text-center">
+                      <div className="w-8 h-8 rounded-full bg-white text-[#0f2922] flex items-center justify-center mx-auto mb-2 border border-[#e2e8f0]">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
+                          <line x1="16" y1="2" x2="16" y2="6"/>
+                          <line x1="8" y1="2" x2="8" y2="6"/>
+                          <line x1="3" y1="10" x2="21" y2="10"/>
+                        </svg>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-xs font-semibold text-[#0f2922] mb-1">
+                        No upcoming departures scheduled for now
+                      </p>
+                      <p className="text-[11px] text-[#718096] leading-relaxed">
+                        We regularly organize customized and private departures on any dates of your choice. You can still reach out to plan your dates!
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
 

@@ -27,9 +27,25 @@ export default function EnquiryModal() {
        (t.slug && String(t.slug).toLowerCase() === cleanTripId))
   );
 
-  const tripName = foundTrip?.name || "Himalayan Expedition";
+  const safeDests = Array.isArray(destinations) ? destinations : [];
+  const foundDest = (!foundTrip && cleanTripId)
+    ? safeDests.find(
+        (d) =>
+          d &&
+          (d.id.toLowerCase() === cleanTripId ||
+           (d.slug && d.slug.toLowerCase() === cleanTripId) ||
+           d.name.toLowerCase() === cleanTripId ||
+           cleanTripId === `dest:${d.id.toLowerCase()}` ||
+           cleanTripId === `dest:${(d.slug || "").toLowerCase()}`)
+      )
+    : null;
+
+  const tripName = foundTrip?.name || (foundDest ? `Custom ${foundDest.name} Expedition` : "Himalayan Expedition");
 
   const destName = (() => {
+    if (foundDest) {
+      return `${foundDest.name}, Uttarakhand`;
+    }
     if (Array.isArray(foundTrip?.destinations) && foundTrip.destinations.length > 0) {
       return foundTrip.destinations
         .map((d: any) => (typeof d === "string" ? d : d?.name || ""))
@@ -37,7 +53,6 @@ export default function EnquiryModal() {
         .join(", ");
     }
     if (foundTrip?.destination) {
-      const safeDests = Array.isArray(destinations) ? destinations : [];
       const d = safeDests.find(
         (dest) =>
           dest &&
@@ -373,7 +388,11 @@ export default function EnquiryModal() {
                   </div>
                 ) : (
                   <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-xl p-3 text-xs text-[#4a5568] flex items-center justify-between">
-                    <span>Flexible / Next scheduled batch (Base price: ₹{Number(foundTrip?.price || 9999).toLocaleString("en-IN")})</span>
+                    <span>
+                      {foundTrip?.price
+                        ? `Flexible / Next scheduled batch (Base price: ₹${Number(foundTrip.price).toLocaleString("en-IN")})`
+                        : "Custom dates & flexible schedule"}
+                    </span>
                     <span className="text-[#e8622a] font-semibold">Flexible Dates</span>
                   </div>
                 )}

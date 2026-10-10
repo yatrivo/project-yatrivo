@@ -31,13 +31,46 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
   const { pageParams, openEnquiryModal, destinations, refreshDestinations, showToast, trips, tripInstances, reviews } = useApp();
   const destId = slug || pageParams.destId || "chopta";
   const dest = destinations.find((d) => d.id.toLowerCase() === destId.toLowerCase() || (d.slug && d.slug.toLowerCase() === destId.toLowerCase())) || destinations.find((d) => d.id === "chopta") || destinations[0];
-  const destTrips = trips.filter(
-    (t) =>
-      (!isAdmin ? t.status !== "draft" && t.status !== "archived" : true) &&
-      ((t.destinations && t.destinations.some((d) => d.id === destId || d.slug === destId || (dest && (d.id === dest.id || d.slug === dest.slug)))) ||
-      t.destination === destId ||
-      (dest && (t.destination === dest.id || t.destination === dest.slug)))
-  );
+  const destTrips = trips.filter((t) => {
+    if (!isAdmin && (t.status === "draft" || t.status === "archived")) return false;
+    const norm = (s?: string) => (s || "").trim().toLowerCase();
+    const destTargets = [
+      norm(destId),
+      norm(dest?.id),
+      norm(dest?.slug),
+      norm(dest?.name),
+    ].filter(Boolean);
+
+    // 1. Check destinations array
+    if (t.destinations && Array.isArray(t.destinations)) {
+      if (
+        t.destinations.some(
+          (d) =>
+            destTargets.includes(norm(d.id)) ||
+            destTargets.includes(norm(d.slug)) ||
+            destTargets.includes(norm(d.name))
+        )
+      ) {
+        return true;
+      }
+    }
+
+    // 2. Check destinationId
+    if (t.destinationId && destTargets.includes(norm(t.destinationId))) {
+      return true;
+    }
+
+    // 3. Check destination string
+    if (t.destination) {
+      const tripDest = norm(t.destination);
+      if (destTargets.includes(tripDest)) return true;
+      if (destTargets.some((target) => target.length >= 3 && (tripDest.includes(target) || target.includes(tripDest)))) {
+        return true;
+      }
+    }
+
+    return false;
+  });
   const destReviews = reviews.filter(
     (r) =>
       r.status === "published" &&
@@ -47,11 +80,6 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
         (dest && r.destination === dest.name) ||
         (dest && (r.destination === dest.id || r.destination === dest.slug)))
   );
-
-  // Upcoming trip instances for this destination, sorted by date
-  const upcomingInstances = tripInstances
-    .filter((inst) => inst.status === "upcoming" && destTrips.some((t) => t.id === inst.tripId))
-    .sort((a, b) => a.date.localeCompare(b.date));
 
   const [showAllReviews, setShowAllReviews] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -213,40 +241,97 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
             {/* Packages */}
             <section id="packages">
-              <h2 className="text-[#0f2922] text-2xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>Upcoming Departures</h2>
-              {upcomingInstances.length > 0 ? (
-                <div className="grid sm:grid-cols-2 gap-4">
-                  {upcomingInstances.map((inst) => {
-                    const trip = trips.find((t) => t.id === inst.tripId);
-                    if (!trip) return null;
-                    const spotsPercent = Math.round((inst.spotsLeft / inst.spotsTotal) * 100);
-                    const spotsLow = inst.spotsLeft <= 3;
+              <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+                <div>
+                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Related Packages</h2>
+                  <p className="text-[#718096] text-sm mt-1">
+                    Handcrafted treks, expeditions, and itineraries in {dest.name}
+                  </p>
+                </div>
+                {destTrips.length > 0 && (
+                  <span className="text-xs text-[#718096]">
+                    {destTrips.length} {destTrips.length === 1 ? "package" : "packages"} available
+                  </span>
+                )}
+              </div>
+
+              {destTrips.length > 0 ? (
+                <div className="grid sm:grid-cols-2 gap-5">
+                  {destTrips.map((trip) => {
+                    const tripUpcoming = tripInstances
+                      .filter((inst) => inst.status === "upcoming" && (inst.tripId === trip.id || (trip.slug && inst.tripId === trip.slug)))
+                      .sort((a, b) => a.date.localeCompare(b.date));
+                    const nearestInstance = tripUpcoming[0];
+
                     return (
-                      <div key={inst.id} className="border border-[#e2e8f0] rounded-2xl overflow-hidden hover:shadow-md transition-shadow">
-                        <div className="h-40 overflow-hidden relative">
-                          <img src={trip.image} alt={trip.name} className="w-full h-full object-cover" />
-                          <span className={`absolute top-2.5 right-2.5 text-[10px] font-medium px-2 py-0.5 rounded-full ${
-                            spotsLow
-                              ? "bg-red-950/40 text-red-200 border border-red-400/30 backdrop-blur-md"
-                              : "bg-black/40 text-white/90 border border-white/15 backdrop-blur-md"
-                          }`}>
-                            {inst.spotsLeft} spots left
-                          </span>
-                        </div>
-                        <div className="p-4">
-                          <div className="text-[#0f2922] font-medium mb-1 line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
-                          <div className="flex items-center justify-between text-sm mb-3">
-                            <span className="text-[#4a5568]">{inst.displayDate}</span>
-                            <span className="text-[#e8622a] font-semibold">₹{inst.price.toLocaleString("en-IN")} / person</span>
+                      <div key={trip.id} className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between">
+                        <div>
+                          <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`} className="relative h-48 overflow-hidden block">
+                            <ProgressiveImage
+                              src={trip.image}
+                              alt={trip.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              containerClassName="w-full h-full relative"
+                              priority={false}
+                            />
+                            {(trip.badge || trip.category) && (
+                              <span className="absolute top-3 left-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
+                                {trip.badge || trip.category}
+                              </span>
+                            )}
+                            {trip.duration && (
+                              <span className="absolute bottom-3 right-3 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm z-10">
+                                {trip.duration}
+                              </span>
+                            )}
+                          </Link>
+                          <div className="p-4">
+                            <div className="flex items-center justify-between text-xs text-[#718096] mb-1.5">
+                              <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px]">{trip.category}</span>
+                              {trip.difficulty && (
+                                <span className="text-[11px] text-[#718096]">{trip.difficulty}</span>
+                              )}
+                            </div>
+                            <h3 className="text-[#0f2922] text-lg font-semibold mb-1.5 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
+                              <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
+                            </h3>
+                            <p className="text-[#718096] text-xs leading-relaxed line-clamp-2 mb-3">
+                              {trip.shortDescription || trip.overview || "Experience handcrafted trails, local culture, and pristine views."}
+                            </p>
+
+                            {/* Departure status indicator */}
+                            <div className="pt-2.5 border-t border-[#f1f5f9] flex items-center justify-between text-xs">
+                              {tripUpcoming.length > 0 ? (
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                  {tripUpcoming.length} upcoming {tripUpcoming.length === 1 ? "departure" : "departures"}
+                                  {nearestInstance?.displayDate && (
+                                    <span className="text-emerald-600/80 hidden sm:inline">· Next: {nearestInstance.displayDate}</span>
+                                  )}
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#4a5568] bg-[#f7f8f5] border border-[#e2e8f0] px-2.5 py-1 rounded-full">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-[#a0aec0]" />
+                                  Flexible dates · On demand
+                                </span>
+                              )}
+                            </div>
                           </div>
-                          <div className="w-full bg-[#e2e8f0] rounded-full h-1 mb-3">
-                            <div className="bg-[#e8622a] h-1 rounded-full transition-all" style={{ width: `${100 - spotsPercent}%` }} />
+                        </div>
+
+                        <div className="px-4 py-3 border-t border-[#e2e8f0] bg-[#fafafa] flex items-center justify-between mt-auto">
+                          <div>
+                            <div className="text-[10px] text-[#718096] uppercase tracking-wider font-medium">STARTING PRICE</div>
+                            <div className="text-[#0f2922] text-lg font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+                              ₹{trip.price.toLocaleString("en-IN")}
+                              <span className="text-xs font-normal text-[#718096]"> / person</span>
+                            </div>
                           </div>
                           <Link
                             to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}
-                            className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm py-2.5 rounded-full font-medium transition-colors block text-center"
+                            className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors cursor-pointer"
                           >
-                            {isAdmin ? "MANAGE TRIP" : "VIEW TRIP"}
+                            {isAdmin ? "MANAGE TRIP" : "VIEW PACKAGE"}
                           </Link>
                         </div>
                       </div>
@@ -254,11 +339,21 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                   })}
                 </div>
               ) : (
-                <div className="bg-[#f7f8f5] rounded-2xl p-8 text-center">
-                  <p className="text-[#4a5568] text-sm mb-4">No upcoming trips scheduled. Check back soon.</p>
-                  <Link to={isAdmin ? "/admin/trips" : "/trips"} className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
-                    {isAdmin ? "View All Trips" : "Browse All Trips"}
-                  </Link>
+                <div className="bg-[#f7f8f5] rounded-2xl p-8 text-center border border-[#e2e8f0]">
+                  <p className="text-[#4a5568] text-sm mb-4">No packages currently listed for {dest.name}.</p>
+                  <div className="flex items-center justify-center gap-3 flex-wrap">
+                    <Link to={isAdmin ? "/admin/trips" : "/trips"} className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
+                      {isAdmin ? "View All Trips" : "Browse All Trips"}
+                    </Link>
+                    {!isAdmin && (
+                      <button
+                        onClick={() => openEnquiryModal(destTrips[0]?.id || dest.slug || dest.id)}
+                        className="bg-[#e8622a] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#d45520] transition-colors inline-block cursor-pointer font-medium"
+                      >
+                        Plan Custom Trip
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
             </section>
@@ -356,12 +451,12 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
               ) : (
                 <>
                   <button
-                    onClick={() => destTrips[0] ? openEnquiryModal(destTrips[0].id) : navigate("plan")}
+                    onClick={() => openEnquiryModal(destTrips[0]?.id || dest.slug || dest.id)}
                     className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3 cursor-pointer"
                   >
                     Enquire About {dest.name}
                   </button>
-                  <Link to="/plan" className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
+                  <Link to={`/plan?destination=${encodeURIComponent(dest.slug || dest.id)}`} className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
                     Plan a Custom Trip
                   </Link>
                 </>
