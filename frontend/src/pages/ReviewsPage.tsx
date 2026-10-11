@@ -171,7 +171,7 @@ export default function ReviewsPage() {
       />
 
       {/* Hero */}
-      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[320px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pt-20 sm:pt-0 pb-5 sm:pb-10 md:pb-12 overflow-hidden">
         {activeDest?.image ? (
           <ProgressiveImage
             src={activeDest.image}
@@ -188,28 +188,29 @@ export default function ReviewsPage() {
           />
         )}
         <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
+        <div className="sm:hidden absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
           {activeDest && (
             <Link
               to={`/destinations/${activeDest.slug || activeDest.id}#reviews`}
-              className="inline-flex items-center gap-1.5 text-xs sm:text-sm text-white/90 hover:text-white bg-black/35 backdrop-blur-sm px-3.5 py-1.5 rounded-full mb-4 transition-colors"
+              className="inline-flex items-center gap-1.5 text-[11px] sm:text-sm text-white/95 sm:text-white/90 hover:text-white bg-black/40 sm:bg-black/35 backdrop-blur-sm px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full mb-2.5 sm:mb-4 transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back to {activeDest.name}
             </Link>
           )}
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1 sm:mb-2 text-contrast-subtle">
             {activeDest ? `${activeDest.name} · VERIFIED REVIEWS` : "AUTHENTIC TESTIMONIALS"}
           </div>
           <h1
-            className="text-white text-3xl sm:text-5xl mb-2.5 text-contrast-title"
+            className="text-white text-[26px] sm:text-5xl leading-[1.12] sm:leading-none mb-1.5 sm:mb-2.5 text-contrast-title"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             {activeDest ? `${activeDest.name} Traveller Reviews` : "Wanderers Speak From Their Hearts"}
           </h1>
-          <p className="text-white/90 text-[15px] sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <p className="text-white/95 sm:text-white/90 text-[13px] sm:text-base max-w-xl leading-snug sm:leading-relaxed text-contrast-body max-sm:mb-0">
             {activeDest
               ? `Honest, unfiltered experiences from travellers who explored ${activeDest.name} with our local guides.`
               : "Read honest, verified stories from explorers who have experienced the pristine Himalayas with our mindful travel collective."}
@@ -218,19 +219,19 @@ export default function ReviewsPage() {
       </section>
 
       {/* Rating Summary & Destination Filters */}
-      <section className="py-6 sm:py-8 bg-white border-b border-[#e2e8f0] sticky top-0 z-20 shadow-xs">
+      <section className="py-3.5 sm:py-8 bg-white border-b border-[#e2e8f0] sticky top-0 z-20 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-baseline gap-2">
-                <span className="text-3xl sm:text-4xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif)" }}>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-2.5 sm:gap-4">
+            <div className="flex items-center gap-3 sm:gap-4">
+              <div className="flex items-baseline gap-1.5 sm:gap-2">
+                <span className="text-[28px] sm:text-4xl font-bold text-[#0f2922] leading-none" style={{ fontFamily: "var(--font-serif)" }}>
                   {averageRating}
                 </span>
                 <span className="text-xs text-[#718096]">/ 5</span>
               </div>
               <div>
                 <StarRating rating={Math.round(Number(averageRating))} size={15} />
-                <div className="text-[#4a5568] text-xs mt-0.5">
+                <div className="text-[#4a5568] text-[11.5px] sm:text-xs leading-tight sm:leading-normal mt-0.5">
                   {filteredReviews.length} {filteredReviews.length === 1 ? "verified review" : "verified reviews"}
                   {activeDest ? ` for ${activeDest.name}` : ""}
                 </div>
@@ -238,18 +239,18 @@ export default function ReviewsPage() {
             </div>
 
             {/* Mobile-friendly horizontal scrollable filter pills */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               {slug ? (
                 <>
                   <Link
                     to={`/destinations/${activeDest?.slug || slug}#reviews`}
-                    className="shrink-0 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] transition-all"
+                    className="shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] transition-all"
                   >
                     ← {activeDest?.name || "Destination"} Page
                   </Link>
                   <Link
                     to="/reviews"
-                    className="shrink-0 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium bg-[#0f2922] text-white border border-[#0f2922] transition-all"
+                    className="shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium bg-[#0f2922] text-white border border-[#0f2922] transition-all"
                   >
                     View All Destinations ({publishedReviews.length})
                   </Link>
@@ -258,7 +259,7 @@ export default function ReviewsPage() {
                 <>
                   <button
                     onClick={() => handleSelectDest("all")}
-                    className={`shrink-0 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all border cursor-pointer ${
+                    className={`shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium transition-all border cursor-pointer ${
                       selectedDestSlug === "all"
                         ? "bg-[#0f2922] text-white border-[#0f2922]"
                         : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922]"
@@ -273,7 +274,7 @@ export default function ReviewsPage() {
                       <button
                         key={d.id}
                         onClick={() => handleSelectDest(d.slug)}
-                        className={`shrink-0 px-4 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-all border cursor-pointer ${
+                        className={`shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium transition-all border cursor-pointer ${
                           isSelected
                             ? "bg-[#0f2922] text-white border-[#0f2922]"
                             : "border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922]"
@@ -291,10 +292,10 @@ export default function ReviewsPage() {
       </section>
 
       {/* Full Reviews List */}
-      <section className="py-8 sm:py-12 flex-1">
+      <section className="py-6 sm:py-12 flex-1">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           {filteredReviews.length > 0 ? (
-            <div className="space-y-4 sm:space-y-5">
+            <div className="space-y-3.5 sm:space-y-5">
               {filteredReviews.map((r) => {
                 const reviewDest = resolveReviewDestination(r);
                 const formattedDate =
@@ -310,25 +311,25 @@ export default function ReviewsPage() {
                   <article
                     key={r.id}
                     id={`review-${r.id}`}
-                    className="bg-white rounded-2xl p-5 sm:p-7 border border-[#e2e8f0] shadow-2xs transition-all scroll-mt-28"
+                    className="bg-white rounded-2xl p-4 sm:p-7 border border-[#e2e8f0] shadow-2xs transition-all scroll-mt-28"
                   >
-                    <div className="flex items-start gap-3.5 sm:gap-4">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-sm sm:text-base shrink-0">
+                    <div className="grid grid-cols-[2.5rem_minmax(0,1fr)] gap-x-3 sm:flex sm:items-start sm:gap-4">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-base shrink-0">
                         {r.avatar || r.name?.slice(0, 2).toUpperCase() || "TR"}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 mb-2">
-                          <div>
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-[#0f2922] font-semibold text-[18px] sm:text-base">{r.name}</h3>
-                              <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
-                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <div className="contents sm:block sm:flex-1 sm:min-w-0">
+                        <div className="min-w-0 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 mb-0.5 sm:mb-2">
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                              <h3 className="text-[#0f2922] font-semibold text-[15px] sm:text-base leading-snug mb-0">{r.name}</h3>
+                              <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] leading-tight text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 sm:px-2 py-0.5 rounded-full font-medium shrink-0">
+                                <svg className="w-2.5 h-2.5 sm:w-3 sm:h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                                 </svg>
                                 Verified Traveller
                               </span>
                             </div>
-                            <div className="flex items-center gap-2 flex-wrap mt-1 text-xs">
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap mt-0.5 sm:mt-1 text-[11.5px] sm:text-xs leading-snug">
                               {r.tripName && (
                                 <span className="text-[#e8622a] font-medium">{r.tripName}</span>
                               )}
@@ -347,22 +348,22 @@ export default function ReviewsPage() {
                           </div>
                           <div className="flex items-center sm:flex-col sm:items-end justify-between gap-2 mt-1 sm:mt-0">
                             <StarRating rating={r.rating} size={14} />
-                            <span className="text-[#718096] text-xs">{formattedDate}</span>
+                            <span className="text-[#718096] text-[11px] sm:text-xs leading-tight">{formattedDate}</span>
                           </div>
                         </div>
 
-                        <p className="text-[#2d3748] text-[15px] leading-relaxed mt-3 whitespace-pre-line">
+                        <p className="col-span-2 text-[#2d3748] text-[13.5px] sm:text-[15px] leading-[1.5] sm:leading-relaxed mt-2.5 sm:mt-3 max-sm:mb-0 whitespace-pre-line">
                           "{r.text}"
                         </p>
 
                         {r.photos && r.photos.length > 0 && (
-                          <div className="flex flex-wrap gap-2.5 mt-4 pt-3 border-t border-[#f1f5f9]">
+                          <div className="col-span-2 flex flex-wrap gap-2 sm:gap-2.5 mt-3 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[#f1f5f9]">
                             {r.photos.map((photo, idx) => (
                               <button
                                 key={idx}
                                 type="button"
                                 onClick={() => setLightboxImg(photo)}
-                                className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-[#e2e8f0] hover:opacity-90 transition cursor-pointer shrink-0"
+                                className="w-16 h-16 sm:w-24 sm:h-24 rounded-xl overflow-hidden border border-[#e2e8f0] hover:opacity-90 transition cursor-pointer shrink-0"
                               >
                                 <img
                                   src={photo}
@@ -381,14 +382,14 @@ export default function ReviewsPage() {
               })}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-8 sm:p-12 text-center border border-[#e2e8f0]">
-              <p className="text-[#4a5568] text-base mb-4">
+            <div className="bg-white rounded-2xl p-6 sm:p-12 text-center border border-[#e2e8f0]">
+              <p className="text-[#4a5568] text-sm sm:text-base mb-4">
                 No reviews found for this selection yet.
               </p>
               <Link
                 to="/reviews"
                 onClick={() => handleSelectDest("all")}
-                className="inline-block bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors"
+                className="inline-block bg-[#0f2922] text-white text-xs sm:text-sm px-5 sm:px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors"
               >
                 View All Reviews
               </Link>
@@ -423,27 +424,27 @@ export default function ReviewsPage() {
       )}
 
       {/* CTA */}
-      <section className="py-12 sm:py-16 bg-white border-t border-[#e2e8f0]">
+      <section className="py-8 sm:py-16 bg-white border-t border-[#e2e8f0]">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">THE COMMUNITY GROWS</div>
-          <h2 className="text-[#0f2922] text-2xl sm:text-4xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-2">THE COMMUNITY GROWS</div>
+          <h2 className="text-[#0f2922] text-[22px] sm:text-4xl font-normal sm:font-light leading-snug sm:leading-tight mb-2.5 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>
             Ready to Create Your Own Story?
           </h2>
-          <p className="text-[#4a5568] text-sm leading-relaxed mb-6 max-w-xl mx-auto">
+          <p className="text-[#4a5568] text-[13.5px] sm:text-sm leading-relaxed mb-5 sm:mb-6 max-w-xl mx-auto">
             Explore Uttarakhand's valleys, alpine meadows, and sacred trails with small groups and certified local guides.
           </p>
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3 flex-wrap">
             {activeDest ? (
               <Link
                 to={`/destinations/${activeDest.slug || activeDest.id}`}
-                className="inline-block bg-[#0f2922] hover:bg-[#1a4a39] text-white px-6 py-3 rounded-full text-sm font-medium transition-colors"
+                className="w-full sm:w-auto max-w-[260px] sm:max-w-none inline-block bg-[#0f2922] hover:bg-[#1a4a39] text-white px-5 sm:px-6 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-colors"
               >
                 Explore {activeDest.name} Packages
               </Link>
             ) : null}
             <Link
               to="/plan"
-              className="inline-block bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3 rounded-full text-sm font-medium transition-colors"
+              className="w-full sm:w-auto max-w-[260px] sm:max-w-none inline-block bg-[#e8622a] hover:bg-[#d45520] text-white px-5 sm:px-7 py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-medium transition-colors"
             >
               PLAN YOUR ADVENTURE
             </Link>
