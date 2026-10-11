@@ -545,7 +545,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         <div className="relative h-full flex items-end pb-6 sm:pb-8 md:pb-12 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
-              <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-contrast-subtle">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 text-[11px] sm:text-xs text-contrast-subtle">
                 <BackLink to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-semibold">
                   {activeTrip?.category ?? "EXPERIENCE"}
                 </BackLink>
@@ -563,10 +563,10 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   </span>
                 ))}
               </div>
-              <h1 className="text-white text-3xl sm:text-5xl mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+              <h1 className="text-white text-[28px] sm:text-5xl leading-tight sm:leading-none mb-2.5 sm:mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.name ?? "Himalayan Adventure"}
               </h1>
-              <div className="flex flex-wrap gap-5 text-white/90 text-sm text-contrast-body">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-5 text-white/90 text-xs sm:text-sm text-contrast-body">
                 <span>{activeTrip?.duration ?? "4 Days / 3 Nights"}</span>
                 <span>Difficulty: {activeTrip?.difficulty ?? "Moderate"}</span>
                 {activeTrip?.startingPoint && <span>Starts from: {activeTrip.startingPoint}</span>}
@@ -576,25 +576,27 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         </div>
       </section>
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
           {/* Left Column */}
-          <div className="lg:col-span-2 space-y-12">
+          <div className="lg:col-span-2 space-y-6 sm:space-y-12">
             {/* Overview & 4 Highlight Cards (Requirement 11) */}
             <section>
-              <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>
+              <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug mb-2.5 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.shortDescription || "Trek the Sacred Mountain Ridge"}
               </h2>
-              <p className="text-[#4a5568] text-[15px] sm:text-sm leading-relaxed mb-6">
+              <p className="text-[#4a5568] text-[13.5px] sm:text-sm leading-relaxed mb-4 sm:mb-6">
                 {activeTrip?.overview ||
                   "Widely known as the 'Mini Switzerland of India', Chopta is a gorgeous pristine pine forest and meadow valley. Our itinerary is designed with unhurried acclimatization, beautiful wooden cabin stays, and authentic local Pahadi dining."}
               </p>
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
                 {highlightCards.map((q) => (
-                  <div key={q.label} className="bg-[#f7f8f5] rounded-xl p-3 text-center border border-[#e2e8f0]/60">
-                    <div className="text-xl mb-1">{q.icon}</div>
-                    <div className="text-[#4a5568] text-xs mb-0.5">{q.label}</div>
-                    <div className="text-[#0f2922] text-sm font-medium">{q.value}</div>
+                  <div key={q.label} className="bg-[#f7f8f5] rounded-lg sm:rounded-xl px-2.5 py-2 sm:p-3 flex items-center gap-2 sm:block text-left sm:text-center border border-[#e2e8f0]/60 min-w-0">
+                    <div className="text-base sm:text-xl leading-none shrink-0 sm:mb-1">{q.icon}</div>
+                    <div className="min-w-0">
+                      <div className="text-[#4a5568] text-[10px] sm:text-xs leading-tight mb-0.5">{q.label}</div>
+                      <div className="text-[#0f2922] text-xs sm:text-sm font-medium leading-tight truncate">{q.value}</div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -602,35 +604,35 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* MOBILE ONLY: Upcoming Departures & Dates (for regular visitors) */}
             {!isAdmin && (
-              <section id="mobile-scheduled-departures" className="block lg:hidden border-t border-[#e2e8f0] pt-8">
-                <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+              <section id="mobile-scheduled-departures" className="block lg:hidden border-t border-[#e2e8f0] pt-6 sm:pt-8">
+                <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2">
                   <div>
-                    <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
+                    <div className="text-[#e8622a] text-[10px] sm:text-xs uppercase tracking-widest font-semibold mb-0.5 sm:mb-1">
                       UPCOMING DATES
                     </div>
-                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+                    <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                       Scheduled Departures
                     </h2>
                   </div>
                   <div className="text-right">
-                    <div className="text-xs text-[#718096]">Starting from</div>
-                    <div className="text-xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif)" }}>
+                    <div className="text-[11px] sm:text-xs text-[#718096]">Starting from</div>
+                    <div className="text-lg sm:text-xl font-bold text-[#0f2922] leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
                       {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
                     </div>
                   </div>
                 </div>
 
                 {upcomingDepartures.length > 0 ? (
-                  <div className="space-y-3">
+                  <div className="space-y-2.5 sm:space-y-3">
                     {upcomingDepartures.map((d) => (
                       <div
                         key={d.id}
                         onClick={() => openEnquiryModal(tripId, d.id)}
-                        className="bg-white rounded-xl p-3.5 border border-[#e2e8f0] shadow-sm hover:border-[#0f2922] transition cursor-pointer"
+                        className="bg-white rounded-xl p-3 sm:p-3.5 border border-[#e2e8f0] shadow-sm hover:border-[#0f2922] transition cursor-pointer"
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-sm font-semibold text-[#0f2922]">{d.displayDate}</span>
+                            <span className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922]">{d.displayDate}</span>
                             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
                               d.spotsLeft <= 3
                                 ? "bg-amber-50 text-amber-700 border border-amber-200"
@@ -653,17 +655,17 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                     ))}
                   </div>
                 ) : (
-                  <div className="bg-[#f7f8f5] rounded-xl p-5 border border-dashed border-[#cbd5e1] text-center">
-                    <div className="w-8 h-8 rounded-full bg-white text-[#0f2922] flex items-center justify-center mx-auto mb-2 border border-[#e2e8f0]">
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <div className="bg-[#f7f8f5] rounded-xl px-3.5 py-3 sm:p-5 border border-dashed border-[#cbd5e1] text-center">
+                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-[#0f2922] flex items-center justify-center mx-auto mb-1.5 sm:mb-2 border border-[#e2e8f0]">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
                         <line x1="16" y1="2" x2="16" y2="6"/>
                         <line x1="8" y1="2" x2="8" y2="6"/>
                         <line x1="3" y1="10" x2="21" y2="10"/>
                       </svg>
                     </div>
-                    <p className="text-sm font-semibold text-[#0f2922] mb-1">No upcoming departures scheduled for now</p>
-                    <p className="text-xs text-[#718096] leading-relaxed">
+                    <p className="text-[13px] sm:text-sm font-semibold text-[#0f2922] leading-snug mb-0.5 sm:mb-1">No upcoming departures scheduled for now</p>
+                    <p className="text-[11.5px] sm:text-xs text-[#718096] leading-snug sm:leading-relaxed mb-0">
                       We organize customized and private departures on any dates of your choice. You can still reach out to plan your dates!
                     </p>
                   </div>
@@ -850,20 +852,20 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* DEDICATED SECTION: Destinations on this Trip (Requirement 2) */}
             {tripDestinations.length > 0 && (
-              <section id="destinations" className="border-t border-[#e2e8f0] pt-10">
-                <div className="mb-6">
-                  <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
+              <section id="destinations" className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+                <div className="mb-3.5 sm:mb-6">
+                  <div className="text-[#e8622a] text-[10px] sm:text-xs uppercase tracking-widest font-semibold mb-0.5 sm:mb-1">
                     ITINERARY DESTINATIONS
                   </div>
-                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+                  <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                     Destinations on this Journey
                   </h2>
-                  <p className="text-[#4a5568] text-sm mt-1">
+                  <p className="text-[#4a5568] text-[13px] sm:text-sm mt-1 mb-0">
                     This trip covers {tripDestinations.length} curated {tripDestinations.length === 1 ? "destination" : "destinations"} in Uttarakhand.
                   </p>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5">
                   {tripDestinations.map((td) => {
                     const fullDest = destinations.find((d) => d.id === td.id || d.slug === td.slug);
                     const destImg = td.image || fullDest?.image || "";
@@ -875,7 +877,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                         to={isAdmin ? `/admin/destinations/${td.slug || td.id}` : `/destinations/${td.slug || td.id}`}
                         className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all group flex flex-col cursor-pointer"
                       >
-                        <div className="h-48 overflow-hidden relative">
+                        <div className="h-40 sm:h-48 overflow-hidden relative">
                           {destImg ? (
                             <img
                               src={destImg}
@@ -888,26 +890,26 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                             </div>
                           )}
                           {td.isPrimary && (
-                            <span className="absolute top-3 left-3 bg-[#e8622a] text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm">
+                            <span className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 bg-[#e8622a] text-white text-[10px] font-bold px-2.5 py-0.5 sm:py-1 rounded-full uppercase tracking-wider shadow-sm">
                               PRIMARY DESTINATION
                             </span>
                           )}
                           {fullDest?.season && (
-                            <span className="absolute top-3 right-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2.5 py-1 rounded-full">
+                            <span className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 bg-black/60 backdrop-blur-sm text-white text-[10px] font-medium px-2.5 py-0.5 sm:py-1 rounded-full">
                               {fullDest.season}
                             </span>
                           )}
                         </div>
-                        <div className="p-5 flex flex-col flex-1 justify-between">
+                        <div className="p-3.5 sm:p-5 flex flex-col flex-1 justify-between">
                           <div>
-                            <h3 className="text-[#0f2922] text-xl mb-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
+                            <h3 className="text-[#0f2922] text-[17px] sm:text-xl leading-snug mb-1 group-hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
                               {td.name}
                             </h3>
-                            <p className="text-[#4a5568] text-xs leading-relaxed line-clamp-2">
+                            <p className="text-[#4a5568] text-xs leading-relaxed line-clamp-2 mb-0">
                               {destTagline}
                             </p>
                           </div>
-                          <div className="mt-4 pt-3 border-t border-[#f0f4f1] flex items-center justify-between text-xs text-[#0f2922] font-semibold group-hover:text-[#e8622a] transition-colors">
+                          <div className="mt-2.5 sm:mt-4 pt-2.5 sm:pt-3 border-t border-[#f0f4f1] flex items-center justify-between text-xs text-[#0f2922] font-semibold group-hover:text-[#e8622a] transition-colors">
                             <span>{isAdmin ? "Manage Destination" : "View Destination Guide"}</span>
                             <span>→</span>
                           </div>
@@ -921,15 +923,15 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* Legacy Bullet Highlights (if any) */}
             {legacyBulletHighlights.length > 0 && (
-              <section className="border-t border-[#e2e8f0] pt-10">
-                <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Journey Highlights</h2>
-                <div className="grid sm:grid-cols-2 gap-3">
+              <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+                <h2 className="text-[#0f2922] text-[20px] sm:text-2xl mb-3 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>Journey Highlights</h2>
+                <div className="grid sm:grid-cols-2 gap-2.5 sm:gap-3">
                   {legacyBulletHighlights.map((h, i) => (
-                    <div key={i} className="border border-[#e2e8f0] rounded-xl p-4 flex items-start gap-3">
+                    <div key={i} className="border border-[#e2e8f0] rounded-xl p-3.5 sm:p-4 flex items-start gap-2.5 sm:gap-3">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2.5" className="shrink-0 mt-0.5">
                         <polyline points="20 6 9 17 4 12"/>
                       </svg>
-                      <div className="text-[#4a5568] text-sm leading-relaxed">{h}</div>
+                      <div className="text-[#4a5568] text-[13.5px] sm:text-sm leading-relaxed">{h}</div>
                     </div>
                   ))}
                 </div>
@@ -938,25 +940,25 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* Itinerary */}
             {tripItinerary.length > 0 && (
-              <section className="border-t border-[#e2e8f0] pt-10">
-                <h2 className="text-[#0f2922] text-2xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Itinerary</h2>
+              <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+                <h2 className="text-[#0f2922] text-[20px] sm:text-2xl mb-3 sm:mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Itinerary</h2>
                 <div className="space-y-2">
                   {tripItinerary.map((d, i) => {
                     const isOpen = Boolean(openDays[i] ?? (i === 0));
                     return (
                       <div key={i} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
-                        <button onClick={() => toggleDay(i)} className="w-full flex items-center justify-between gap-4 px-5 py-4 hover:bg-[#f7f8f5] transition-colors text-left cursor-pointer">
-                          <div className="flex items-center gap-3">
-                            <span className="bg-[#0f2922] text-white text-xs font-medium px-3 py-1 rounded-full shrink-0">{d.day}</span>
-                            <span className="text-[#0f2922] font-medium text-sm">{d.title}</span>
+                        <button onClick={() => toggleDay(i)} className="w-full flex items-center justify-between gap-2.5 sm:gap-4 px-3.5 sm:px-5 py-2.5 sm:py-4 hover:bg-[#f7f8f5] transition-colors text-left cursor-pointer">
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <span className="bg-[#0f2922] text-white text-[11px] sm:text-xs font-medium px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full shrink-0">{d.day}</span>
+                            <span className="text-[#0f2922] font-medium text-[13.5px] sm:text-sm leading-snug min-w-0">{d.title}</span>
                           </div>
                           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2" className={`shrink-0 transition-transform ${isOpen ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6"/></svg>
                         </button>
                         {isOpen && (
-                          <div className="px-5 pb-4 text-[#4a5568] text-sm leading-relaxed border-t border-[#e2e8f0] pt-3">
-                            <p>{d.desc}</p>
+                          <div className="px-3.5 sm:px-5 pb-3 sm:pb-4 text-[#4a5568] text-[13px] sm:text-sm leading-relaxed border-t border-[#e2e8f0] pt-2.5 sm:pt-3">
+                            <p className="mb-0">{d.desc}</p>
                             {(d.meals || d.stay) && (
-                              <div className="flex flex-wrap gap-4 mt-2 pt-2 border-t border-[#f1f5f9] text-xs text-[#718096]">
+                              <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 pt-2 border-t border-[#f1f5f9] text-[11.5px] sm:text-xs text-[#718096]">
                                 {d.meals && <div><span className="font-semibold text-[#0f2922]">Meals:</span> {d.meals}</div>}
                                 {d.stay && <div><span className="font-semibold text-[#0f2922]">Stay:</span> {d.stay}</div>}
                               </div>
@@ -971,29 +973,29 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             )}
 
             {/* Inclusions */}
-            <section className="grid sm:grid-cols-2 gap-5 border-t border-[#e2e8f0] pt-10">
-              <div className="border border-[#e2e8f0] rounded-xl p-5">
-                <h3 className="text-[#0f2922] font-semibold text-sm uppercase tracking-wide mb-4">WHAT'S INCLUDED</h3>
-                <ul className="space-y-2">
+            <section className="grid sm:grid-cols-2 gap-3.5 sm:gap-5 border-t border-[#e2e8f0] pt-6 sm:pt-10">
+              <div className="border border-[#e2e8f0] rounded-xl p-3.5 sm:p-5">
+                <h3 className="text-[#0f2922] font-semibold text-xs sm:text-sm uppercase tracking-wide mb-2.5 sm:mb-4">WHAT'S INCLUDED</h3>
+                <ul className="space-y-1.5 sm:space-y-2">
                   {(activeTrip?.inclusions && activeTrip.inclusions.length > 0
                     ? activeTrip.inclusions
                     : ["Acclimatized Hinoki timber cabin stays", "All high-quality mountain meals", "Medical assistance & oxygen kits", "Certified high-altitude trek leaders", "Inner line permits & state taxes"]
                   ).map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-[#4a5568]">
+                    <li key={i} className="flex items-start gap-2 text-[12.5px] sm:text-xs text-[#4a5568] leading-snug">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" className="shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
                       {item}
                     </li>
                   ))}
                 </ul>
               </div>
-              <div className="border border-[#e2e8f0] rounded-xl p-5">
-                <h3 className="text-[#0f2922] font-semibold text-sm uppercase tracking-wide mb-4">NOT INCLUDED</h3>
-                <ul className="space-y-2">
+              <div className="border border-[#e2e8f0] rounded-xl p-3.5 sm:p-5">
+                <h3 className="text-[#0f2922] font-semibold text-xs sm:text-sm uppercase tracking-wide mb-2.5 sm:mb-4">NOT INCLUDED</h3>
+                <ul className="space-y-1.5 sm:space-y-2">
                   {(activeTrip?.exclusions && activeTrip.exclusions.length > 0
                     ? activeTrip.exclusions
                     : ["Personal trekking gear & boots", "Insurance & evacuation expenses", "Trail snacks & personal beverages", "Tips for local porters", "Anything outside the itinerary"]
                   ).map((item, i) => (
-                    <li key={i} className="flex items-start gap-2 text-xs text-[#4a5568]">
+                    <li key={i} className="flex items-start gap-2 text-[12.5px] sm:text-xs text-[#4a5568] leading-snug">
                       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.5" className="shrink-0 mt-0.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
                       {item}
                     </li>
@@ -1004,18 +1006,15 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* Photo Gallery (Requirement 4) */}
             {activeTrip?.gallery && activeTrip.gallery.length > 0 && (
-              <section id="gallery" className="border-t border-[#e2e8f0] pt-10">
-                <div className="flex items-end justify-between mb-5 gap-2">
+              <section id="gallery" className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+                <div className="flex items-end justify-between mb-3.5 sm:mb-5 gap-2">
                   <div>
-                    <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
+                    <div className="text-[#e8622a] text-[10px] sm:text-xs uppercase tracking-widest font-semibold mb-0.5 sm:mb-1">
                       CAPTURED MOMENTS
                     </div>
-                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+                    <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug mb-0" style={{ fontFamily: "var(--font-serif)" }}>
                       Photo Gallery
                     </h2>
-                    <p className="text-[#4a5568] text-sm mt-1">
-                      Visual impressions from this route, scenic trails, and camp stays.
-                    </p>
                   </div>
                   <button
                     type="button"
@@ -1028,10 +1027,12 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                     </svg>
                   </button>
                 </div>
-                <div className={`grid ${activeTrip.gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-2 sm:gap-4`}>
+                <div className={`grid ${activeTrip.gallery.length === 1 ? "grid-cols-1" : "grid-cols-2"} ${activeTrip.gallery.length === 2 ? "sm:grid-cols-2" : activeTrip.gallery.length === 1 ? "sm:grid-cols-1" : "sm:grid-cols-3"} gap-2.5 sm:gap-4`}>
                   {activeTrip.gallery.slice(0, 3).map((img, i) => {
-                    const remaining = activeTrip.gallery.length - 3;
-                    const isLastVisible = i === 2 && remaining > 0;
+                    const remainingDesktop = activeTrip.gallery.length - 3;
+                    const remainingMobile = activeTrip.gallery.length - 2;
+                    const isLastDesktop = i === 2 && remainingDesktop > 0;
+                    const isLastMobile = i === 1 && remainingMobile > 0;
                     return (
                       <div
                         key={i}
@@ -1044,7 +1045,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                             setLightboxIndex(i);
                           }
                         }}
-                        className="relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]"
+                        className={`${i === 2 ? "hidden sm:block " : ""}relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]`}
                       >
                         <img
                           src={img}
@@ -1052,9 +1053,15 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                           loading="lazy"
                         />
-                        {isLastVisible ? (
-                          <div className="absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
-                            <span className="text-sm sm:text-lg font-bold">+{remaining}</span>
+                        {isLastMobile && (
+                          <div className="sm:hidden absolute inset-0 bg-black/50 hover:bg-black/60 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-lg font-bold leading-none">+{remainingMobile}</span>
+                            <span className="text-[11px] font-medium mt-1">Photos</span>
+                          </div>
+                        )}
+                        {isLastDesktop ? (
+                          <div className="hidden sm:flex absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-sm sm:text-lg font-bold">+{remainingDesktop}</span>
                             <span className="text-[10px] sm:text-xs font-medium inline-flex items-center gap-1 mt-0.5">
                               View All
                               <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1063,7 +1070,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                             </span>
                           </div>
                         ) : (
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                          <div className={`${isLastMobile ? "hidden sm:block " : ""}absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors`} />
                         )}
                       </div>
                     );
@@ -1073,38 +1080,38 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             )}
 
             {/* Global Cancellation Policy */}
-            <section className="border-t border-[#e2e8f0] pt-10">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-[#0f2922] text-xl font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+            <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+              <div className="flex items-start sm:items-center justify-between gap-2.5 mb-3 sm:mb-4">
+                <div className="min-w-0">
+                  <h2 className="text-[#0f2922] text-[20px] sm:text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                     Cancellation Policy
                   </h2>
-                  <p className="text-xs text-[#718096] mt-0.5">
+                  <p className="text-[11.5px] sm:text-xs text-[#718096] leading-snug mt-0.5 mb-0">
                     Clear, transparent refund schedule based on time of cancellation prior to departure.
                   </p>
                 </div>
-                <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-[#f0f9f4] text-[#16a34a] border border-[#16a34a]/20">
+                <span className="text-[10.5px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full bg-[#f0f9f4] text-[#16a34a] border border-[#16a34a]/20 shrink-0 whitespace-nowrap">
                   Standard Policy
                 </span>
               </div>
 
               <div className="border border-[#e2e8f0] rounded-2xl overflow-hidden shadow-sm bg-white">
                 <div className="overflow-x-auto">
-                  <table className="w-full text-left text-sm">
-                    <thead className="bg-[#f7f8f5] text-[#0f2922] text-xs uppercase tracking-wider font-semibold border-b border-[#e2e8f0]">
+                  <table className="w-full text-left text-[12.5px] sm:text-sm">
+                    <thead className="bg-[#f7f8f5] text-[#0f2922] text-[10.5px] sm:text-xs uppercase tracking-wider font-semibold border-b border-[#e2e8f0]">
                       <tr>
-                        <th className="px-5 py-3.5">Notice Timeline</th>
-                        <th className="px-5 py-3.5 w-36">Refund Amount</th>
+                        <th className="px-3.5 sm:px-5 py-2.5 sm:py-3.5">Notice Timeline</th>
+                        <th className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 sm:w-36 text-right sm:text-left whitespace-nowrap">Refund Amount</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-[#f0f4f1]">
                       {policyRules.map((rule, idx) => (
                         <tr key={idx} className="hover:bg-[#fafbfa] transition-colors">
-                          <td className="px-5 py-3.5 font-medium text-[#0f2922]">
+                          <td className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 font-medium text-[#0f2922] leading-snug">
                             {rule.days}
                           </td>
-                          <td className="px-5 py-3.5">
-                            <span className={`inline-flex items-center font-bold px-2.5 py-1 rounded-md text-xs ${
+                          <td className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 text-right sm:text-left whitespace-nowrap">
+                            <span className={`inline-flex items-center font-bold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-md text-[11px] sm:text-xs whitespace-nowrap ${
                               (() => { const pct = parseInt(rule.refund); return pct >= 90; })()
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : rule.refund === "0%"
@@ -1120,7 +1127,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   </table>
                 </div>
 
-                <div className="bg-[#fcfdfc] border-t border-[#f0f4f1] px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#718096]">
+                <div className="bg-[#fcfdfc] border-t border-[#f0f4f1] px-3.5 sm:px-5 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-1.5 sm:gap-2 text-[11px] sm:text-xs text-[#718096] leading-snug">
                   <span>💡 To cancel or reschedule, contact our support team with your booking reference.</span>
                   <span>Processing: 5–7 business days</span>
                 </div>
@@ -1128,8 +1135,8 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             </section>
 
             {/* Manageable FAQs (Requirement 12) */}
-            <section className="border-t border-[#e2e8f0] pt-10">
-              <h2 className="text-[#0f2922] text-xl mb-4 font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+            <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+              <h2 className="text-[#0f2922] text-[20px] sm:text-xl mb-3 sm:mb-4 font-bold" style={{ fontFamily: "var(--font-serif)" }}>
                 Trip FAQs
               </h2>
               <div className="space-y-2">
@@ -1137,13 +1144,13 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   <div key={i} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
                     <button
                       onClick={() => setFaqOpen(faqOpen === i ? null : i)}
-                      className="w-full flex items-center justify-between px-5 py-3.5 text-left hover:bg-[#f7f8f5] transition-colors cursor-pointer"
+                      className="w-full flex items-center justify-between gap-3 px-3.5 sm:px-5 py-3 sm:py-3.5 text-left hover:bg-[#f7f8f5] transition-colors cursor-pointer"
                     >
-                      <span className="text-[#0f2922] text-sm font-medium">{faq.question}</span>
+                      <span className="text-[#0f2922] text-[13.5px] sm:text-sm font-medium leading-snug">{faq.question}</span>
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2" className={`shrink-0 transition-transform ${faqOpen === i ? "rotate-180" : ""}`}><path d="M6 9l6 6 6-6"/></svg>
                     </button>
                     {faqOpen === i && (
-                      <div className="px-5 pb-4 text-[#4a5568] text-sm leading-relaxed border-t border-[#e2e8f0] pt-3 whitespace-pre-line">
+                      <div className="px-3.5 sm:px-5 pb-3.5 sm:pb-4 text-[#4a5568] text-[13px] sm:text-sm leading-relaxed border-t border-[#e2e8f0] pt-2.5 sm:pt-3 whitespace-pre-line">
                         {faq.answer}
                       </div>
                     )}
@@ -1155,17 +1162,17 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
           {/* Right Column: Booking / Admin Summary Card */}
           <div>
-            <div className="sticky top-24 space-y-4">
+            <div className="sticky top-24 space-y-3 sm:space-y-4">
               {isAdmin ? (
                 /* Admin Summary Card */
-                <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white shadow-lg">
-                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-2 font-bold">ADMIN CONTROLS</div>
-                  <div className="text-3xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                <div style={{ background: "var(--forest)" }} className="rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-1.5 sm:mb-2 font-bold">ADMIN CONTROLS</div>
+                  <div className="text-2xl sm:text-3xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
                     {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
                   </div>
-                  <div className="text-white/60 text-xs mb-5">Base Price · {activeTrip?.duration ?? "4 Days / 3 Nights"}</div>
+                  <div className="text-white/60 text-xs mb-4 sm:mb-5">Base Price · {activeTrip?.duration ?? "4 Days / 3 Nights"}</div>
                   
-                  <div className="space-y-2.5 mb-6 text-xs border-y border-white/10 py-4">
+                  <div className="space-y-2.5 mb-5 sm:mb-6 text-xs border-y border-white/10 py-3.5 sm:py-4">
                     <div className="flex justify-between">
                       <span className="text-white/60">Upcoming Departures</span>
                       <span className="font-semibold text-white">{upcomingDepartures.length}</span>
@@ -1183,7 +1190,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   <div className="space-y-2.5">
                     <Link
                       to={`/admin/trips/${tripId}/edit`}
-                      className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white py-3 rounded-full text-xs font-semibold transition-colors block text-center shadow-md cursor-pointer"
+                      className="w-full bg-[#e8622a] hover:bg-[#d4541f] text-white py-2.5 sm:py-3 rounded-full text-xs font-semibold transition-colors block text-center shadow-md cursor-pointer"
                     >
                       Edit Trip Details
                     </Link>
@@ -1197,26 +1204,26 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                 </div>
               ) : (
                 /* User Booking & Departures Card */
-                <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white shadow-lg">
-                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-2 font-bold">STARTING PRICE</div>
-                  <div className="text-3xl sm:text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                <div style={{ background: "var(--forest)" }} className="rounded-2xl p-4 sm:p-6 text-white shadow-lg">
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-widest leading-tight mb-1 sm:mb-2 font-bold">STARTING PRICE</div>
+                  <div className="text-2xl sm:text-4xl font-bold leading-tight mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
                     {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
                   </div>
-                  <div className="text-white/60 text-xs mb-6">per person · {activeTrip?.duration ?? "4 Days / 3 Nights"}</div>
+                  <div className="text-white/60 text-xs mb-3.5 sm:mb-6">per person · {activeTrip?.duration ?? "4 Days / 3 Nights"}</div>
                   <button
                     onClick={() => openEnquiryModal(tripId)}
-                    className="w-full border border-white/30 hover:bg-white/10 text-white py-3 rounded-full text-sm font-semibold transition-colors cursor-pointer block text-center mb-3"
+                    className="w-full border border-white/30 hover:bg-white/10 text-white py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-colors cursor-pointer block text-center mb-2 sm:mb-3"
                   >
                     Raise Enquiry
                   </button>
                   <button
                     onClick={handleChatWhatsApp}
-                    className="w-full flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white py-3.5 rounded-full text-sm font-semibold transition-colors shadow-md cursor-pointer"
+                    className="w-full flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-semibold transition-colors shadow-md cursor-pointer"
                   >
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                     Chat on WhatsApp
                   </button>
-                  <p className="text-white/40 text-xs text-center mt-3">No account required. We'll respond within 2 hours.</p>
+                  <p className="text-white/40 text-[11px] sm:text-xs text-center mt-2.5 sm:mt-3 mb-0 leading-snug">No account required. We'll respond within 2 hours.</p>
                 </div>
               )}
 
@@ -1279,7 +1286,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                       <p className="text-xs font-semibold text-[#0f2922] mb-1">
                         No upcoming departures scheduled for now
                       </p>
-                      <p className="text-[11px] text-[#718096] leading-relaxed">
+                      <p className="text-[11px] text-[#718096] leading-relaxed mb-0">
                         We regularly organize customized and private departures on any dates of your choice. You can still reach out to plan your dates!
                       </p>
                     </div>
@@ -1287,7 +1294,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                 </div>
               )}
 
-              <div className="border border-[#e2e8f0] rounded-2xl p-4 bg-white flex items-center justify-between gap-3">
+              <div className="border border-[#e2e8f0] rounded-2xl px-4 py-3 sm:p-4 bg-white flex items-center justify-between gap-3">
                 <div className="text-[#e8622a] text-xs uppercase tracking-wider font-semibold">SHARE THIS TRIP</div>
                 <button
                   type="button"
