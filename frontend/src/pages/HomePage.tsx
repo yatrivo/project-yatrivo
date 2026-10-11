@@ -168,20 +168,20 @@ export default function HomePage() {
         onTouchEnd={onTouchEnd}
       >
         {/* Mobile-Only Center-Top Brand & Tagline */}
-        <div className="md:hidden absolute top-16 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+        <div className="md:hidden absolute top-14 sm:top-16 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
           <img
             src={logoImg}
             alt="Yatrivo"
-            className="h-12 w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] mb-1.5"
+            className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] mb-1 sm:mb-1.5"
           />
           <div
-            className="text-white font-bold text-lg sm:text-xl tracking-[0.2em] text-contrast-title"
+            className="text-white font-bold text-base sm:text-xl tracking-[0.2em] text-contrast-title"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             YATRIVO
           </div>
           <div
-            className="brand-tagline-light text-[11.5px] sm:text-xs tracking-[0.09em] mt-1 whitespace-nowrap"
+            className="brand-tagline-light text-[11px] sm:text-xs tracking-[0.08em] sm:tracking-[0.09em] mt-0.5 sm:mt-1 max-w-full truncate"
           >
             {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
           </div>
@@ -193,14 +193,14 @@ export default function HomePage() {
           style={{ transform: `translateX(-${heroIdx * 100}%)` }}
         >
           {resolvedSlides.length === 0 ? (
-            <div className="relative w-full h-full shrink-0 flex items-end pb-8 sm:pb-10 md:pb-12 overflow-hidden">
+            <div className="relative w-full h-full shrink-0 flex items-end pb-9 sm:pb-10 md:pb-12 overflow-hidden">
               <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
             </div>
           ) : (
             resolvedSlides.map((slide, i) => (
               <div
                 key={i}
-                className="relative w-full h-full shrink-0 flex items-end pb-8 sm:pb-10 md:pb-12 overflow-hidden"
+                className="relative w-full h-full shrink-0 flex items-end pb-9 sm:pb-10 md:pb-12 overflow-hidden"
               >
                 {/* Background image */}
                 {slide.imageUrl ? (
@@ -223,7 +223,7 @@ export default function HomePage() {
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
                   {slide.title ? (
                     <h1
-                      className="text-white text-[28px] sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
+                      className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
                       style={{ fontFamily: "var(--font-serif)" }}
                     >
                       {slide.title.split(". ").map((part, pIdx, arr) => (
@@ -237,7 +237,7 @@ export default function HomePage() {
                   ) : null}
 
                   {slide.subtitle ? (
-                    <p className="text-white/90 text-[14px] sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-relaxed text-contrast-body line-clamp-2">
+                    <p className="text-white/90 text-[13px] sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-snug sm:leading-relaxed text-contrast-body line-clamp-2">
                       {slide.subtitle}
                     </p>
                   ) : null}
@@ -289,13 +289,13 @@ export default function HomePage() {
 
       {/* Trust Badges */}
       <section className="bg-white border-b border-[#e2e8f0]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 sm:py-8 grid grid-cols-1 sm:grid-cols-3 gap-[22px] sm:gap-6">
           {(homepageContent?.whyUsPoints || []).slice(0, 3).map((b) => (
             <div key={b.title} className="flex items-start gap-3">
-              <span className="text-2xl mt-0.5">{b.icon}</span>
+              <span className="text-xl sm:text-2xl mt-0.5 shrink-0">{b.icon}</span>
               <div>
-                <div className="text-[#0f2922] font-medium text-sm">{b.title}</div>
-                <div className="text-[#4a5568] text-sm mt-0.5">{b.desc}</div>
+                <div className="text-[#0f2922] font-medium text-sm leading-snug sm:leading-[1.6]">{b.title}</div>
+                <div className="text-[#4a5568] text-xs sm:text-sm leading-snug sm:leading-[1.6] mt-0.5">{b.desc}</div>
               </div>
             </div>
           ))}
@@ -303,23 +303,23 @@ export default function HomePage() {
       </section>
 
       {/* Destinations */}
-      <section className="pt-12 md:pt-16 pb-8 md:pb-16 bg-white">
+      <section className="pt-8 sm:pt-12 md:pt-16 pb-6 sm:pb-8 md:pb-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
+          <div className="flex items-end justify-between mb-5 sm:mb-8 flex-wrap gap-3 sm:gap-4">
             <div>
-              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">CURATED HIMALAYAN WONDERS</div>
-              <h2 className="section-heading text-[#0f2922]">Destinations that Stir the Soul</h2>
+              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-2">CURATED HIMALAYAN WONDERS</div>
+              <h2 className="section-heading text-[#0f2922] max-sm:mb-0">Destinations that Stir the Soul</h2>
             </div>
-            <Link to="/destinations" className="border border-[#0f2922] text-[#0f2922] text-sm px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0 inline-block">
+            <Link to="/destinations" className="border border-[#0f2922] text-[#0f2922] text-xs sm:text-sm px-4 sm:px-5 py-1.5 sm:py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0 inline-block">
               VIEW ALL DESTINATIONS
             </Link>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
             {featuredDestinations.map((d) => (
               <Link
                 key={d.id}
                 to={`/destinations/${d.slug || d.id}`}
-                className="group relative rounded-2xl overflow-hidden h-72 block cursor-pointer"
+                className="group relative rounded-2xl overflow-hidden h-48 sm:h-72 block cursor-pointer"
               >
                 <ProgressiveImage
                   src={d.image}
@@ -329,8 +329,8 @@ export default function HomePage() {
                   priority={false}
                 />
                 <div className="absolute inset-0 card-overlay-bottom" />
-                <div className="absolute bottom-0 left-0 p-5">
-                  <div className="text-white text-xl sm:text-2xl font-semibold leading-tight text-contrast-title drop-shadow-xs" style={{ fontFamily: "var(--font-serif)" }}>
+                <div className="absolute bottom-0 left-0 p-4 sm:p-5">
+                  <div className="text-white text-lg sm:text-2xl font-semibold leading-tight text-contrast-title drop-shadow-xs" style={{ fontFamily: "var(--font-serif)" }}>
                     {d.name}
                   </div>
                 </div>
@@ -341,7 +341,7 @@ export default function HomePage() {
       </section>
 
       {/* Mindful Adventure Movement */}
-      <section className="pt-6 md:pt-16 pb-12 md:pb-16 bg-white">
+      <section className="pt-4 sm:pt-6 md:pt-16 pb-8 sm:pb-12 md:pb-16 bg-white">
         <div className="max-w-5xl mx-auto px-4 sm:px-6">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-center">
             <div className="hidden md:block md:col-span-5 rounded-2xl overflow-hidden h-64 lg:h-72 relative shadow-xs">
@@ -352,16 +352,16 @@ export default function HomePage() {
               />
             </div>
             <div className="md:col-span-7">
-              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2.5">WHY TRAVELERS LOVE US</div>
-              <h2 className="section-heading text-[#0f2922] mb-4">
+              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 sm:mb-2.5">WHY TRAVELERS LOVE US</div>
+              <h2 className="section-heading text-[#0f2922] mb-3.5 sm:mb-4">
                 {whyUsTitle || "The Mindful Adventure Movement"}
               </h2>
-              <p className="text-[#4a5568] text-[15px] leading-relaxed mb-7 max-w-xl">
+              <p className="text-[#4a5568] text-sm sm:text-[15px] leading-relaxed mb-6 sm:mb-7 max-w-xl">
                 {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
               </p>
               <Link
                 to="/travel-with-us"
-                className="border border-[#0f2922] text-[#0f2922] text-sm px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium inline-block"
+                className="border border-[#0f2922] text-[#0f2922] text-xs sm:text-sm px-5 sm:px-6 py-2 sm:py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium inline-block"
               >
                 Travel With Us →
               </Link>
@@ -372,10 +372,10 @@ export default function HomePage() {
 
       {/* Testimonials */}
       {featuredReviews.length > 0 && (
-        <section className="py-16 bg-[#f7f8f5]">
+        <section className="py-10 sm:py-16 bg-[#f7f8f5]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
-            <h2 className="section-heading text-[#0f2922] text-center mb-10">Wanderers Speak From Their Hearts</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+            <h2 className="section-heading text-[#0f2922] text-center mb-6 sm:mb-10">Wanderers Speak From Their Hearts</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 sm:gap-5">
               {featuredReviews.map((r) => {
                 const norm = (s?: string) => (s || "").trim().toLowerCase();
                 const matchedDest = destinations.find(
@@ -418,7 +418,7 @@ export default function HomePage() {
                   <Link
                     key={r.id}
                     to={targetUrl}
-                    className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-md transition-all flex flex-col justify-between h-full group cursor-pointer"
+                    className="bg-white rounded-2xl p-4 sm:p-6 border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-md transition-all flex flex-col justify-between h-full group cursor-pointer"
                   >
                     <div>
                       <div className="flex items-center justify-between gap-2">
@@ -430,14 +430,14 @@ export default function HomePage() {
                           </svg>
                         </span>
                       </div>
-                      <p className="text-[#4a5568] text-sm leading-relaxed mt-3.5 mb-5 italic line-clamp-4">
+                      <p className="text-[#4a5568] text-[13px] sm:text-sm leading-relaxed mt-2.5 sm:mt-3.5 mb-3.5 sm:mb-5 italic line-clamp-3 sm:line-clamp-4">
                         "{r.text}"
                       </p>
                     </div>
-                    <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between gap-3">
+                    <div className="pt-2.5 sm:pt-3 border-t border-[#f1f5f9] flex items-center justify-between gap-3">
                       <div className="min-w-0">
-                        <div className="text-[#0f2922] font-medium text-sm truncate">{r.name}</div>
-                        <div className="text-[#e8622a] text-xs mt-0.5 truncate">{r.tripName}</div>
+                        <div className="text-[#0f2922] font-medium text-sm truncate leading-snug sm:leading-[1.6]">{r.name}</div>
+                        <div className="text-[#e8622a] text-xs mt-0.5 truncate leading-snug sm:leading-[1.6]">{r.tripName}</div>
                       </div>
                       {matchedDest && (
                         <span className="text-[11px] bg-[#f7f8f5] border border-[#e2e8f0] text-[#0f2922] px-2.5 py-1 rounded-full shrink-0 font-medium group-hover:bg-[#0f2922] group-hover:text-white transition-colors">
@@ -454,7 +454,7 @@ export default function HomePage() {
       )}
 
       {/* CTA Banner */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative py-12 sm:py-24 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.HOME_CTA_BG}
           alt="Forest mountain path"
@@ -462,11 +462,11 @@ export default function HomePage() {
         />
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
-          <h2 className="section-heading text-white mb-4">Ready to Travel Better?</h2>
-          <p className="text-white/70 text-[15px] sm:text-base mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
+          <h2 className="section-heading text-white mb-2.5 sm:mb-4">Ready to Travel Better?</h2>
+          <p className="text-white/70 text-sm sm:text-base leading-relaxed mb-5 sm:mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
           <Link
             to="/plan"
-            className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide inline-block"
+            className="bg-white text-[#0f2922] font-medium px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-xs sm:text-sm tracking-wide inline-block"
           >
             BOOK YOUR JOURNEY NOW
           </Link>
