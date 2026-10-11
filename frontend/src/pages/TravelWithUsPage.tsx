@@ -53,7 +53,7 @@ export default function TravelWithUsPage() {
         keywords="travel with yatrivo, small group himalayan tours, mindful travel collective, ethical trekking uttarakhand"
       />
       {/* Hero */}
-      <section className="relative h-[48vh] sm:h-[54vh] md:h-[84vh] min-h-[340px] sm:min-h-[380px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
+      <section className="relative h-[42vh] sm:h-[54vh] md:h-[84vh] min-h-[300px] sm:min-h-[380px] md:min-h-[580px] max-h-[840px] flex items-end pt-20 sm:pt-0 pb-5 sm:pb-10 md:pb-12 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.TRAVEL_WITH_US_HERO}
           alt="Himalayan landscape"
@@ -61,23 +61,23 @@ export default function TravelWithUsPage() {
         />
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">JOIN THE MOVEMENT</div>
-          <h1 className="text-white text-3xl sm:text-5xl md:text-6xl leading-[1.1] mb-2.5 sm:mb-4 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-3 text-contrast-subtle">JOIN THE MOVEMENT</div>
+          <h1 className="text-white text-[26px] sm:text-5xl md:text-6xl leading-[1.12] sm:leading-[1.1] mb-2 sm:mb-4 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Travel With Yatrivo
           </h1>
-          <p className="text-white/90 text-[15px] sm:text-base max-w-md mb-4 sm:mb-6 leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-[13.5px] sm:text-base max-w-md mb-3.5 sm:mb-6 leading-snug sm:leading-relaxed text-contrast-body">
             Small groups, authentic experiences, and deep connection with the Himalayas.
           </p>
-          <div className="flex flex-wrap gap-3 sm:gap-4">
+          <div className="flex flex-wrap gap-2.5 sm:gap-4">
             <Link
               to="/trips"
-              className="btn-glass-outline text-white px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0"
+              className="btn-glass-outline text-white px-4 sm:px-7 py-2 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0"
             >
               EXPLORE TRIPS
             </Link>
             <Link
               to="/plan"
-              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-primary-elevated shrink-0"
+              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-4 sm:px-7 py-2 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-primary-elevated shrink-0"
             >
               PLAN MY TRIP →
             </Link>
@@ -86,19 +86,19 @@ export default function TravelWithUsPage() {
       </section>
 
       {/* Why Yatrivo */}
-      <section className="py-20 bg-white">
+      <section className="py-10 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHY CHOOSE US</div>
-            <h2 className="text-[#0f2922] text-2xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>The Yatrivo Difference</h2>
-            <p className="text-[#4a5568] text-[15px] sm:text-sm mt-3 max-w-xl mx-auto text-center">Every detail is thoughtfully designed to give you a safe, immersive, and genuinely memorable Himalayan experience.</p>
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-3">WHY CHOOSE US</div>
+            <h2 className="text-[#0f2922] text-[22px] sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>The Yatrivo Difference</h2>
+            <p className="text-[#4a5568] text-[13.5px] sm:text-sm mt-2 sm:mt-3 max-w-xl mx-auto text-center leading-relaxed">Every detail is thoughtfully designed to give you a safe, immersive, and genuinely memorable Himalayan experience.</p>
           </div>
-          <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+          <div className="max-w-5xl mx-auto grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
             {features.map((f) => (
-              <div key={f.title} className="bg-[#f7f8f5] rounded-xl p-4 sm:p-5 border border-[#e2e8f0]">
-                <div className="text-2xl mb-2.5">{f.icon}</div>
-                <h3 className="text-[#0f2922] text-sm sm:text-[15px] font-semibold mb-1.5">{f.title}</h3>
-                <p className="text-[#4a5568] text-xs sm:text-[13px] leading-relaxed">{f.desc}</p>
+              <div key={f.title} className="bg-[#f7f8f5] rounded-xl p-3.5 sm:p-5 border border-[#e2e8f0]">
+                <div className="text-xl sm:text-2xl mb-1.5 sm:mb-2.5">{f.icon}</div>
+                <h3 className="text-[#0f2922] text-sm sm:text-[15px] font-semibold mb-1 sm:mb-1.5">{f.title}</h3>
+                <p className="text-[#4a5568] text-xs sm:text-[13px] leading-snug sm:leading-relaxed">{f.desc}</p>
               </div>
             ))}
           </div>
@@ -106,23 +106,23 @@ export default function TravelWithUsPage() {
       </section>
 
       {/* Highlights Grid */}
-      <section className="py-20 bg-[#f7f8f5]">
+      <section className="py-10 sm:py-20 bg-[#f7f8f5]">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">WHAT AWAITS YOU</div>
-            <h2 className="text-[#0f2922] text-2xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Himalayan Experiences</h2>
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-3">WHAT AWAITS YOU</div>
+            <h2 className="text-[#0f2922] text-[22px] sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Himalayan Experiences</h2>
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-4">
             {highlights.map((h) => (
-              <Link key={h.id} to="/trips" className="relative rounded-2xl overflow-hidden h-52 group block">
+              <Link key={h.id} to="/trips" className="relative rounded-xl sm:rounded-2xl overflow-hidden h-36 sm:h-52 group block">
                 <SiteImage
                   assetKey={h.assetKey}
                   alt={h.label}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 card-overlay-bottom" />
-                <div className="absolute bottom-0 left-0 p-4">
-                  <div className="text-white font-medium text-sm text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
+                <div className="absolute bottom-0 inset-x-0 p-2.5 sm:p-4">
+                  <div className="text-white font-medium text-[13px] sm:text-sm leading-tight text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{h.label}</div>
                 </div>
               </Link>
             ))}
@@ -131,14 +131,14 @@ export default function TravelWithUsPage() {
       </section>
 
       {/* Recent Completed Trips */}
-      <section className="py-20 bg-white">
+      <section className="py-10 sm:py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center mb-12">
-            <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">RECENT DEPARTURES</div>
-            <h2 className="text-[#0f2922] text-2xl sm:text-4xl" style={{ fontFamily: "var(--font-serif)" }}>Join Thousands of Mindful Explorers</h2>
-            <p className="text-[#4a5568] text-[15px] sm:text-sm mt-3 max-w-md mx-auto text-center">Every month, a new group of adventurers discovers the Himalayas with Yatrivo. Here are some of our most recent completed trips.</p>
+          <div className="text-center mb-6 sm:mb-12">
+            <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-3">RECENT DEPARTURES</div>
+            <h2 className="text-[#0f2922] text-[22px] sm:text-4xl leading-snug" style={{ fontFamily: "var(--font-serif)" }}>Join Thousands of Mindful Explorers</h2>
+            <p className="text-[#4a5568] text-[13.5px] sm:text-sm mt-2 sm:mt-3 max-w-md mx-auto text-center leading-relaxed">Every month, a new group of adventurers discovers the Himalayas with Yatrivo. Here are some of our most recent completed trips.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
             {recentCompleted.map((inst) => {
               const trip = trips.find((t) => t.id === inst.tripId || (t.slug && t.slug === inst.tripId));
               if (!trip) return null;
@@ -150,20 +150,20 @@ export default function TravelWithUsPage() {
                 <Link
                   key={inst.id}
                   to={`/past-trips/${inst.id}`}
-                  className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
+                  className="bg-white rounded-xl sm:rounded-2xl border border-[#e2e8f0] overflow-hidden text-left hover:shadow-md transition-shadow w-full block group"
                 >
-                  <div className="relative h-52 overflow-hidden">
+                  <div className="relative h-44 sm:h-52 overflow-hidden">
                     <img src={coverImg} alt={trip.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                    <div className="absolute top-3 left-3 badge-glass-dark text-white text-xs font-medium px-3 py-1 rounded-full">
+                    <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 badge-glass-dark text-white text-[11px] sm:text-xs font-medium px-2.5 py-0.5 sm:px-3 sm:py-1 rounded-full">
                       {inst.spotsTotal} participants
                     </div>
                     <div className="absolute inset-0 card-overlay-bottom" />
-                    <div className="absolute bottom-0 left-0 p-4">
-                      <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-wide mb-0.5 text-contrast-subtle">{destLabel}</div>
-                      <div className="text-white font-semibold text-[18px] sm:text-lg leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
+                    <div className="absolute bottom-0 left-0 p-3.5 sm:p-4">
+                      <div className="text-[#e8622a] text-[11px] sm:text-xs font-semibold uppercase tracking-wide mb-0.5 text-contrast-subtle">{destLabel}</div>
+                      <div className="text-white font-semibold text-base sm:text-lg leading-snug text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</div>
                     </div>
                   </div>
-                  <div className="px-4 py-3.5 flex items-center justify-between border-t border-[#f0f4f2]">
+                  <div className="px-3.5 py-2.5 sm:px-4 sm:py-3.5 flex items-center justify-between border-t border-[#f0f4f2]">
                     <span className="text-[#718096] text-xs font-medium">{inst.displayDate}</span>
                     <span className="text-[#e8622a] text-xs font-medium group-hover:underline">VIEW TRIP DETAILS →</span>
                   </div>
@@ -175,7 +175,7 @@ export default function TravelWithUsPage() {
       </section>
 
       {/* CTA */}
-      <section className="relative py-24 overflow-hidden">
+      <section className="relative py-12 sm:py-24 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.TRAVEL_WITH_US_CTA_BG}
           alt="Forest mountain path"
@@ -183,11 +183,11 @@ export default function TravelWithUsPage() {
         />
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-white text-2xl sm:text-5xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Explore?</h2>
-          <p className="text-white/70 text-[15px] sm:text-base mb-8">Tell us your dream Himalayan experience and our team will design the perfect itinerary for you.</p>
+          <h2 className="text-white text-[22px] sm:text-5xl mb-2.5 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>Ready to Explore?</h2>
+          <p className="text-white/70 text-[13.5px] sm:text-base mb-5 sm:mb-8 leading-relaxed">Tell us your dream Himalayan experience and our team will design the perfect itinerary for you.</p>
           <Link
             to="/plan"
-            className="inline-block bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide"
+            className="inline-block bg-white text-[#0f2922] font-medium px-6 py-2.5 sm:px-8 sm:py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-xs sm:text-sm tracking-wide"
           >
             PLAN MY TRIP NOW
           </Link>
