@@ -46,6 +46,7 @@ export const mediaController = {
     const destinationId = typeof req.body.destinationId === "string" ? req.body.destinationId : (typeof req.body.destination_id === "string" ? req.body.destination_id : undefined);
     const destinationSlug = typeof req.body.destinationSlug === "string" ? req.body.destinationSlug : (typeof req.body.destination_slug === "string" ? req.body.destination_slug : (typeof req.body.destination === "string" ? req.body.destination : undefined));
     const isReview = req.body.isReview === true || req.body.isReview === "true" || category === "reviews";
+    const showInGallery = req.body.showInGallery === true || req.body.showInGallery === "true";
 
     const asset = await mediaService.uploadImage(
       file as Express.Multer.File,
@@ -55,7 +56,8 @@ export const mediaController = {
         destinationSlug,
         isReview,
         label,
-        altText
+        altText,
+        showInGallery
       },
       req.user?.id
     );

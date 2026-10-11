@@ -1,10 +1,12 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { mediaApi, type MediaAsset, type MediaReferenceInfo } from "@/api/media";
+import { galleryApi } from "@/api/gallery";
 import { useApp } from "@/context/AppContext";
 
 const CATEGORY_TABS: { id: string; label: string }[] = [
   { id: "all", label: "All Media" },
+  { id: "gallery", label: "Public Gallery" },
   { id: "destinations", label: "Destinations" },
   { id: "trips", label: "Trips" },
   { id: "reviews", label: "Reviews" },
@@ -26,13 +28,14 @@ interface UploadModalProps {
   onClose: () => void;
   onUploaded: (asset: MediaAsset) => void;
   initialDestinationId?: string;
+  defaultInGallery?: boolean;
 }
 
-function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: UploadModalProps) {
+function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultInGallery = false }: UploadModalProps) {
   const { showToast, destinations } = useApp();
   const [tab, setTab] = useState<"file" | "url">("file");
 
-  // Destination context (optional, simple dropdown only for assignment, no technical paths)
+  // Destination context
   const [selectedDestId, setSelectedDestId] = useState(
     initialDestinationId && initialDestinationId !== "all" ? initialDestinationId : ""
   );
@@ -43,6 +46,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
   const [label, setLabel] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [showInGallery, setShowInGallery] = useState(defaultInGallery);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // URL state
@@ -76,7 +80,8 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
         category,
         destinationId: destObj?.id,
         destinationSlug: destObj?.slug,
-        label: label.trim() || file.name
+        label: label.trim() || file.name,
+        showInGallery
       });
 
       showToast("Image uploaded to storage successfully.", "success");
@@ -103,7 +108,8 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
         url: url.trim(),
         destinationId: destObj?.id,
         label: label.trim() || undefined,
-        category: destObj ? "destinations" : "general"
+        category: destObj ? "destinations" : "general",
+        showInGallery
       });
       showToast("External image registered successfully.", "success");
       onUploaded(asset);
@@ -198,53 +204,41 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
 
           {tab === "file" ? (
             <div>
+              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                Image File <span className="text-red-500">*</span>
+              </label>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                onChange={handleFileChange}
+                className="hidden"
+              />
               <label
                 onDragOver={(e) => {
                   e.preventDefault();
-                  e.stopPropagation();
                   setIsDragging(true);
                 }}
-                onDragLeave={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  setIsDragging(false);
-                }}
+                onDragLeave={() => setIsDragging(false)}
                 onDrop={(e) => {
                   e.preventDefault();
-                  e.stopPropagation();
                   setIsDragging(false);
                   const f = e.dataTransfer.files?.[0];
                   if (f) processFile(f);
                 }}
                 onClick={() => fileInputRef.current?.click()}
-                className={`border-2 border-dashed rounded-xl p-6 flex flex-col items-center justify-center cursor-pointer transition select-none ${
+                className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition ${
                   isDragging
-                    ? "border-[#e8622a] bg-[#fff5f0]"
-                    : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#fafbfa]"
+                    ? "border-[#e8622a] bg-[#fffaf8]"
+                    : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#f7f8f5]"
                 }`}
               >
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={handleFileChange}
-                  className="sr-only"
-                />
-
                 {preview ? (
-                  <div className="space-y-2 text-center">
-                    <img
-                      src={preview}
-                      alt="Preview"
-                      className="w-32 h-32 object-cover rounded-lg mx-auto border border-[#e2e8f0] shadow-sm"
-                    />
-                    <p className="text-xs font-semibold text-[#0f2922]">{file?.name}</p>
-                    <p className="text-[11px] text-[#718096]">
-                      {file ? `${(file.size / 1024 / 1024).toFixed(2)} MB` : ""}
-                    </p>
-                    <span className="inline-block text-xs text-[#e8622a] hover:underline font-medium">
-                      Change selected file
-                    </span>
+                  <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#e2e8f0]">
+                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
+                      Change File
+                    </div>
                   </div>
                 ) : (
                   <>
@@ -288,6 +282,20 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
             />
           </div>
 
+          {/* Public Gallery toggle checkbox */}
+          <div className="flex items-center gap-2.5 bg-[#f0f9f4] p-3 rounded-xl border border-[#bbf7d0]">
+            <input
+              type="checkbox"
+              id="upload-show-in-gallery"
+              checked={showInGallery}
+              onChange={(e) => setShowInGallery(e.target.checked)}
+              className="rounded text-[#e8622a] focus:ring-[#e8622a] h-4 w-4 cursor-pointer"
+            />
+            <label htmlFor="upload-show-in-gallery" className="text-xs text-[#0f2922] font-semibold cursor-pointer select-none">
+              Include in Public Gallery (shows on website's /gallery page)
+            </label>
+          </div>
+
           <div className="flex gap-2 pt-2">
             <button
               type="button"
@@ -313,6 +321,404 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId }: Upload
   );
 }
 
+interface AddToGalleryModalProps {
+  onClose: () => void;
+  onAdded: () => void;
+}
+
+function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
+  const { showToast, destinations } = useApp();
+  const [modalTab, setModalTab] = useState<"library" | "upload">("library");
+
+  // Library Tab State
+  const [items, setItems] = useState<MediaAsset[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [destSelect, setDestSelect] = useState("all");
+  const [addingId, setAddingId] = useState<string | null>(null);
+
+  // Upload Tab State
+  const [uploadType, setUploadType] = useState<"file" | "url">("file");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+  const [externalUrl, setExternalUrl] = useState("");
+  const [titleInput, setTitleInput] = useState("");
+  const [selectedDestId, setSelectedDestId] = useState("");
+  const [isUploading, setIsUploading] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    if (modalTab === "library") {
+      setLoading(true);
+      mediaApi
+        .list({
+          search: searchQuery.trim() || undefined,
+          destinationId: destSelect !== "all" ? destSelect : undefined,
+          limit: 100
+        })
+        .then((res) => {
+          if (active) {
+            setItems((res.media || []).filter((m) => !m.inGallery));
+          }
+        })
+        .catch(() => {
+          if (active) showToast("Failed to load library items", "error");
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+    }
+    return () => {
+      active = false;
+    };
+  }, [modalTab, searchQuery, destSelect]);
+
+  const handleSelectFromLibrary = async (asset: MediaAsset) => {
+    setAddingId(asset.id);
+    try {
+      await galleryApi.add({ mediaId: asset.id });
+      showToast(`Added "${asset.label || 'image'}" to Public Gallery.`, "success");
+      onAdded();
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to add to gallery";
+      showToast(msg, "error");
+    } finally {
+      setAddingId(null);
+    }
+  };
+
+  const processFile = (f: File) => {
+    if (!f.type.startsWith("image/")) {
+      showToast("Please select an image file (PNG, JPG, WebP)", "error");
+      return;
+    }
+    setUploadFile(f);
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.readAsDataURL(f);
+  };
+
+  const handleUploadSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsUploading(true);
+    try {
+      const destObj = destinations.find((d) => d.id === selectedDestId);
+      if (uploadType === "file") {
+        if (!uploadFile) {
+          showToast("Please choose an image file to upload", "error");
+          setIsUploading(false);
+          return;
+        }
+        await mediaApi.upload(uploadFile, {
+          category: destObj ? "destinations" : "general",
+          destinationId: destObj?.id,
+          destinationSlug: destObj?.slug,
+          label: titleInput.trim() || uploadFile.name,
+          showInGallery: true
+        });
+      } else {
+        if (!externalUrl.trim()) {
+          showToast("Please enter an image URL", "error");
+          setIsUploading(false);
+          return;
+        }
+        await mediaApi.createExternal({
+          url: externalUrl.trim(),
+          category: destObj ? "destinations" : "general",
+          destinationId: destObj?.id,
+          label: titleInput.trim() || undefined,
+          showInGallery: true
+        });
+      }
+      showToast("New image uploaded and added to Public Gallery!", "success");
+      onAdded();
+      onClose();
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to upload image";
+      showToast(msg, "error");
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 flex flex-col overflow-hidden max-h-[88vh] border border-[#e2e8f0]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
+              PUBLIC GALLERY
+            </div>
+            <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              Add to Public Gallery
+            </h3>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-white/70 hover:text-white transition p-1 cursor-pointer"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Tab Switcher: Choose from Library vs Upload New Media */}
+        <div className="flex border-b border-[#e2e8f0] bg-[#f7f8f5] shrink-0">
+          <button
+            type="button"
+            onClick={() => setModalTab("library")}
+            className={`flex-1 py-3 text-xs font-semibold border-b-2 -mb-px transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              modalTab === "library"
+                ? "border-[#e8622a] text-[#0f2922] bg-white"
+                : "border-transparent text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>Choose from Library</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setModalTab("upload")}
+            className={`flex-1 py-3 text-xs font-semibold border-b-2 -mb-px transition cursor-pointer flex items-center justify-center gap-1.5 ${
+              modalTab === "upload"
+                ? "border-[#e8622a] text-[#0f2922] bg-white"
+                : "border-transparent text-[#718096] hover:text-[#0f2922]"
+            }`}
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            <span>Upload New Media</span>
+          </button>
+        </div>
+
+        {modalTab === "library" ? (
+          <>
+            {/* Search & Destination filter */}
+            <div className="p-3 border-b border-[#e2e8f0] bg-[#f7f8f5] flex gap-2 shrink-0">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search library images..."
+                className="flex-1 bg-white border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+              />
+              <select
+                value={destSelect}
+                onChange={(e) => setDestSelect(e.target.value)}
+                className="bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+              >
+                <option value="all">All Destinations</option>
+                {destinations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Image Grid */}
+            <div className="p-4 overflow-y-auto flex-1">
+              {loading ? (
+                <div className="py-12 text-center text-xs text-[#718096]">Loading available images...</div>
+              ) : items.length === 0 ? (
+                <div className="py-12 text-center text-xs text-[#a0aec0]">
+                  No available images found. All images matching filter are already in the gallery or none found.
+                </div>
+              ) : (
+                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  {items.map((m) => (
+                    <div
+                      key={m.id}
+                      onClick={() => handleSelectFromLibrary(m)}
+                      className="group relative bg-[#f7f8f5] rounded-lg border border-[#e2e8f0] overflow-hidden hover:border-[#e8622a] hover:shadow-md transition cursor-pointer flex flex-col"
+                    >
+                      <div className="aspect-square bg-gray-100 overflow-hidden relative">
+                        <img src={m.url} alt={m.label || ""} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                        <span className="absolute top-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded capitalize">
+                          {m.category}
+                        </span>
+                      </div>
+                      <div className="p-1.5 text-[10px] truncate font-medium text-[#0f2922]">
+                        {m.label || "Untitled"}
+                      </div>
+                      <div className="absolute inset-0 bg-[#0f2922]/80 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold text-center p-2">
+                        {addingId === m.id ? "Adding..." : "+ Add to Gallery"}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        ) : (
+          /* Upload New Media Tab */
+          <form onSubmit={handleUploadSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
+            <div className="flex border-b border-[#e2e8f0] bg-[#f7f8f5] rounded-lg overflow-hidden p-1 gap-1">
+              <button
+                type="button"
+                onClick={() => setUploadType("file")}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
+                  uploadType === "file" ? "bg-white text-[#0f2922] shadow-2xs" : "text-[#718096]"
+                }`}
+              >
+                Upload File
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadType("url")}
+                className={`flex-1 py-1.5 text-xs font-semibold rounded-md transition cursor-pointer ${
+                  uploadType === "url" ? "bg-white text-[#0f2922] shadow-2xs" : "text-[#718096]"
+                }`}
+              >
+                External URL
+              </button>
+            </div>
+
+            {uploadType === "file" ? (
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  Image File <span className="text-red-500">*</span>
+                </label>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) processFile(f);
+                  }}
+                  className="hidden"
+                />
+                <div
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const f = e.dataTransfer.files?.[0];
+                    if (f) processFile(f);
+                  }}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition ${
+                    isDragging
+                      ? "border-[#e8622a] bg-[#fffaf8]"
+                      : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#f7f8f5]"
+                  }`}
+                >
+                  {preview ? (
+                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#e2e8f0]">
+                      <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
+                        Change File
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="w-10 h-10 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-1.5">
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                      <p className="text-xs font-semibold text-[#0f2922]">Click or drop image file here</p>
+                      <p className="text-[10px] text-[#718096] mt-0.5">PNG, JPG, WebP up to 10MB</p>
+                    </>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  Image URL <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="url"
+                  value={externalUrl}
+                  onChange={(e) => setExternalUrl(e.target.value)}
+                  placeholder="https://images.unsplash.com/photo-..."
+                  className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                Public Title (Optional)
+              </label>
+              <input
+                type="text"
+                value={titleInput}
+                onChange={(e) => setTitleInput(e.target.value)}
+                placeholder="e.g. Kedarnath Valley View"
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                Associate with Destination (Optional)
+              </label>
+              <select
+                value={selectedDestId}
+                onChange={(e) => setSelectedDestId(e.target.value)}
+                className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer"
+              >
+                <option value="">None / Pure Gallery Photo</option>
+                {destinations.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="bg-[#f0f9f4] border border-[#bbf7d0] rounded-lg p-2.5 text-[11px] text-[#0f2922] flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-[#38d39f] shrink-0" />
+              <span>This media asset will belong to <strong>Gallery</strong> and display immediately on the public website.</span>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 border border-[#e2e8f0] text-[#718096] hover:bg-[#f7f8f5] rounded-lg text-xs font-semibold cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isUploading}
+                className="bg-[#0f2922] hover:bg-[#1a4a39] text-white px-5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+              >
+                {isUploading ? "Uploading..." : "Upload & Add to Gallery"}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminMedia() {
   const { showToast, destinations } = useApp();
   const [mediaList, setMediaList] = useState<MediaAsset[]>([]);
@@ -321,18 +727,34 @@ export default function AdminMedia() {
   const [destFilter, setDestFilter] = useState<string>("all");
   const [search, setSearch] = useState("");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
+  const [addExistingModalOpen, setAddExistingModalOpen] = useState(false);
 
   // Inspector & detail drawer state
   const [selectedAsset, setSelectedAsset] = useState<MediaAsset | null>(null);
   const [assetRefs, setAssetRefs] = useState<MediaReferenceInfo | null>(null);
   const [loadingRefs, setLoadingRefs] = useState(false);
 
+  // Gallery settings editing state
+  const [galleryOrderInput, setGalleryOrderInput] = useState<number>(1);
+  const [galleryTitleInput, setGalleryTitleInput] = useState<string>("");
+  const [galleryCaptionInput, setGalleryCaptionInput] = useState<string>("");
+  const [isTogglingGallery, setIsTogglingGallery] = useState(false);
+  const [isSavingGallerySettings, setIsSavingGallerySettings] = useState(false);
+  const [isEditingGalleryDetails, setIsEditingGalleryDetails] = useState(false);
+  const [previewModalOpen, setPreviewModalOpen] = useState(false);
+
+  // Total items currently in public gallery
+  const galleryItemsCount = useMemo(
+    () => mediaList.filter((m) => m.inGallery).length,
+    [mediaList]
+  );
+
   // Delete modal state
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
 
-  const loadMedia = async () => {
-    setIsLoading(true);
+  const loadMedia = async (silent = false) => {
+    if (!silent) setIsLoading(true);
     try {
       const res = await mediaApi.list({
         category: catFilter !== "all" ? catFilter : undefined,
@@ -340,22 +762,28 @@ export default function AdminMedia() {
         search: search.trim() || undefined,
         limit: 100
       });
-      setMediaList(Array.isArray(res.media) ? res.media : []);
+      const freshList = Array.isArray(res.media) ? res.media : [];
+      setMediaList(freshList);
+      setSelectedAsset((prev) => (prev ? freshList.find((m) => m.id === prev.id) || prev : null));
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to load media assets";
       showToast(msg, "error");
     } finally {
-      setIsLoading(false);
+      if (!silent) setIsLoading(false);
     }
   };
 
   useEffect(() => {
-    void loadMedia();
+    void loadMedia(false);
   }, [catFilter, destFilter, search]);
 
-  // Load references when an asset is inspected
+  // Load references & initialize gallery fields when an asset is inspected
   const handleInspectAsset = async (asset: MediaAsset) => {
     setSelectedAsset(asset);
+    setIsEditingGalleryDetails(false);
+    setGalleryOrderInput(asset.gallerySortOrder ?? 1);
+    setGalleryTitleInput(asset.galleryCustomTitle ?? "");
+    setGalleryCaptionInput(asset.galleryCaption ?? "");
     setLoadingRefs(true);
     try {
       const refs = await mediaApi.getReferences(asset.id);
@@ -367,15 +795,92 @@ export default function AdminMedia() {
     }
   };
 
+  const handleToggleGalleryMembership = async () => {
+    if (!selectedAsset) return;
+    setIsTogglingGallery(true);
+    try {
+      if (selectedAsset.inGallery) {
+        await galleryApi.remove(selectedAsset.galleryItemId || selectedAsset.id);
+        showToast("Removed from Public Gallery.", "success");
+        const updated: MediaAsset = {
+          ...selectedAsset,
+          inGallery: false,
+          galleryItemId: null,
+          gallerySortOrder: null,
+          galleryCustomTitle: null,
+          galleryCaption: null
+        };
+        setSelectedAsset(updated);
+        setIsEditingGalleryDetails(false);
+        if (catFilter === "gallery") {
+          setMediaList((prev) => prev.filter((m) => m.id !== updated.id));
+        } else {
+          setMediaList((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        }
+        void loadMedia(true);
+        const refs = await mediaApi.getReferences(updated.id);
+        setAssetRefs(refs);
+      } else {
+        const added = await galleryApi.add({
+          mediaId: selectedAsset.id,
+          sortOrder: galleryItemsCount + 1,
+          customTitle: galleryTitleInput.trim() || undefined
+        });
+        showToast("Added to Public Gallery.", "success");
+        const updated: MediaAsset = {
+          ...selectedAsset,
+          inGallery: true,
+          galleryItemId: added.id,
+          gallerySortOrder: added.sortOrder,
+          galleryCustomTitle: added.customTitle,
+          galleryCaption: added.caption
+        };
+        setSelectedAsset(updated);
+        setIsEditingGalleryDetails(false);
+        setMediaList((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+        void loadMedia(true);
+        const refs = await mediaApi.getReferences(updated.id);
+        setAssetRefs(refs);
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to toggle gallery membership";
+      showToast(msg, "error");
+    } finally {
+      setIsTogglingGallery(false);
+    }
+  };
+
+  const handleSaveGallerySettings = async () => {
+    if (!selectedAsset || !selectedAsset.inGallery) return;
+    setIsSavingGallerySettings(true);
+    try {
+      const targetPos = Math.max(1, Math.min(Number(galleryOrderInput) || 1, Math.max(1, galleryItemsCount)));
+      await galleryApi.update(selectedAsset.galleryItemId || selectedAsset.id, {
+        sortOrder: targetPos,
+        customTitle: galleryTitleInput.trim() || null
+      });
+      showToast("Gallery settings updated successfully.", "success");
+      setIsEditingGalleryDetails(false);
+      // Silently update media list in-place without unmounting or shifting UI
+      await loadMedia(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to update gallery settings";
+      showToast(msg, "error");
+    } finally {
+      setIsSavingGallerySettings(false);
+    }
+  };
+
   const handleDeleteAsset = async () => {
     if (!selectedAsset) return;
     setIsDeleting(true);
     try {
-      await mediaApi.delete(selectedAsset.id);
+      const deletedId = selectedAsset.id;
+      await mediaApi.delete(deletedId);
       showToast("Media asset deleted permanently from storage.", "success");
+      setMediaList((prev) => prev.filter((m) => m.id !== deletedId));
       setSelectedAsset(null);
       setConfirmDeleteOpen(false);
-      await loadMedia();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to delete media asset";
       showToast(msg, "error");
@@ -390,10 +895,62 @@ export default function AdminMedia() {
         <SimpleUploadModal
           onClose={() => setUploadModalOpen(false)}
           onUploaded={() => {
-            void loadMedia();
+            void loadMedia(true);
           }}
           initialDestinationId={destFilter}
+          defaultInGallery={catFilter === "gallery"}
         />
+      )}
+
+      {addExistingModalOpen && (
+        <AddToGalleryModal
+          onClose={() => setAddExistingModalOpen(false)}
+          onAdded={() => {
+            void loadMedia(true);
+          }}
+        />
+      )}
+
+      {/* Public Gallery Lightbox Preview Modal */}
+      {previewModalOpen && selectedAsset && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-black/85 backdrop-blur-xs"
+          onClick={() => setPreviewModalOpen(false)}
+        >
+          <div
+            className="relative max-w-2xl w-full bg-[#0a1813] text-white rounded-2xl overflow-hidden shadow-2xl border border-white/10"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="px-5 py-3.5 flex items-center justify-between border-b border-white/10 bg-[#0f2922]">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-[#38d39f]" />
+                <span className="text-xs uppercase font-bold tracking-widest text-[#e8622a]">
+                  Public Gallery Preview
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewModalOpen(false)}
+                className="text-white/70 hover:text-white p-1 text-sm font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="max-h-[60vh] bg-black/90 flex items-center justify-center p-2">
+              <img
+                src={selectedAsset.url}
+                alt={galleryTitleInput || selectedAsset.label || ""}
+                className="max-h-[55vh] w-auto max-w-full object-contain rounded-lg"
+              />
+            </div>
+            <div className="p-4 bg-[#0f2922] text-center">
+              <h4 className="font-bold text-base text-white" style={{ fontFamily: "var(--font-serif, serif)" }}>
+                {galleryTitleInput.trim() || selectedAsset.label || "Untitled Moment"}
+              </h4>
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
@@ -406,23 +963,38 @@ export default function AdminMedia() {
             Media Library
           </h1>
           <p className="text-xs text-[#718096] mt-0.5">
-            Visual repository of all destination images, trip photos, review uploads, and system media.
+            Visual repository of all destination images, trip photos, review uploads, public gallery, and system media.
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setUploadModalOpen(true)}
-          className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer self-start sm:self-auto"
-        >
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          <span>Upload Image</span>
-        </button>
+        <div className="flex items-center gap-2.5">
+          {catFilter === "gallery" ? (
+            <button
+              type="button"
+              onClick={() => setAddExistingModalOpen(true)}
+              className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <svg className="w-4 h-4 text-[#38d39f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Add to Public Gallery</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setUploadModalOpen(true)}
+              className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-xs font-semibold px-4 py-2.5 rounded-lg transition flex items-center gap-1.5 shadow-xs cursor-pointer"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span>Upload Image</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Filter and Search Bar (Used ONLY for finding existing media) */}
+      {/* Filter and Search Bar */}
       <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs space-y-3">
         <div className="flex flex-col md:flex-row gap-3">
           {/* Search */}
@@ -461,13 +1033,16 @@ export default function AdminMedia() {
               key={tab.id}
               type="button"
               onClick={() => setCatFilter(tab.id)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
                 catFilter === tab.id
                   ? "bg-[#0f2922] text-white shadow-2xs"
                   : "bg-[#f7f8f5] text-[#4a5568] hover:bg-[#edf2f7]"
               }`}
             >
-              {tab.label}
+              {tab.id === "gallery" && (
+                <span className={`w-1.5 h-1.5 rounded-full ${catFilter === tab.id ? "bg-[#38d39f]" : "bg-[#e8622a]"}`} />
+              )}
+              <span>{tab.label}</span>
             </button>
           ))}
         </div>
@@ -487,8 +1062,14 @@ export default function AdminMedia() {
             </div>
           ) : mediaList.length === 0 ? (
             <div className="bg-white rounded-xl border border-[#e2e8f0] p-16 text-center text-[#a0aec0] space-y-2">
-              <p className="text-sm font-semibold text-[#4a5568]">No media assets found.</p>
-              <p className="text-xs">Click "Upload Image" above to add images to the library.</p>
+              <p className="text-sm font-semibold text-[#4a5568]">
+                {catFilter === "gallery" ? "No images currently in Public Gallery." : "No media assets found."}
+              </p>
+              <p className="text-xs">
+                {catFilter === "gallery"
+                  ? "Select existing images from the library or click 'Add From Library' above to show images on /gallery."
+                  : "Click 'Upload Image' above to add images to the library."}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
@@ -511,7 +1092,7 @@ export default function AdminMedia() {
                         : "border-[#e2e8f0] hover:border-[#0f2922]"
                     }`}
                   >
-                    {/* Thumbnail */}
+                    {/* Thumbnail with status tags */}
                     <div className="aspect-[4/3] bg-[#f7f8f5] overflow-hidden relative">
                       <img
                         src={img.url}
@@ -521,13 +1102,46 @@ export default function AdminMedia() {
                           (e.target as HTMLImageElement).style.opacity = "0.3";
                         }}
                       />
+
+                      {/* Public Gallery Status Pill */}
+                      {img.inGallery ? (
+                        <span className="absolute top-2 left-2 bg-[#0f2922]/90 text-[#38d39f] border border-[#38d39f]/40 text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[#38d39f] animate-pulse" />
+                          Public Gallery
+                        </span>
+                      ) : (
+                        <span className="absolute top-2 left-2 bg-black/45 text-white/70 text-[9px] font-medium tracking-wide uppercase px-1.5 py-0.5 rounded backdrop-blur-xs">
+                          Not in Gallery
+                        </span>
+                      )}
+
+                      {/* Original Category Tag */}
+                      <span className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
+                        {img.category}
+                      </span>
+
+                      {/* Gallery Display Order Badge */}
+                      {img.inGallery && (
+                        <span className="absolute bottom-2 left-2 bg-[#0f2922]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#38d39f]/40 backdrop-blur-xs flex items-center gap-1 shadow-xs">
+                          <span className="text-[#38d39f]">Order #</span>
+                          {img.gallerySortOrder ?? 1}
+                        </span>
+                      )}
                     </div>
 
                     {/* Card Body */}
                     <div className="p-3 text-xs flex-1 flex flex-col justify-between">
-                      <p className="font-semibold text-[#0f2922] truncate text-[11px]" title={img.label || img.url}>
-                        {img.label || "Untitled Image"}
-                      </p>
+                      <div>
+                        <p className="font-semibold text-[#0f2922] truncate text-[11px]" title={img.label || img.url}>
+                          {img.label || "Untitled Image"}
+                        </p>
+                        {img.inGallery && img.galleryCustomTitle && (
+                          <p className="text-[10px] text-[#e8622a] font-medium truncate mt-0.5" title={img.galleryCustomTitle}>
+                            Title: {img.galleryCustomTitle}
+                          </p>
+                        )}
+                      </div>
+
                       <div className="flex items-center justify-between text-[10px] text-[#718096] mt-1.5 pt-1.5 border-t border-[#f0f4f1]">
                         <span>{formattedDate}</span>
                         <span className="text-[#e8622a] font-medium group-hover:underline">Inspect →</span>
@@ -543,7 +1157,7 @@ export default function AdminMedia() {
         {/* Sidebar Inspector / Asset Details Drawer */}
         <div className="space-y-4">
           {selectedAsset ? (
-            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-5 space-y-4 sticky top-6">
+            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-5 space-y-4 sticky top-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
               <div className="flex items-center justify-between">
                 <span className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
                   ASSET INSPECTOR
@@ -581,6 +1195,154 @@ export default function AdminMedia() {
                 )}
               </div>
 
+              {/* Public Gallery Membership & Customization Controls */}
+              <div className="bg-[#f0f9f4] p-3.5 rounded-xl border border-[#bbf7d0] space-y-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-[11px] font-bold uppercase tracking-wider text-[#0f2922] flex items-center gap-1.5">
+                      <span className={`w-2 h-2 rounded-full ${selectedAsset.inGallery ? "bg-[#38d39f]" : "bg-gray-400"}`} />
+                      <span>Show in Public Gallery</span>
+                    </div>
+                    <div className="text-[10px] text-[#4a5568] mt-0.5">
+                      {selectedAsset.inGallery
+                        ? "Active on website's /gallery page"
+                        : "Hidden from public website gallery"}
+                    </div>
+                  </div>
+                  {/* Toggle Button */}
+                  <button
+                    type="button"
+                    disabled={isTogglingGallery}
+                    onClick={handleToggleGalleryMembership}
+                    className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
+                      selectedAsset.inGallery ? "bg-[#e8622a]" : "bg-[#cbd5e1]"
+                    }`}
+                    role="switch"
+                    aria-checked={Boolean(selectedAsset.inGallery)}
+                    title={selectedAsset.inGallery ? "Remove from Public Gallery" : "Include in Public Gallery"}
+                  >
+                    <span
+                      className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                        selectedAsset.inGallery ? "translate-x-5" : "translate-x-0"
+                      }`}
+                    />
+                  </button>
+                </div>
+
+                {/* Gallery Customization Details when active */}
+                {selectedAsset.inGallery && (
+                  <div className="pt-2 border-t border-[#bbf7d0]/70 space-y-2 text-xs">
+                    {!isEditingGalleryDetails ? (
+                      /* Default View Mode: Clean summary without inputs or save buttons */
+                      <div className="space-y-2">
+                        <div className="bg-white/90 rounded-lg p-2.5 border border-[#bbf7d0] space-y-1.5">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-[#718096]">Public Title</span>
+                            <span className="font-semibold text-xs text-[#0f2922] truncate max-w-[150px]" title={selectedAsset.galleryCustomTitle || selectedAsset.label || "Default Title"}>
+                              {selectedAsset.galleryCustomTitle || selectedAsset.label || "Default Title"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-[#718096]">Display Position</span>
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#0f2922] text-[#38d39f]">
+                              #{selectedAsset.gallerySortOrder ?? 1}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-0.5">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setGalleryOrderInput(selectedAsset.gallerySortOrder ?? 1);
+                              setGalleryTitleInput(selectedAsset.galleryCustomTitle ?? "");
+                              setIsEditingGalleryDetails(true);
+                            }}
+                            className="flex-1 bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                            </svg>
+                            <span>Edit Details</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setPreviewModalOpen(true)}
+                            className="bg-white hover:bg-[#f7f8f5] border border-[#cbd5e1] text-[#0f2922] text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                          >
+                            Preview
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      /* Active Edit Mode: Inputs with Save Changes & Cancel */
+                      <div className="space-y-2">
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-[#0f2922] mb-0.5">
+                            Public Title (Optional Override)
+                          </label>
+                          <input
+                            type="text"
+                            value={galleryTitleInput}
+                            onChange={(e) => setGalleryTitleInput(e.target.value)}
+                            placeholder={selectedAsset.label || "Mountain Sunrise"}
+                            className="w-full bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] uppercase font-bold text-[#0f2922] mb-1">
+                            Gallery Display Position (Order #)
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              min="1"
+                              max={Math.max(1, galleryItemsCount)}
+                              value={galleryOrderInput}
+                              onChange={(e) => {
+                                const raw = e.target.value;
+                                if (raw === "") return;
+                                const parsed = parseInt(raw, 10);
+                                if (isNaN(parsed)) return;
+                                const maxAllowed = Math.max(1, galleryItemsCount);
+                                setGalleryOrderInput(Math.max(1, Math.min(parsed, maxAllowed)));
+                              }}
+                              onBlur={() => {
+                                const maxAllowed = Math.max(1, galleryItemsCount);
+                                setGalleryOrderInput((prev) => Math.max(1, Math.min(prev || 1, maxAllowed)));
+                              }}
+                              className="w-24 bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0f2922] focus:outline-none focus:border-[#0f2922] shadow-2xs"
+                            />
+                            <span className="text-[10px] text-[#718096]">
+                              Allowed: 1 to {galleryItemsCount} (max #{galleryItemsCount})
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="flex gap-2 pt-1">
+                          <button
+                            type="button"
+                            onClick={handleSaveGallerySettings}
+                            disabled={isSavingGallerySettings}
+                            className="flex-1 bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer disabled:opacity-50"
+                          >
+                            {isSavingGallerySettings ? "Saving..." : "Save Changes"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingGalleryDetails(false)}
+                            className="bg-white hover:bg-[#f7f8f5] border border-[#cbd5e1] text-[#718096] text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               {/* Metadata Details */}
               <div className="space-y-2.5 text-xs">
                 <div>
@@ -612,14 +1374,10 @@ export default function AdminMedia() {
                     </div>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[#718096]">Sections:</span>
-                    <div className="flex gap-1 flex-wrap justify-end">
-                      {(selectedAsset.categories && selectedAsset.categories.length > 0 ? selectedAsset.categories : [selectedAsset.category]).map((c) => (
-                        <span key={c} className="capitalize font-medium text-[10px] px-1.5 py-0.5 rounded bg-white border border-[#e2e8f0] text-[#0f2922]">
-                          {c}
-                        </span>
-                      ))}
-                    </div>
+                    <span className="text-[#718096]">Original Category:</span>
+                    <span className="capitalize font-semibold text-[10px] px-1.5 py-0.5 rounded bg-white border border-[#e2e8f0] text-[#0f2922]">
+                      {selectedAsset.category}
+                    </span>
                   </div>
                   {selectedAsset.createdAt && (
                     <div className="flex justify-between pt-1 border-t border-[#e2e8f0]">
@@ -664,7 +1422,7 @@ export default function AdminMedia() {
                   <p className="text-[11px] text-[#718096]">Checking where asset is used...</p>
                 ) : !assetRefs || assetRefs.totalReferences === 0 ? (
                   <p className="text-[11px] text-[#a0aec0]">
-                    Not currently linked as cover or gallery in destinations or trips.
+                    Not currently linked as cover, gallery, or slide.
                   </p>
                 ) : (
                   <div className="space-y-1.5">
@@ -714,10 +1472,11 @@ export default function AdminMedia() {
                     type="button"
                     onClick={() => {
                       if (assetRefs && assetRefs.totalReferences > 0) {
-                        showToast(
-                          `Cannot delete: this image is currently in use by ${assetRefs.totalReferences} active entity.`,
-                          "error"
-                        );
+                        const inGalleryRef = assetRefs.references.some((r) => r.entityType === "gallery");
+                        const msg = inGalleryRef
+                          ? `Cannot delete: this image is currently in use by ${assetRefs.totalReferences} active entity (including Public Gallery). Remove it from the Gallery first.`
+                          : `Cannot delete: this image is currently in use by ${assetRefs.totalReferences} active entity.`;
+                        showToast(msg, "error");
                         return;
                       }
                       setConfirmDeleteOpen(true);
@@ -741,7 +1500,7 @@ export default function AdminMedia() {
               </div>
               <p className="font-semibold text-[#0f2922]">No image selected</p>
               <p className="text-[11px] text-[#718096]">
-                Click on any image card to inspect details, view references, or copy its URL.
+                Click on any image card to inspect details, manage Public Gallery membership, or copy its URL.
               </p>
             </div>
           )}

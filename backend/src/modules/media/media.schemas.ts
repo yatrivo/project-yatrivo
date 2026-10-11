@@ -38,7 +38,8 @@ export const createExternalMediaSchema = z
     label: z.string().trim().max(100).optional(),
     altText: z.string().trim().max(255).optional(),
     destinationId: z.string().optional(),
-    category: mediaCategoryEnum.default("general")
+    category: mediaCategoryEnum.default("general"),
+    showInGallery: z.boolean().optional()
   })
   .refine((data) => Boolean(data.url || data.externalUrl), {
     message: "Either url or externalUrl is required",

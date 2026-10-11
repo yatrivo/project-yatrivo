@@ -16,6 +16,11 @@ export interface MediaAsset {
   destinationNames?: string[];
   category: string;
   categories?: string[];
+  inGallery?: boolean;
+  galleryItemId?: string | null;
+  gallerySortOrder?: number | null;
+  galleryCustomTitle?: string | null;
+  galleryCaption?: string | null;
   label: string | null;
   altText: string | null;
   storageBucket: string | null;
@@ -41,7 +46,7 @@ export interface MediaListParams {
 export interface MediaReferenceInfo {
   totalReferences: number;
   references: {
-    entityType: "destination" | "trip" | "trip_instance" | "review" | "homepage_slide";
+    entityType: "destination" | "trip" | "trip_instance" | "review" | "homepage_slide" | "gallery";
     entityId: string;
     entityName?: string;
     relationship: "cover" | "gallery" | "slide" | "review";
@@ -126,6 +131,7 @@ export const mediaApi = {
       isReview?: boolean;
       label?: string;
       altText?: string;
+      showInGallery?: boolean;
     }
   ): Promise<MediaAsset> {
     const url = `${API_BASE}/api/v1/media/upload`;
@@ -137,6 +143,7 @@ export const mediaApi = {
     if (options?.isReview) formData.append("isReview", "true");
     if (options?.label) formData.append("label", options.label);
     if (options?.altText) formData.append("altText", options.altText);
+    if (options?.showInGallery) formData.append("showInGallery", "true");
 
     // Note: Do not set Content-Type header when sending FormData, let browser set boundary
     const headers = new Headers();
@@ -178,6 +185,7 @@ export const mediaApi = {
     label?: string;
     altText?: string;
     category?: string;
+    showInGallery?: boolean;
   }): Promise<MediaAsset> {
     const url = `${API_BASE}/api/v1/media/external`;
     const res = await authFetch(url, {

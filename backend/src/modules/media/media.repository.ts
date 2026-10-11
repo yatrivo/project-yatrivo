@@ -28,11 +28,35 @@ function getExecutor(client?: PoolClient): QueryExecutor {
   };
 }
 
+async function addAssetToGalleryInternal(executor: QueryExecutor, mediaId: string): Promise<void> {
+  await executor.query(
+    `INSERT INTO public_gallery_items (media_id, sort_order)
+     VALUES ($1, (SELECT COALESCE(MAX(sort_order), 0) + 1 FROM public_gallery_items))
+     ON CONFLICT (media_id) DO NOTHING`,
+    [mediaId]
+  );
+  await executor.query(
+    `WITH renumbered AS (
+       SELECT id, ROW_NUMBER() OVER (ORDER BY sort_order ASC, created_at ASC) as new_order
+       FROM public_gallery_items
+     )
+     UPDATE public_gallery_items pgi
+     SET sort_order = r.new_order
+     FROM renumbered r
+     WHERE pgi.id = r.id`
+  );
+}
+
 export function toMediaAssetDto(record: MediaAssetRecord & {
   in_destinations?: boolean;
   in_trips?: boolean;
   in_reviews?: boolean;
   in_homepage?: boolean;
+  in_gallery?: boolean;
+  gallery_item_id?: string | null;
+  gallery_sort_order?: number | null;
+  gallery_custom_title?: string | null;
+  gallery_caption?: string | null;
   destinations_json?: unknown;
   destination_names?: string | null;
 }): MediaAssetDto {
@@ -86,6 +110,7 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
   }
 
   const primaryDest = allDestinations[0];
+  const inGallery = Boolean(record.in_gallery || record.gallery_item_id);
 
   return {
     id: record.id,
@@ -96,6 +121,14 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
     destinationNames,
     category: record.category,
     categories: Array.from(categoriesSet),
+    inGallery,
+    galleryItemId: record.gallery_item_id ?? null,
+    gallerySortOrder:
+      record.gallery_sort_order !== undefined && record.gallery_sort_order !== null
+        ? Number(record.gallery_sort_order)
+        : null,
+    galleryCustomTitle: record.gallery_custom_title ?? null,
+    galleryCaption: record.gallery_caption ?? null,
     label: record.label,
     altText: record.alt_text,
     storageBucket: record.storage_bucket,
@@ -202,14 +235,17 @@ export const mediaRepository = {
             OR m.label ILIKE '%hero%'
             OR m.label ILIKE '%home%'
             OR m.alt_text ILIKE '%home%'
-          ) as in_homepage
+          ) as in_homepage,
+          EXISTS (SELECT 1 FROM public_gallery_items pgi WHERE pgi.media_id = m.id) as in_gallery
         FROM media_assets m
       )
     `;
 
     if (filters.category && filters.category !== "all") {
       const cat = filters.category.toLowerCase().replace(/-/g, "_");
-      if (cat === "destinations") {
+      if (cat === "gallery" || cat === "public_gallery") {
+        conditions.push(`u.in_gallery = true`);
+      } else if (cat === "destinations") {
         conditions.push(`u.in_destinations = true`);
       } else if (cat === "trips") {
         conditions.push(`u.in_trips = true`);
@@ -261,24 +297,38 @@ export const mediaRepository = {
     const limitParamIndex = paramIndex++;
     const offsetParamIndex = paramIndex++;
 
+    const isGalleryFilter =
+      Boolean(filters.category && (filters.category.toLowerCase().includes("gallery")));
+    const orderClause = isGalleryFilter
+      ? "pgi.sort_order ASC, m.created_at DESC"
+      : "m.created_at DESC";
+
     const listResult = await executor.query<MediaAssetRecord & {
       in_destinations: boolean;
       in_trips: boolean;
       in_reviews: boolean;
       in_homepage: boolean;
+      in_gallery: boolean;
+      gallery_item_id: string | null;
+      gallery_sort_order: number | null;
+      gallery_custom_title: string | null;
+      gallery_caption: string | null;
       destinations_json: unknown;
       destination_names: string | null;
     }>(
       `${cte}
        SELECT m.*, d.name as destination_name, d.slug as destination_slug,
               mda.destinations as destinations_json, mda.destination_names,
-              u.in_destinations, u.in_trips, u.in_reviews, u.in_homepage
+              u.in_destinations, u.in_trips, u.in_reviews, u.in_homepage, u.in_gallery,
+              pgi.id as gallery_item_id, pgi.sort_order as gallery_sort_order,
+              pgi.custom_title as gallery_custom_title, pgi.caption as gallery_caption
        FROM media_assets m
        JOIN media_usage u ON u.id = m.id
        LEFT JOIN destinations d ON d.id = m.destination_id
        LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
+       LEFT JOIN public_gallery_items pgi ON pgi.media_id = m.id
        ${whereClause}
-       ORDER BY m.created_at DESC
+       ORDER BY ${orderClause}
        LIMIT $${limitParamIndex} OFFSET $${offsetParamIndex}`,
       queryParams
     );
@@ -291,13 +341,25 @@ export const mediaRepository = {
 
   async findById(id: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
-    const result = await executor.query<MediaAssetRecord & { destinations_json: unknown; destination_names: string | null }>(
+    const result = await executor.query<MediaAssetRecord & {
+      destinations_json: unknown;
+      destination_names: string | null;
+      in_gallery: boolean;
+      gallery_item_id: string | null;
+      gallery_sort_order: number | null;
+      gallery_custom_title: string | null;
+      gallery_caption: string | null;
+    }>(
       `WITH ${DEST_LINKS_CTE}
        SELECT m.*, d.name as destination_name, d.slug as destination_slug,
-              mda.destinations as destinations_json, mda.destination_names
+              mda.destinations as destinations_json, mda.destination_names,
+              (pgi.id IS NOT NULL) as in_gallery,
+              pgi.id as gallery_item_id, pgi.sort_order as gallery_sort_order,
+              pgi.custom_title as gallery_custom_title, pgi.caption as gallery_caption
        FROM media_assets m
        LEFT JOIN destinations d ON d.id = m.destination_id
        LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
+       LEFT JOIN public_gallery_items pgi ON pgi.media_id = m.id
        WHERE m.id = $1`,
       [id]
     );
@@ -310,13 +372,25 @@ export const mediaRepository = {
 
   async findByUrl(url: string, client?: PoolClient): Promise<MediaAssetDto | null> {
     const executor = getExecutor(client);
-    const result = await executor.query<MediaAssetRecord & { destinations_json: unknown; destination_names: string | null }>(
+    const result = await executor.query<MediaAssetRecord & {
+      destinations_json: unknown;
+      destination_names: string | null;
+      in_gallery: boolean;
+      gallery_item_id: string | null;
+      gallery_sort_order: number | null;
+      gallery_custom_title: string | null;
+      gallery_caption: string | null;
+    }>(
       `WITH ${DEST_LINKS_CTE}
        SELECT m.*, d.name as destination_name, d.slug as destination_slug,
-              mda.destinations as destinations_json, mda.destination_names
+              mda.destinations as destinations_json, mda.destination_names,
+              (pgi.id IS NOT NULL) as in_gallery,
+              pgi.id as gallery_item_id, pgi.sort_order as gallery_sort_order,
+              pgi.custom_title as gallery_custom_title, pgi.caption as gallery_caption
        FROM media_assets m
        LEFT JOIN destinations d ON d.id = m.destination_id
        LEFT JOIN media_dest_agg mda ON mda.media_id = m.id
+       LEFT JOIN public_gallery_items pgi ON pgi.media_id = m.id
        WHERE m.external_url = $1 OR m.public_url = $1 LIMIT 1`,
       [url]
     );
@@ -358,7 +432,13 @@ export const mediaRepository = {
       ]
     );
 
-    return (await this.findById(result.rows[0].id, client)) || toMediaAssetDto(result.rows[0]);
+    const createdId = result.rows[0].id;
+
+    if (data.showInGallery) {
+      await addAssetToGalleryInternal(executor, createdId);
+    }
+
+    return (await this.findById(createdId, client)) || toMediaAssetDto(result.rows[0]);
   },
 
   async createExternalAsset(
@@ -372,6 +452,10 @@ export const mediaRepository = {
     // Reuse if existing external URL matches
     const existing = await this.findByUrl(data.url, client);
     if (existing) {
+      if (data.showInGallery) {
+        await addAssetToGalleryInternal(executor, existing.id);
+        return (await this.findById(existing.id, client)) || existing;
+      }
       return existing;
     }
 
@@ -391,7 +475,13 @@ export const mediaRepository = {
       ]
     );
 
-    return (await this.findById(result.rows[0].id, client)) || toMediaAssetDto(result.rows[0]);
+    const createdId = result.rows[0].id;
+
+    if (data.showInGallery) {
+      await addAssetToGalleryInternal(executor, createdId);
+    }
+
+    return (await this.findById(createdId, client)) || toMediaAssetDto(result.rows[0]);
   },
 
   async findReferences(mediaId: string, client?: PoolClient): Promise<MediaReferenceInfo> {
@@ -524,6 +614,20 @@ export const mediaRepository = {
       }
     }
 
+    // 8. Public gallery references
+    const galleryRes = await executor.query<{ id: string }>(
+      `SELECT id FROM public_gallery_items WHERE media_id = $1`,
+      [mediaId]
+    );
+    for (const row of galleryRes.rows) {
+      references.push({
+        entityType: "gallery",
+        entityId: row.id,
+        entityName: "Public Gallery",
+        relationship: "gallery"
+      });
+    }
+
     return {
       totalReferences: references.length,
       references
@@ -539,3 +643,4 @@ export const mediaRepository = {
     return (result.rowCount ?? 0) > 0;
   }
 };
+

@@ -51,6 +51,7 @@ export const mediaService = {
       isReview?: boolean;
       label?: string | null;
       altText?: string | null;
+      showInGallery?: boolean;
     },
     actorUserId?: string | null
   ): Promise<MediaAssetDto> {
@@ -77,13 +78,14 @@ export const mediaService = {
       "reviews",
       "users",
       "documents",
-      "general",
+      "general"
     ]);
     const rawCategory = options?.category || "general";
     const dbCategory = VALID_CATEGORIES.has(rawCategory) ? rawCategory : "general";
     const label = options?.label;
     const altText = options?.altText;
     const isReview = Boolean(options?.isReview || dbCategory === "reviews");
+    const showInGallery = Boolean(options?.showInGallery);
 
     // Automatically resolve destination if provided
     let resolvedDestId: string | null = null;
@@ -130,7 +132,8 @@ export const mediaService = {
           mimeType: processed.mimeType,
           fileSizeBytes: processed.buffer.length,
           width: processed.width,
-          height: processed.height
+          height: processed.height,
+          showInGallery
         },
         actorUserId
       );

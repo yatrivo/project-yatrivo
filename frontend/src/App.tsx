@@ -22,6 +22,7 @@ import PrivacyPage from "@/pages/PrivacyPage";
 import TravelWithUsPage from "@/pages/TravelWithUsPage";
 import PastTripsPage from "@/pages/PastTripsPage";
 import CompletedTripDetailPage from "@/pages/CompletedTripDetailPage";
+import GalleryPage from "@/pages/GalleryPage";
 import ProfilePage from "@/pages/ProfilePage";
 import CustomerBookingDetailsPage from "@/pages/CustomerBookingDetailsPage";
 import NotFoundPage from "@/pages/NotFoundPage";
@@ -102,6 +103,7 @@ export default function App() {
           <Route path="/destinations/:slug" element={<DestinationDetailPage />} />
           <Route path="/trips" element={<TripsPage />} />
           <Route path="/trips/:slug" element={<TripDetailPage />} />
+          <Route path="/gallery" element={<GalleryPage />} />
           <Route path="/travel-with-us" element={<TravelWithUsPage />} />
           <Route path="/past-trips" element={<PastTripsPage />} />
           <Route path="/past-trips/:instanceId" element={<CompletedTripDetailPage />} />

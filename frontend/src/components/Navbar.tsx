@@ -7,6 +7,7 @@ const navLinks: { label: string; href: string }[] = [
   { label: "Home", href: "/" },
   { label: "Destinations", href: "/destinations" },
   { label: "Trips", href: "/trips" },
+  { label: "Gallery", href: "/gallery" },
   { label: "Travel With Us", href: "/travel-with-us" },
   { label: "Past Trips", href: "/past-trips" },
 ];
@@ -40,6 +41,7 @@ export default function Navbar() {
   const isNonHeroPage =
     pathname === "/destinations" ||
     pathname === "/trips" ||
+    pathname === "/gallery" ||
     pathname === "/terms" ||
     pathname === "/privacy" ||
     pathname === "/profile";

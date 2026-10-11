@@ -27,6 +27,11 @@ export interface MediaAssetRecord {
   destination_slug?: string | null;
   destinations_json?: unknown;
   destination_names?: string | null;
+  in_gallery?: boolean;
+  gallery_item_id?: string | null;
+  gallery_sort_order?: number | null;
+  gallery_custom_title?: string | null;
+  gallery_caption?: string | null;
 }
 
 export interface MediaAssetDto {
@@ -38,6 +43,11 @@ export interface MediaAssetDto {
   destinationNames?: string[];
   category: string;
   categories?: string[];
+  inGallery?: boolean;
+  galleryItemId?: string | null;
+  gallerySortOrder?: number | null;
+  galleryCustomTitle?: string | null;
+  galleryCaption?: string | null;
   label: string | null;
   altText: string | null;
   storageBucket: string | null;
@@ -73,6 +83,7 @@ export interface CreateStorageMediaInput {
   fileSizeBytes: number;
   width?: number | null;
   height?: number | null;
+  showInGallery?: boolean;
 }
 
 export interface CreateExternalMediaInput {
@@ -81,12 +92,13 @@ export interface CreateExternalMediaInput {
   label?: string | null;
   altText?: string | null;
   category?: string;
+  showInGallery?: boolean;
 }
 
 export interface MediaReferenceInfo {
   totalReferences: number;
   references: {
-    entityType: "destination" | "trip" | "trip_instance" | "review" | "homepage_slide";
+    entityType: "destination" | "trip" | "trip_instance" | "review" | "homepage_slide" | "gallery";
     entityId: string;
     entityName?: string;
     relationship: "cover" | "gallery" | "slide" | "review";
