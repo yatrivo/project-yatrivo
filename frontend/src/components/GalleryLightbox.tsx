@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
 import type { PublicGalleryItem } from "@/api/gallery";
 import {
@@ -7,6 +7,8 @@ import {
   getViewerImageUrl,
   type NavigationDirection
 } from "@/utils/galleryPreloader";
+
+const REEL_SPAN_PX = 280;
 
 interface GalleryLightboxProps {
   items: PublicGalleryItem[];
@@ -25,6 +27,17 @@ export default function GalleryLightbox({
     Math.max(0, Math.min(initialIndex, Math.max(0, items.length - 1)))
   );
   const [navDirection, setNavDirection] = useState<NavigationDirection>("initial");
+  const [slideCycle, setSlideCycle] = useState<number>(0);
+  const [exitingSlide, setExitingSlide] = useState<{
+    id: string;
+    src: string;
+    alt: string;
+    width: number | null;
+    height: number | null;
+    direction: "forward" | "backward";
+    startX: number;
+    cycle: number;
+  } | null>(null);
   const [touchStartX, setTouchStartX] = useState<number | null>(null);
   const [touchStartY, setTouchStartY] = useState<number | null>(null);
   const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
@@ -49,6 +62,8 @@ export default function GalleryLightbox({
   const activeItemIdRef = useRef<string | null>(currentItem?.id ?? null);
   const transitionGenRef = useRef<number>(0);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const incomingSlideRef = useRef<HTMLDivElement | null>(null);
+  const exitingSlideRef = useRef<HTMLDivElement | null>(null);
 
   // Keep state synchronized immediately when currentItem changes
   useEffect(() => {
@@ -89,19 +104,123 @@ export default function GalleryLightbox({
     }
   }, [safeIndex, total, onNearEnd]);
 
-  const handlePrev = useCallback(() => {
-    if (total <= 1) return;
-    setNavDirection("backward");
-    setCurrentIndex((prev) => (prev <= 0 ? total - 1 : prev - 1));
-    setTouchDeltaX(0);
-  }, [total]);
+  const navigateToIndex = useCallback(
+    (targetIndex: number, direction: "forward" | "backward", swipeOffsetPx = 0) => {
+      if (total <= 1 || targetIndex === safeIndex) return;
 
-  const handleNext = useCallback(() => {
-    if (total <= 1) return;
-    setNavDirection("forward");
-    setCurrentIndex((prev) => (prev >= total - 1 ? 0 : prev + 1));
-    setTouchDeltaX(0);
-  }, [total]);
+      const outgoingSrc =
+        (isViewerDecoded && !hasViewerError ? viewerUrl : thumbUrl || placeholderUrl) || viewerUrl;
+
+      setSlideCycle((prevCycle) => {
+        const nextCycle = prevCycle + 1;
+        if (currentItem && outgoingSrc) {
+          setExitingSlide({
+            id: currentItem.id,
+            src: outgoingSrc,
+            alt: currentItem.altText || currentItem.title || "Gallery Moment",
+            width: currentItem.width,
+            height: currentItem.height,
+            direction,
+            startX: swipeOffsetPx,
+            cycle: nextCycle,
+          });
+        }
+        return nextCycle;
+      });
+
+      setNavDirection(direction);
+      setCurrentIndex(targetIndex);
+      setTouchDeltaX(0);
+    },
+    [total, safeIndex, isViewerDecoded, hasViewerError, viewerUrl, thumbUrl, placeholderUrl, currentItem]
+  );
+
+  const handlePrev = useCallback(
+    (swipeOffsetPx = 0) => {
+      if (total <= 1) return;
+      const prevIdx = safeIndex <= 0 ? total - 1 : safeIndex - 1;
+      navigateToIndex(prevIdx, "backward", swipeOffsetPx);
+    },
+    [total, safeIndex, navigateToIndex]
+  );
+
+  const handleNext = useCallback(
+    (swipeOffsetPx = 0) => {
+      if (total <= 1) return;
+      const nextIdx = safeIndex >= total - 1 ? 0 : safeIndex + 1;
+      navigateToIndex(nextIdx, "forward", swipeOffsetPx);
+    },
+    [total, safeIndex, navigateToIndex]
+  );
+
+  // Synchronously animate outgoing slide continuing toward swipe direction & incoming slide emerging from opposite end
+  useLayoutEffect(() => {
+    if (slideCycle === 0 || navDirection === "initial") return;
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      typeof window.matchMedia === "function" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (prefersReducedMotion) {
+      setExitingSlide(null);
+      return;
+    }
+
+    const startX = exitingSlide?.startX ?? 0;
+
+    const incomingEl = incomingSlideRef.current;
+    if (incomingEl && typeof incomingEl.animate === "function") {
+      // Forward (swiped left) -> upcoming image emerges from the RIGHT (+offset -> 0px)
+      // Backward (swiped right) -> upcoming image emerges from the LEFT (-offset -> 0px)
+      const enterDistance =
+        startX !== 0
+          ? Math.max(70, REEL_SPAN_PX - Math.min(REEL_SPAN_PX - 70, Math.abs(startX)))
+          : 200;
+      const enterFromX = navDirection === "forward" ? enterDistance : -enterDistance;
+      const enterStartOpacity =
+        startX !== 0 ? Math.min(0.85, Math.max(0.2, Math.abs(startX) / REEL_SPAN_PX)) : 0.15;
+
+      incomingEl.animate(
+        [
+          { transform: `translate3d(${enterFromX}px, 0, 0)`, opacity: enterStartOpacity },
+          { transform: "translate3d(0px, 0, 0)", opacity: 1 },
+        ],
+        {
+          duration: 260,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+        }
+      );
+    }
+
+    const exitingEl = exitingSlideRef.current;
+    if (exitingEl && exitingSlide && typeof exitingEl.animate === "function") {
+      // Forward (swiped left) -> current image exits further LEFT (startX -> -REEL_SPAN_PX)
+      // Backward (swiped right) -> current image exits further RIGHT (startX -> +REEL_SPAN_PX)
+      const exitToX =
+        exitingSlide.direction === "forward"
+          ? Math.min(startX - 160, -REEL_SPAN_PX)
+          : Math.max(startX + 160, REEL_SPAN_PX);
+      const startOpacity = Math.max(0.35, 1 - Math.abs(startX) / 420);
+      exitingEl.animate(
+        [
+          { transform: `translate3d(${startX}px, 0, 0)`, opacity: startOpacity },
+          { transform: `translate3d(${exitToX}px, 0, 0)`, opacity: 0 },
+        ],
+        {
+          duration: 230,
+          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+          fill: "forwards",
+        }
+      );
+    }
+
+    const activeCycle = slideCycle;
+    const timer = window.setTimeout(() => {
+      setExitingSlide((prev) => (prev && prev.cycle === activeCycle ? null : prev));
+    }, 245);
+
+    return () => window.clearTimeout(timer);
+  }, [slideCycle, navDirection, exitingSlide]);
 
   // Lock body scroll while preserving exact scroll position, and manage focus on open/close
   useEffect(() => {
@@ -143,10 +262,10 @@ export default function GalleryLightbox({
         onClose();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handlePrev();
+        handlePrev(0);
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleNext();
+        handleNext(0);
       }
     };
 
@@ -178,18 +297,25 @@ export default function GalleryLightbox({
   };
 
   const onTouchEnd = () => {
-    if (isSwiping) {
-      const swipeThreshold = 45; // pixels
-      if (touchDeltaX > swipeThreshold) {
-        handlePrev();
-      } else if (touchDeltaX < -swipeThreshold) {
-        handleNext();
-      }
-    }
+    const releaseDeltaX = touchDeltaX;
+    const wasSwiping = isSwiping;
+
     setTouchStartX(null);
     setTouchStartY(null);
-    setTouchDeltaX(0);
     setIsSwiping(false);
+
+    if (wasSwiping) {
+      const swipeThreshold = 45; // pixels
+      if (releaseDeltaX > swipeThreshold) {
+        handlePrev(releaseDeltaX);
+        return;
+      } else if (releaseDeltaX < -swipeThreshold) {
+        handleNext(releaseDeltaX);
+        return;
+      }
+    }
+
+    setTouchDeltaX(0);
   };
 
   // 5 to 7 photos carousel window calculation
@@ -222,6 +348,40 @@ export default function GalleryLightbox({
   const currentTitle = currentItem.title || currentItem.altText || "Mountain Moment";
   const showViewerLayer = isViewerDecoded && !hasViewerError;
   const showFallbackState = hasViewerError && (hasThumbError || !thumbUrl);
+
+  // Live upcoming slide emerging from the opposite end while dragging on a touch device
+  const dragPreview = useMemo(() => {
+    if (!isSwiping || total <= 1 || Math.abs(touchDeltaX) <= 10) return null;
+    const isDraggingToNext = touchDeltaX < 0;
+    const previewIdx = isDraggingToNext
+      ? safeIndex >= total - 1
+        ? 0
+        : safeIndex + 1
+      : safeIndex <= 0
+      ? total - 1
+      : safeIndex - 1;
+    const previewItem = items[previewIdx];
+    if (!previewItem) return null;
+
+    const previewViewerUrl = getViewerImageUrl(previewItem);
+    const previewSrc = galleryPreloader.isDecoded(previewViewerUrl)
+      ? previewViewerUrl
+      : getThumbnailImageUrl(previewItem) || previewViewerUrl;
+
+    // When dragging left (touchDeltaX < 0), upcoming Next image emerges from the RIGHT (+REEL_SPAN_PX + touchDeltaX)
+    // When dragging right (touchDeltaX > 0), upcoming Prev image emerges from the LEFT (-REEL_SPAN_PX + touchDeltaX)
+    const offsetX = isDraggingToNext
+      ? Math.max(0, REEL_SPAN_PX + touchDeltaX)
+      : Math.min(0, -REEL_SPAN_PX + touchDeltaX);
+    const opacity = Math.min(0.85, Math.max(0.1, Math.abs(touchDeltaX) / REEL_SPAN_PX));
+
+    return {
+      item: previewItem,
+      src: previewSrc,
+      offsetX,
+      opacity,
+    };
+  }, [isSwiping, total, touchDeltaX, safeIndex, items]);
 
   return createPortal(
     <div
@@ -282,7 +442,7 @@ export default function GalleryLightbox({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handlePrev();
+              handlePrev(0);
             }}
             aria-label="Previous image"
             className="hidden sm:flex absolute left-4 sm:left-6 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
@@ -293,12 +453,63 @@ export default function GalleryLightbox({
           </button>
         )}
 
-        {/* Main Image Container with touch swipe transform and reduced-motion support */}
+        {/* Live Upcoming Reel Slide during active finger drag (emerges from the opposite end) */}
+        {dragPreview && (
+          <div
+            key={`drag-preview-${dragPreview.item.id}`}
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center p-2 sm:p-8 pointer-events-none z-10"
+            style={{
+              transform: `translate3d(${dragPreview.offsetX}px, 0, 0)`,
+              opacity: dragPreview.opacity,
+            }}
+          >
+            <img
+              src={dragPreview.src}
+              alt={dragPreview.item.altText || dragPreview.item.title || "Upcoming Moment"}
+              width={dragPreview.item.width || undefined}
+              height={dragPreview.item.height || undefined}
+              className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+              draggable={false}
+            />
+          </div>
+        )}
+
+        {/* Outgoing Slide (completes reel exit in the direction of the swipe) */}
+        {!isSwiping && exitingSlide && (
+          <div
+            key={`exit-${exitingSlide.id}-${exitingSlide.cycle}`}
+            ref={exitingSlideRef}
+            aria-hidden="true"
+            className="absolute inset-0 flex items-center justify-center p-2 sm:p-8 pointer-events-none z-10"
+            style={{
+              transform: `translate3d(${exitingSlide.startX}px, 0, 0)`,
+              opacity: Math.max(0.35, 1 - Math.abs(exitingSlide.startX) / 420),
+            }}
+          >
+            <img
+              src={exitingSlide.src}
+              alt={exitingSlide.alt}
+              width={exitingSlide.width || undefined}
+              height={exitingSlide.height || undefined}
+              className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
+              draggable={false}
+            />
+          </div>
+        )}
+
+        {/* Active / Incoming Slide (emerges from the opposite end of the reel) */}
         <div
-          className="relative max-w-full max-h-full flex items-center justify-center transition-transform duration-150 ease-out motion-reduce:transition-none"
+          key={`active-${currentItem.id}-${slideCycle}`}
+          ref={incomingSlideRef}
+          className={`relative z-15 max-w-full max-h-full flex items-center justify-center ${
+            isSwiping
+              ? "transition-none"
+              : "transition-transform duration-200 ease-out motion-reduce:transition-none"
+          }`}
           style={{
-            transform: isSwiping ? `translateX(${touchDeltaX}px)` : "translateX(0px)",
-            opacity: isSwiping ? Math.max(0.65, 1 - Math.abs(touchDeltaX) / 420) : 1
+            transform: isSwiping ? `translate3d(${touchDeltaX}px, 0, 0)` : "translate3d(0px, 0, 0)",
+            opacity: isSwiping ? Math.max(0.45, 1 - Math.abs(touchDeltaX) / 380) : 1
           }}
         >
           {showFallbackState ? (
@@ -363,7 +574,7 @@ export default function GalleryLightbox({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleNext();
+              handleNext(0);
             }}
             aria-label="Next image"
             className="hidden sm:flex absolute right-4 sm:right-6 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
@@ -395,9 +606,13 @@ export default function GalleryLightbox({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      setNavDirection(thumb.index >= safeIndex ? "forward" : "backward");
-                      setCurrentIndex(thumb.index);
-                      setTouchDeltaX(0);
+                      if (thumb.index !== safeIndex) {
+                        navigateToIndex(
+                          thumb.index,
+                          thumb.index > safeIndex ? "forward" : "backward",
+                          0
+                        );
+                      }
                     }}
                     aria-label={`View photo ${thumb.index + 1}: ${thumb.item.title || "Moment"}`}
                     aria-current={isActive ? "true" : undefined}
