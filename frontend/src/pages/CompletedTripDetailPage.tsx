@@ -120,40 +120,41 @@ export default function CompletedTripDetailPage() {
         image={trip.image}
       />
       {/* Hero */}
-      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-8 md:pb-12 overflow-hidden">
+      <section className="relative h-[46vh] sm:h-[52vh] md:h-[84vh] min-h-[320px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pt-20 sm:pt-0 pb-5 sm:pb-8 md:pb-12 overflow-hidden">
         <img
           src={trip.image}
           alt={trip.name}
           className="absolute inset-0 w-full h-full object-cover"
         />
         <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
+        <div className="sm:hidden absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-black/75 via-black/35 to-transparent pointer-events-none" />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <BackLink
             to="/past-trips"
-            className="inline-flex items-center gap-2 text-white/85 hover:text-white text-xs sm:text-sm mb-3 sm:mb-5 transition-colors text-contrast-subtle font-medium"
+            className="inline-flex items-center gap-1.5 sm:gap-2 text-white/95 sm:text-white/85 hover:text-white text-[11px] sm:text-sm bg-black/35 sm:bg-transparent backdrop-blur-xs sm:backdrop-blur-none px-2.5 py-1 sm:p-0 rounded-full mb-2.5 sm:mb-5 transition-colors text-contrast-subtle font-medium"
           >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+            <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Past Trips
           </BackLink>
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2 text-contrast-subtle">{destination.name}</div>
-          <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2.5 sm:mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-            <span className="badge-glass-dark text-white text-xs sm:text-sm px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full">{instance.displayDate}</span>
-            <span className="bg-[#e8622a] text-white text-xs sm:text-sm font-semibold px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full btn-primary-elevated">₹{instance.price.toLocaleString("en-IN")} / person</span>
-            <span className="badge-glass-dark text-white text-xs sm:text-sm px-3.5 sm:px-4 py-1 sm:py-1.5 rounded-full">{instance.spotsTotal} participants</span>
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1 sm:mb-2 text-contrast-subtle">{destination.name}</div>
+          <h1 className="text-white text-[26px] sm:text-5xl md:text-6xl leading-[1.12] sm:leading-none mb-2.5 sm:mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-3">
+            <span className="badge-glass-dark text-white text-[11px] sm:text-sm px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full">{instance.displayDate}</span>
+            <span className="bg-[#e8622a] text-white text-[11px] sm:text-sm font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full btn-primary-elevated">₹{instance.price.toLocaleString("en-IN")} / person</span>
+            <span className="badge-glass-dark text-white text-[11px] sm:text-sm px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full">{instance.spotsTotal} participants</span>
           </div>
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12 space-y-14">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 sm:py-12 space-y-8 sm:space-y-14">
 
         {/* Photo Gallery */}
         {instance.completedPhotos && instance.completedPhotos.length > 0 && (
           <section>
-            <div className="flex items-end justify-between mb-5 gap-2">
+            <div className="flex items-end justify-between mb-3.5 sm:mb-5 gap-2">
               <div>
-                <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-1">MEMORIES</div>
-                <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Trip Gallery</h2>
+                <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-0.5 sm:mb-1">MEMORIES</div>
+                <h2 className="text-[#0f2922] text-[22px] sm:text-2xl leading-tight" style={{ fontFamily: "var(--font-serif)" }}>Trip Gallery</h2>
               </div>
               <button
                 type="button"
@@ -166,10 +167,12 @@ export default function CompletedTripDetailPage() {
                 </svg>
               </button>
             </div>
-            <div className={`grid ${instance.completedPhotos.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-2 sm:gap-4`}>
+            <div className={`grid grid-cols-2 ${instance.completedPhotos.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-2.5 sm:gap-4`}>
               {instance.completedPhotos.slice(0, 3).map((photo, i) => {
-                const remaining = instance.completedPhotos!.length - 3;
-                const isLastVisible = i === 2 && remaining > 0;
+                const remainingDesktop = instance.completedPhotos!.length - 3;
+                const remainingMobile = instance.completedPhotos!.length - 2;
+                const isLastDesktop = i === 2 && remainingDesktop > 0;
+                const isLastMobile = i === 1 && remainingMobile > 0;
                 return (
                   <div
                     key={i}
@@ -182,7 +185,7 @@ export default function CompletedTripDetailPage() {
                         setLightboxIndex(i);
                       }
                     }}
-                    className="group relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden bg-[#f7f8f5] border border-[#e2e8f0] shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer"
+                    className={`${i === 2 ? "hidden sm:block " : ""}group relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden bg-[#f7f8f5] border border-[#e2e8f0] shadow-xs hover:shadow-md transition-all duration-300 cursor-pointer`}
                   >
                     <img
                       src={photo}
@@ -190,9 +193,15 @@ export default function CompletedTripDetailPage() {
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500 ease-out"
                       loading="lazy"
                     />
-                    {isLastVisible ? (
-                      <div className="absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
-                        <span className="text-sm sm:text-lg font-bold">+{remaining}</span>
+                    {isLastMobile && (
+                      <div className="sm:hidden absolute inset-0 bg-black/50 hover:bg-black/60 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
+                        <span className="text-lg font-bold leading-none">+{remainingMobile}</span>
+                        <span className="text-[11px] font-medium mt-1">Photos</span>
+                      </div>
+                    )}
+                    {isLastDesktop ? (
+                      <div className="hidden sm:flex absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex-col items-center justify-center text-white p-2 text-center">
+                        <span className="text-sm sm:text-lg font-bold">+{remainingDesktop}</span>
                         <span className="text-[10px] sm:text-xs font-medium inline-flex items-center gap-1 mt-0.5">
                           View All
                           <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -201,7 +210,7 @@ export default function CompletedTripDetailPage() {
                         </span>
                       </div>
                     ) : (
-                      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                      <div className={`${isLastMobile ? "hidden sm:block " : ""}absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors`} />
                     )}
                   </div>
                 );
@@ -212,36 +221,36 @@ export default function CompletedTripDetailPage() {
 
         {/* Trip Info */}
         <section>
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2">TRIP DETAILS</div>
-          <h2 className="text-[#0f2922] text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>About This Trip</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-4">
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-1 sm:mb-2">TRIP DETAILS</div>
+          <h2 className="text-[#0f2922] text-[22px] sm:text-2xl mb-4 sm:mb-6" style={{ fontFamily: "var(--font-serif)" }}>About This Trip</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-8">
+            <div className="space-y-2.5 sm:space-y-4">
               {[
                 { label: "Duration", val: trip.duration },
                 { label: "Date", val: instance.displayDate },
                 { label: "Participants", val: `${instance.spotsTotal} explorers` },
                 { label: "Difficulty", val: trip.difficulty },
               ].map((row) => (
-                <div key={row.label} className="flex justify-between border-b border-[#e2e8f0] pb-3 text-sm">
-                  <span className="text-[#4a5568]">{row.label}</span>
-                  <span className="text-[#0f2922] font-medium">{row.val}</span>
+                <div key={row.label} className="flex items-baseline justify-between gap-4 border-b border-[#e2e8f0] pb-2.5 sm:pb-3 text-[13.5px] sm:text-sm">
+                  <span className="text-[#4a5568] shrink-0">{row.label}</span>
+                  <span className="text-[#0f2922] font-medium text-right">{row.val}</span>
                 </div>
               ))}
             </div>
             <div>
-              <div className="text-[#0f2922] font-medium text-sm mb-3">Trip Highlights</div>
-              <ul className="space-y-2">
+              <div className="text-[#0f2922] font-medium text-sm mb-2 sm:mb-3">Trip Highlights</div>
+              <ul className="space-y-1.5 sm:space-y-2">
                 {trip.highlights.map((h, i) => (
-                  <li key={i} className="flex items-start gap-3 text-sm text-[#4a5568]">
+                  <li key={i} className="flex items-start gap-2.5 sm:gap-3 text-[13.5px] sm:text-sm leading-snug sm:leading-normal text-[#4a5568]">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2.5" className="shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {typeof h === "string" ? h : (h as any)?.value ? `${(h as any).label}: ${(h as any).value}` : ""}
+                    <span>{typeof h === "string" ? h : (h as any)?.value ? `${(h as any).label}: ${(h as any).value}` : ""}</span>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
           {instance.notes && (
-            <div className="mt-5 bg-[#f7f8f5] rounded-xl p-4 text-sm text-[#4a5568] border border-[#e2e8f0]">
+            <div className="mt-4 sm:mt-5 bg-[#f7f8f5] rounded-xl p-3.5 sm:p-4 text-[13.5px] sm:text-sm text-[#4a5568] border border-[#e2e8f0]">
               <span className="font-medium text-[#0f2922]">Trip Notes: </span>{instance.notes}
             </div>
           )}
@@ -249,10 +258,10 @@ export default function CompletedTripDetailPage() {
 
         {/* Reviews */}
         <section id="reviews">
-          <div className="flex items-end justify-between gap-3 mb-6">
-            <div>
-              <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-1">WHAT TRAVELLERS SAY</div>
-              <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>{reviewsHeading}</h2>
+          <div className="flex items-end justify-between gap-3 mb-3.5 sm:mb-6">
+            <div className="min-w-0">
+              <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-medium mb-0.5 sm:mb-1">WHAT TRAVELLERS SAY</div>
+              <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug" style={{ fontFamily: "var(--font-serif)" }}>{reviewsHeading}</h2>
             </div>
             {relevantReviews.length > 0 && (
               <Link
@@ -268,31 +277,37 @@ export default function CompletedTripDetailPage() {
           </div>
           {relevantReviews.length > 0 ? (
             <>
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {displayedReviews.map((review) => (
                   <Link
                     key={review.id}
                     to={`/destinations/${destination.slug || destination.id}/reviews#review-${review.id}`}
-                    className="group block bg-white border border-[#e2e8f0] hover:border-[#0f2922]/30 rounded-2xl p-5 shadow-xs hover:shadow-md transition-all"
+                    className="group block bg-white border border-[#e2e8f0] hover:border-[#0f2922]/30 rounded-2xl p-3.5 sm:p-5 shadow-xs hover:shadow-md transition-all"
                   >
-                    <div className="flex items-start gap-4">
-                      <div className="w-10 h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
+                    <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-2.5 sm:flex sm:items-start sm:gap-4">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm shrink-0">
                         {review.avatar}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                          <div>
-                            <span className="text-[#0f2922] font-medium text-sm group-hover:text-[#e8622a] transition-colors">{review.name}</span>
-                            <span className="text-[#4a5568] text-xs ml-2">· {review.tripName}</span>
+                      <div className="contents sm:block sm:flex-1 sm:min-w-0">
+                        <div className="min-w-0">
+                          <div className="flex items-start sm:items-center justify-between gap-2 mb-1 sm:flex-wrap">
+                            <div className="min-w-0 flex-1 sm:flex-initial">
+                              <span className="block sm:inline text-[#0f2922] font-semibold sm:font-medium text-sm leading-tight sm:leading-normal group-hover:text-[#e8622a] transition-colors truncate">{review.name}</span>
+                              {review.tripName && (
+                                <span className="block sm:inline text-[#4a5568] text-[11px] sm:text-xs leading-tight sm:leading-normal truncate sm:ml-2 mt-0.5 sm:mt-0">
+                                  <span className="hidden sm:inline">· </span>{review.tripName}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-[#718096] sm:text-[#4a5568] text-[11px] sm:text-xs leading-tight sm:leading-normal shrink-0">
+                              {review.date ? (isNaN(Date.parse(review.date)) ? review.date : new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })) : "Recent"}
+                            </span>
                           </div>
-                          <span className="text-[#4a5568] text-xs shrink-0">
-                            {review.date ? (isNaN(Date.parse(review.date)) ? review.date : new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })) : "Recent"}
-                          </span>
+                          <StarRating rating={review.rating} />
                         </div>
-                        <StarRating rating={review.rating} />
-                        <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic line-clamp-3 sm:line-clamp-4">"{review.text}"</p>
+                        <p className="col-span-2 text-[#4a5568] text-[13.5px] sm:text-sm leading-[1.5] sm:leading-relaxed mt-2 italic line-clamp-3 sm:line-clamp-4">"{review.text}"</p>
                         {review.photos && review.photos.length > 0 && (
-                          <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-[#f1f5f9]">
+                          <div className="col-span-2 flex items-center gap-2 sm:gap-2.5 mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#f1f5f9] overflow-hidden">
                             {review.photos.slice(0, 3).map((photoUrl, pIdx) => {
                               const extraPhotos = review.photos!.length - 3;
                               const isLastThumb = pIdx === 2 && extraPhotos > 0;
@@ -322,20 +337,20 @@ export default function CompletedTripDetailPage() {
                   </Link>
                 ))}
               </div>
-              <div className="mt-5 flex justify-center sm:justify-start">
+              <div className="mt-3.5 sm:mt-5 flex justify-center sm:justify-start">
                 <Link
                   to={`/destinations/${destination.slug || destination.id}/reviews`}
-                  className="inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-[#0f2922] border border-[#0f2922] px-5 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all w-full sm:w-auto"
+                  className="inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-semibold text-[#0f2922] border border-[#0f2922] px-5 py-2 sm:py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all w-full sm:w-auto"
                 >
                   <span>Show All Reviews ({relevantReviews.length})</span>
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                   </svg>
                 </Link>
               </div>
             </>
           ) : (
-            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-2xl p-6 text-center text-sm text-[#718096]">
+            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-2xl p-5 sm:p-6 text-center text-sm text-[#718096]">
               <p className="mb-1 text-[#0f2922] font-medium">No reviews published for this expedition yet.</p>
               <p className="text-xs">Once verified by our team, traveller reviews and expedition memories will be featured here.</p>
             </div>
@@ -343,17 +358,17 @@ export default function CompletedTripDetailPage() {
         </section>
 
         {/* CTA */}
-        <section className="bg-[#0f2922] rounded-3xl p-8 sm:p-10 text-center">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2">MISSED THIS DEPARTURE?</div>
-          <h2 className="text-white text-2xl sm:text-3xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>
+        <section className="bg-[#0f2922] rounded-2xl sm:rounded-3xl px-5 py-6 sm:p-10 text-center">
+          <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2">MISSED THIS DEPARTURE?</div>
+          <h2 className="text-white text-[20px] sm:text-3xl leading-snug mb-2 sm:mb-3" style={{ fontFamily: "var(--font-serif)" }}>
             Experience this journey for yourself
           </h2>
-          <p className="text-white/70 text-[15px] sm:text-sm mb-6 max-w-md mx-auto text-center">
+          <p className="text-white/70 text-[13.5px] sm:text-sm leading-relaxed mb-4 sm:mb-6 max-w-md mx-auto text-center">
             We run similar departures regularly. Get in touch and our team will share the next available dates and pricing.
           </p>
           <button
             onClick={() => openEnquiryModal(trip.id)}
-            className="bg-[#e8622a] hover:bg-[#d45520] text-white font-medium px-8 py-3.5 rounded-full transition-colors text-sm"
+            className="bg-[#e8622a] hover:bg-[#d45520] text-white font-medium px-6 sm:px-8 py-2.5 sm:py-3.5 rounded-full transition-colors text-xs sm:text-sm"
           >
             INQUIRE ABOUT SIMILAR TRIPS
           </button>
