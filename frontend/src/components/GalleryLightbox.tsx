@@ -1,14 +1,20 @@
-import { useState, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from "react";
+import {
+  useState,
+  useEffect,
+  useLayoutEffect,
+  useCallback,
+  useMemo,
+  useRef,
+  memo,
+} from "react";
 import { createPortal } from "react-dom";
 import type { PublicGalleryItem } from "@/api/gallery";
 import {
   galleryPreloader,
   getThumbnailImageUrl,
   getViewerImageUrl,
-  type NavigationDirection
+  type NavigationDirection,
 } from "@/utils/galleryPreloader";
-
-const REEL_SPAN_PX = 280;
 
 interface GalleryLightboxProps {
   items: PublicGalleryItem[];
@@ -17,70 +23,59 @@ interface GalleryLightboxProps {
   onNearEnd?: () => void;
 }
 
-export default function GalleryLightbox({
-  items,
-  initialIndex,
-  onClose,
-  onNearEnd
-}: GalleryLightboxProps) {
-  const [currentIndex, setCurrentIndex] = useState(() =>
-    Math.max(0, Math.min(initialIndex, Math.max(0, items.length - 1)))
+const SLIDE_DURATION_MS = 285;
+const SNAP_BACK_DURATION_MS = 240;
+const SLIDE_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
+
+function wrapIndex(index: number, total: number): number {
+  if (total <= 0) return 0;
+  return ((index % total) + total) % total;
+}
+
+function isReducedMotionPreferred(): boolean {
+  return (
+    typeof window !== "undefined" &&
+    typeof window.matchMedia === "function" &&
+    window.matchMedia("(prefers-reduced-motion: reduce)").matches
   );
-  const [navDirection, setNavDirection] = useState<NavigationDirection>("initial");
-  const [slideCycle, setSlideCycle] = useState<number>(0);
-  const [exitingSlide, setExitingSlide] = useState<{
-    id: string;
-    src: string;
-    alt: string;
-    width: number | null;
-    height: number | null;
-    direction: "forward" | "backward";
-    startX: number;
-    cycle: number;
-  } | null>(null);
-  const [touchStartX, setTouchStartX] = useState<number | null>(null);
-  const [touchStartY, setTouchStartY] = useState<number | null>(null);
-  const [touchDeltaX, setTouchDeltaX] = useState<number>(0);
-  const [isSwiping, setIsSwiping] = useState(false);
+}
 
-  const total = items.length;
-  const safeIndex = total > 0 ? Math.max(0, Math.min(currentIndex, total - 1)) : 0;
-  const currentItem = items[safeIndex];
+interface GallerySlideProps {
+  item: PublicGalleryItem;
+  isActive: boolean;
+  onBackdropClick: () => void;
+}
 
-  const viewerUrl = currentItem ? getViewerImageUrl(currentItem) : "";
-  const thumbUrl = currentItem ? getThumbnailImageUrl(currentItem) : "";
-  const placeholderUrl = currentItem?.placeholder || null;
+/**
+ * Individual slide occupying 100% of the lightbox viewport width inside the horizontal track.
+ * Preserves decoded state across slide recycling so adjacent pre-decoded slides never flash.
+ */
+const GallerySlide = memo(function GallerySlide({
+  item,
+  isActive,
+  onBackdropClick,
+}: GallerySlideProps) {
+  const viewerUrl = getViewerImageUrl(item);
+  const thumbUrl = getThumbnailImageUrl(item);
+  const placeholderUrl = item.placeholder || null;
 
-  // Synchronously check if viewerUrl is already decoded in our bounded LRU cache
   const [isViewerDecoded, setIsViewerDecoded] = useState<boolean>(() =>
     galleryPreloader.isDecoded(viewerUrl)
   );
   const [hasViewerError, setHasViewerError] = useState<boolean>(false);
   const [hasThumbError, setHasThumbError] = useState<boolean>(false);
 
-  // Track active item ID and generation counter to prevent stale async loads during rapid swipes
-  const activeItemIdRef = useRef<string | null>(currentItem?.id ?? null);
-  const transitionGenRef = useRef<number>(0);
-  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
-  const incomingSlideRef = useRef<HTMLDivElement | null>(null);
-  const exitingSlideRef = useRef<HTMLDivElement | null>(null);
+  const itemIdRef = useRef<string>(item.id);
 
-  // Keep state synchronized immediately when currentItem changes
   useEffect(() => {
-    if (!currentItem) return;
-    activeItemIdRef.current = currentItem.id;
-    const gen = ++transitionGenRef.current;
-
+    itemIdRef.current = item.id;
     const alreadyDecoded = galleryPreloader.isDecoded(viewerUrl);
     setIsViewerDecoded(alreadyDecoded);
     setHasViewerError(false);
     setHasThumbError(false);
 
-    // Subscribe to decode completion for the active viewer URL
     const unsubscribe = galleryPreloader.subscribe(viewerUrl, (state) => {
-      if (transitionGenRef.current !== gen || activeItemIdRef.current !== currentItem.id) {
-        return; // Stale callback from a previous rapid swipe — ignore
-      }
+      if (itemIdRef.current !== item.id) return;
       if (state === "decoded") {
         setIsViewerDecoded(true);
         setHasViewerError(false);
@@ -89,138 +84,304 @@ export default function GalleryLightbox({
       }
     });
 
-    // Prioritize current image + adjacent images in navigation direction
-    void galleryPreloader.prioritizeWindow(items, safeIndex, navDirection);
-
     return () => {
       unsubscribe();
     };
-  }, [currentItem, viewerUrl, items, safeIndex, navDirection]);
+  }, [item.id, viewerUrl]);
 
-  // Notify parent when approaching the end of loaded items so next page can prefetch
+  const title = item.title || item.altText || "Mountain Moment";
+  const showViewerLayer = isViewerDecoded && !hasViewerError;
+  const showFallbackState = hasViewerError && (hasThumbError || !thumbUrl);
+
+  return (
+    <div
+      className="w-full h-full shrink-0 basis-full flex items-center justify-center p-2 sm:p-8 select-none"
+      aria-hidden={!isActive}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) {
+          onBackdropClick();
+        }
+      }}
+    >
+      {showFallbackState ? (
+        <div className="w-72 sm:w-96 h-64 rounded-2xl bg-[#0f2922]/80 border border-white/15 flex flex-col items-center justify-center p-6 text-center space-y-2">
+          <span className="text-3xl">🏔️</span>
+          <p className="text-white text-sm font-semibold">{title}</p>
+          <p className="text-white/60 text-xs">Image temporarily unavailable</p>
+        </div>
+      ) : (
+        <div className="relative flex items-center justify-center max-w-full max-h-full">
+          {/* Layer 1: Immediate Thumbnail / Placeholder while viewer resolution decodes */}
+          {!showViewerLayer && (thumbUrl || placeholderUrl) && !hasThumbError && (
+            <img
+              src={thumbUrl || placeholderUrl || ""}
+              alt={item.altText || item.title || "Gallery Moment"}
+              width={item.width || undefined}
+              height={item.height || undefined}
+              className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl select-none"
+              style={
+                !thumbUrl && placeholderUrl
+                  ? { filter: "blur(12px)", transform: "scale(1.02)" }
+                  : undefined
+              }
+              draggable={false}
+              onError={() => setHasThumbError(true)}
+            />
+          )}
+
+          {/* Layer 2: Decoded Viewer-Resolution Image (1600w WebP) */}
+          <img
+            src={viewerUrl}
+            alt={item.altText || item.title || "Gallery Moment"}
+            width={item.width || undefined}
+            height={item.height || undefined}
+            decoding="async"
+            className={`max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl select-none ${
+              showViewerLayer
+                ? "opacity-100 relative"
+                : "opacity-0 absolute inset-0 pointer-events-none"
+            }`}
+            draggable={false}
+            onLoad={() => {
+              if (itemIdRef.current === item.id) {
+                setIsViewerDecoded(true);
+              }
+            }}
+            onError={() => {
+              if (itemIdRef.current === item.id) {
+                setHasViewerError(true);
+              }
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+});
+
+export default function GalleryLightbox({
+  items,
+  initialIndex,
+  onClose,
+  onNearEnd,
+}: GalleryLightboxProps) {
+  const total = items.length;
+
+  // Virtual monotonic index allows infinite wrapping around [0 .. total - 1]
+  // while keeping unique, stable React keys (virtualIndex - 1, virtualIndex, virtualIndex + 1)
+  // across the 3-slide window even when total === 2.
+  const [virtualIndex, setVirtualIndex] = useState<number>(() =>
+    Math.max(0, Math.min(initialIndex, Math.max(0, total - 1)))
+  );
+  // Optional step override when clicking a non-adjacent thumbnail in the bottom filmstrip
+  const [customStepDelta, setCustomStepDelta] = useState<number | null>(null);
+
+  const safeIndex = wrapIndex(virtualIndex, total);
+  const currentItem = total > 0 ? items[safeIndex] : undefined;
+
+  const viewportRef = useRef<HTMLDivElement | null>(null);
+  const trackRef = useRef<HTMLDivElement | null>(null);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  // Track active slide transition state without triggering unnecessary React re-renders
+  const navDirectionRef = useRef<NavigationDirection>("initial");
+  const pendingStepRef = useRef<number>(0);
+  const queuedStepRef = useRef<number | null>(null);
+  const transitionTimerRef = useRef<number | null>(null);
+  const suppressBackdropClickRef = useRef<boolean>(false);
+
+  // Pointer / touch drag state stored in ref so touchmove updates transform at 60-120fps with 0 React re-renders
+  const dragRef = useRef<{
+    active: boolean;
+    isHorizontal: boolean | null;
+    startX: number;
+    startY: number;
+    lastX: number;
+    lastTime: number;
+    velocityX: number;
+    deltaX: number;
+  }>({
+    active: false,
+    isHorizontal: null,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    deltaX: 0,
+  });
+
+  const clearTransitionTimer = useCallback(() => {
+    if (transitionTimerRef.current !== null) {
+      window.clearTimeout(transitionTimerRef.current);
+      transitionTimerRef.current = null;
+    }
+  }, []);
+
+  // Synchronously set the track to neutral center slide (-100%) without animation
+  const setTrackNeutralImmediate = useCallback(() => {
+    const trackEl = trackRef.current;
+    if (!trackEl) return;
+    trackEl.style.transition = "none";
+    trackEl.style.transform =
+      total > 1 ? "translate3d(-100%, 0, 0)" : "translate3d(0px, 0, 0)";
+  }, [total]);
+
+  // Finalize an in-flight slide transition and recycle the 3-slide window around the new virtualIndex
+  const commitSlideTransition = useCallback(() => {
+    clearTransitionTimer();
+    const step = pendingStepRef.current;
+    if (step === 0) return;
+    pendingStepRef.current = 0;
+    setCustomStepDelta(null);
+    setVirtualIndex((prev) => prev + step);
+  }, [clearTransitionTimer]);
+
+  // Animate the horizontal track to the left slot (-1), center slot (0), or right slot (+1)
+  const animateTrackToSlot = useCallback(
+    (slotDirection: -1 | 0 | 1, velocityPxPerMs = 0, explicitStep?: number) => {
+      const trackEl = trackRef.current;
+      if (!trackEl) return;
+
+      if (slotDirection === 0 || total <= 1) {
+        pendingStepRef.current = 0;
+        clearTransitionTimer();
+        if (isReducedMotionPreferred()) {
+          setTrackNeutralImmediate();
+        } else {
+          trackEl.style.transition = `transform ${SNAP_BACK_DURATION_MS}ms ${SLIDE_EASING}`;
+          trackEl.style.transform =
+            total > 1 ? "translate3d(-100%, 0, 0)" : "translate3d(0px, 0, 0)";
+        }
+        return;
+      }
+
+      const step = explicitStep ?? slotDirection;
+      const dir: NavigationDirection = step > 0 ? "forward" : "backward";
+      navDirectionRef.current = dir;
+
+      // Immediately prioritize preloading for the incoming target index and its neighbors
+      const targetIndex = wrapIndex(virtualIndex + step, total);
+      void galleryPreloader.prioritizeWindow(items, targetIndex, dir);
+
+      if (isReducedMotionPreferred()) {
+        pendingStepRef.current = 0;
+        setCustomStepDelta(null);
+        setVirtualIndex((prev) => prev + step);
+        return;
+      }
+
+      pendingStepRef.current = step;
+
+      // Adapt duration slightly when user performs a fast flick
+      const speedFactor = Math.min(65, Math.floor(Math.abs(velocityPxPerMs) * 40));
+      const durationMs = Math.max(210, SLIDE_DURATION_MS - speedFactor);
+
+      // Slide to Slot 0 (0%) when going backward, or Slot 2 (-200%) when going forward
+      const targetTransform =
+        slotDirection > 0
+          ? "translate3d(-200%, 0, 0)"
+          : "translate3d(0%, 0, 0)";
+
+      trackEl.style.transition = `transform ${durationMs}ms ${SLIDE_EASING}`;
+      trackEl.style.transform = targetTransform;
+
+      clearTransitionTimer();
+      transitionTimerRef.current = window.setTimeout(() => {
+        commitSlideTransition();
+      }, durationMs + 35);
+    },
+    [total, virtualIndex, items, clearTransitionTimer, setTrackNeutralImmediate, commitSlideTransition]
+  );
+
+  // Trigger a 1-slide or multi-slide horizontal transition (used by arrows, keyboard, and filmstrip)
+  const triggerNavigationStep = useCallback(
+    (step: number) => {
+      if (total <= 1 || step === 0) return;
+
+      // If a slide is already mid-flight, queue the next step and immediately commit the current one
+      if (pendingStepRef.current !== 0) {
+        queuedStepRef.current = step;
+        commitSlideTransition();
+        return;
+      }
+
+      if (Math.abs(step) > 1) {
+        setCustomStepDelta(step);
+        return;
+      }
+
+      const trackEl = trackRef.current;
+      if (trackEl) {
+        // Ensure neutral transform is committed before starting CSS transition
+        setTrackNeutralImmediate();
+        void trackEl.offsetWidth;
+      }
+
+      animateTrackToSlot(step > 0 ? 1 : -1, 0, step);
+    },
+    [total, commitSlideTransition, setTrackNeutralImmediate, animateTrackToSlot]
+  );
+
+  // When customStepDelta is set (e.g. jumping via filmstrip), start the slide once the target neighbor slot mounts
+  useLayoutEffect(() => {
+    if (customStepDelta === null || customStepDelta === 0) return;
+    const trackEl = trackRef.current;
+    if (trackEl) {
+      setTrackNeutralImmediate();
+      void trackEl.offsetWidth;
+    }
+    animateTrackToSlot(customStepDelta > 0 ? 1 : -1, 0, customStepDelta);
+  }, [customStepDelta, setTrackNeutralImmediate, animateTrackToSlot]);
+
+  // Synchronously reposition the track to neutral (-100%) before browser paint when virtualIndex updates!
+  // Because the newly selected slide keeps the exact same React key (virtualIndex), its DOM node and decoded <img>
+  // stay mounted in place while shifting from Slot 0/2 to Slot 1 at the exact same instant the track shifts to -100%.
+  useLayoutEffect(() => {
+    setTrackNeutralImmediate();
+
+    if (queuedStepRef.current !== null && total > 1) {
+      const nextStep = queuedStepRef.current;
+      queuedStepRef.current = null;
+      if (Math.abs(nextStep) > 1) {
+        setCustomStepDelta(nextStep);
+        return;
+      }
+      const trackEl = trackRef.current;
+      if (trackEl) {
+        void trackEl.offsetWidth;
+      }
+      animateTrackToSlot(nextStep > 0 ? 1 : -1, 0, nextStep);
+    }
+  }, [virtualIndex, total, setTrackNeutralImmediate, animateTrackToSlot]);
+
+  // Preload current image + adjacent images in navigation direction
+  useEffect(() => {
+    if (total === 0) return;
+    void galleryPreloader.prioritizeWindow(items, safeIndex, navDirectionRef.current);
+  }, [items, safeIndex, total]);
+
+  // Notify parent when approaching the end of loaded items so next cursor page can prefetch
   useEffect(() => {
     if (onNearEnd && total > 0 && safeIndex >= total - 6) {
       onNearEnd();
     }
   }, [safeIndex, total, onNearEnd]);
 
-  const navigateToIndex = useCallback(
-    (targetIndex: number, direction: "forward" | "backward", swipeOffsetPx = 0) => {
-      if (total <= 1 || targetIndex === safeIndex) return;
+  const handlePrev = useCallback(() => {
+    triggerNavigationStep(-1);
+  }, [triggerNavigationStep]);
 
-      const outgoingSrc =
-        (isViewerDecoded && !hasViewerError ? viewerUrl : thumbUrl || placeholderUrl) || viewerUrl;
+  const handleNext = useCallback(() => {
+    triggerNavigationStep(1);
+  }, [triggerNavigationStep]);
 
-      setSlideCycle((prevCycle) => {
-        const nextCycle = prevCycle + 1;
-        if (currentItem && outgoingSrc) {
-          setExitingSlide({
-            id: currentItem.id,
-            src: outgoingSrc,
-            alt: currentItem.altText || currentItem.title || "Gallery Moment",
-            width: currentItem.width,
-            height: currentItem.height,
-            direction,
-            startX: swipeOffsetPx,
-            cycle: nextCycle,
-          });
-        }
-        return nextCycle;
-      });
-
-      setNavDirection(direction);
-      setCurrentIndex(targetIndex);
-      setTouchDeltaX(0);
-    },
-    [total, safeIndex, isViewerDecoded, hasViewerError, viewerUrl, thumbUrl, placeholderUrl, currentItem]
-  );
-
-  const handlePrev = useCallback(
-    (swipeOffsetPx = 0) => {
-      if (total <= 1) return;
-      const prevIdx = safeIndex <= 0 ? total - 1 : safeIndex - 1;
-      navigateToIndex(prevIdx, "backward", swipeOffsetPx);
-    },
-    [total, safeIndex, navigateToIndex]
-  );
-
-  const handleNext = useCallback(
-    (swipeOffsetPx = 0) => {
-      if (total <= 1) return;
-      const nextIdx = safeIndex >= total - 1 ? 0 : safeIndex + 1;
-      navigateToIndex(nextIdx, "forward", swipeOffsetPx);
-    },
-    [total, safeIndex, navigateToIndex]
-  );
-
-  // Synchronously animate outgoing slide continuing toward swipe direction & incoming slide emerging from opposite end
-  useLayoutEffect(() => {
-    if (slideCycle === 0 || navDirection === "initial") return;
-    const prefersReducedMotion =
-      typeof window !== "undefined" &&
-      typeof window.matchMedia === "function" &&
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-    if (prefersReducedMotion) {
-      setExitingSlide(null);
-      return;
-    }
-
-    const startX = exitingSlide?.startX ?? 0;
-
-    const incomingEl = incomingSlideRef.current;
-    if (incomingEl && typeof incomingEl.animate === "function") {
-      // Forward (swiped left) -> upcoming image emerges from the RIGHT (+offset -> 0px)
-      // Backward (swiped right) -> upcoming image emerges from the LEFT (-offset -> 0px)
-      const enterDistance =
-        startX !== 0
-          ? Math.max(70, REEL_SPAN_PX - Math.min(REEL_SPAN_PX - 70, Math.abs(startX)))
-          : 200;
-      const enterFromX = navDirection === "forward" ? enterDistance : -enterDistance;
-      const enterStartOpacity =
-        startX !== 0 ? Math.min(0.85, Math.max(0.2, Math.abs(startX) / REEL_SPAN_PX)) : 0.15;
-
-      incomingEl.animate(
-        [
-          { transform: `translate3d(${enterFromX}px, 0, 0)`, opacity: enterStartOpacity },
-          { transform: "translate3d(0px, 0, 0)", opacity: 1 },
-        ],
-        {
-          duration: 260,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-        }
-      );
-    }
-
-    const exitingEl = exitingSlideRef.current;
-    if (exitingEl && exitingSlide && typeof exitingEl.animate === "function") {
-      // Forward (swiped left) -> current image exits further LEFT (startX -> -REEL_SPAN_PX)
-      // Backward (swiped right) -> current image exits further RIGHT (startX -> +REEL_SPAN_PX)
-      const exitToX =
-        exitingSlide.direction === "forward"
-          ? Math.min(startX - 160, -REEL_SPAN_PX)
-          : Math.max(startX + 160, REEL_SPAN_PX);
-      const startOpacity = Math.max(0.35, 1 - Math.abs(startX) / 420);
-      exitingEl.animate(
-        [
-          { transform: `translate3d(${startX}px, 0, 0)`, opacity: startOpacity },
-          { transform: `translate3d(${exitToX}px, 0, 0)`, opacity: 0 },
-        ],
-        {
-          duration: 230,
-          easing: "cubic-bezier(0.22, 1, 0.36, 1)",
-          fill: "forwards",
-        }
-      );
-    }
-
-    const activeCycle = slideCycle;
-    const timer = window.setTimeout(() => {
-      setExitingSlide((prev) => (prev && prev.cycle === activeCycle ? null : prev));
-    }, 245);
-
-    return () => window.clearTimeout(timer);
-  }, [slideCycle, navDirection, exitingSlide]);
+  // Clean up any active timer on unmount
+  useEffect(() => {
+    return () => {
+      clearTransitionTimer();
+    };
+  }, [clearTransitionTimer]);
 
   // Lock body scroll while preserving exact scroll position, and manage focus on open/close
   useEffect(() => {
@@ -235,7 +396,6 @@ export default function GalleryLightbox({
       document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
-    // Focus close button for keyboard accessibility without scrolling
     closeButtonRef.current?.focus({ preventScroll: true });
 
     return () => {
@@ -262,10 +422,10 @@ export default function GalleryLightbox({
         onClose();
       } else if (e.key === "ArrowLeft") {
         e.preventDefault();
-        handlePrev(0);
+        handlePrev();
       } else if (e.key === "ArrowRight") {
         e.preventDefault();
-        handleNext(0);
+        handleNext();
       }
     };
 
@@ -273,58 +433,180 @@ export default function GalleryLightbox({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [handlePrev, handleNext, onClose]);
 
-  // Mobile Touch Swipe Handlers
-  const onTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length !== 1) return;
-    setTouchStartX(e.touches[0].clientX);
-    setTouchStartY(e.touches[0].clientY);
-    setIsSwiping(false);
-    setTouchDeltaX(0);
-  };
+  // Finger-following Touch Handlers on the viewport (0 React state updates during move)
+  const handleTouchStart = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      if (e.touches.length !== 1) return;
+      const target = e.target as HTMLElement | null;
+      if (target?.closest("button")) return;
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (touchStartX === null || touchStartY === null) return;
-    const currentX = e.touches[0].clientX;
-    const currentY = e.touches[0].clientY;
-    const deltaX = currentX - touchStartX;
-    const deltaY = currentY - touchStartY;
-
-    // Detect horizontal swipe vs vertical scroll
-    if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 10) {
-      setIsSwiping(true);
-      setTouchDeltaX(deltaX);
-    }
-  };
-
-  const onTouchEnd = () => {
-    const releaseDeltaX = touchDeltaX;
-    const wasSwiping = isSwiping;
-
-    setTouchStartX(null);
-    setTouchStartY(null);
-    setIsSwiping(false);
-
-    if (wasSwiping) {
-      const swipeThreshold = 45; // pixels
-      if (releaseDeltaX > swipeThreshold) {
-        handlePrev(releaseDeltaX);
-        return;
-      } else if (releaseDeltaX < -swipeThreshold) {
-        handleNext(releaseDeltaX);
-        return;
+      // If a transition was in flight when the user touched the screen, commit it immediately
+      if (pendingStepRef.current !== 0) {
+        queuedStepRef.current = null;
+        commitSlideTransition();
       }
+
+      const touch = e.touches[0];
+      const now = performance.now();
+      dragRef.current = {
+        active: true,
+        isHorizontal: null,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        lastX: touch.clientX,
+        lastTime: now,
+        velocityX: 0,
+        deltaX: 0,
+      };
+      suppressBackdropClickRef.current = false;
+    },
+    [commitSlideTransition]
+  );
+
+  const handleTouchMove = useCallback(
+    (e: React.TouchEvent<HTMLDivElement>) => {
+      const drag = dragRef.current;
+      if (!drag.active || e.touches.length !== 1) return;
+
+      const touch = e.touches[0];
+      const dx = touch.clientX - drag.startX;
+      const dy = touch.clientY - drag.startY;
+
+      if (drag.isHorizontal === null) {
+        if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+        drag.isHorizontal = Math.abs(dx) > Math.abs(dy);
+        if (!drag.isHorizontal) {
+          drag.active = false;
+          return;
+        }
+      }
+
+      if (!drag.isHorizontal) return;
+
+      const now = performance.now();
+      const dt = Math.max(1, now - drag.lastTime);
+      const instantVelocity = (touch.clientX - drag.lastX) / dt; // px/ms
+      drag.velocityX = drag.velocityX * 0.35 + instantVelocity * 0.65;
+      drag.lastX = touch.clientX;
+      drag.lastTime = now;
+      drag.deltaX = dx;
+
+      if (Math.abs(dx) > 8) {
+        suppressBackdropClickRef.current = true;
+      }
+
+      const trackEl = trackRef.current;
+      if (!trackEl) return;
+
+      // Clamp drag displacement to a single viewport width so the user never drags beyond the 3-slide window
+      const vw = viewportRef.current?.clientWidth || window.innerWidth || 360;
+      const clampedDx = Math.max(-vw, Math.min(vw, dx));
+
+      trackEl.style.transition = "none";
+      if (total <= 1) {
+        trackEl.style.transform = `translate3d(${clampedDx * 0.2}px, 0, 0)`;
+      } else {
+        trackEl.style.transform = `translate3d(calc(-100% + ${clampedDx}px), 0, 0)`;
+      }
+    },
+    [total]
+  );
+
+  const handleTouchEndOrCancel = useCallback(() => {
+    const drag = dragRef.current;
+    if (!drag.active) return;
+
+    const wasHorizontal = drag.isHorizontal === true;
+    const dx = drag.deltaX;
+    const vx = drag.velocityX;
+
+    drag.active = false;
+    drag.isHorizontal = null;
+    drag.deltaX = 0;
+    drag.velocityX = 0;
+
+    if (!wasHorizontal) return;
+
+    if (total <= 1) {
+      animateTrackToSlot(0);
+      return;
     }
 
-    setTouchDeltaX(0);
-  };
+    const vw = viewportRef.current?.clientWidth || window.innerWidth || 360;
+    const distanceThreshold = Math.min(85, vw * 0.18);
+    const isFlickNext = vx < -0.35 && dx < -18;
+    const isFlickPrev = vx > 0.35 && dx > 18;
 
-  // 5 to 7 photos carousel window calculation
+    if (dx < -distanceThreshold || isFlickNext) {
+      // Finger dragged left -> advance to Next slide (Slot 2)
+      animateTrackToSlot(1, vx, 1);
+    } else if (dx > distanceThreshold || isFlickPrev) {
+      // Finger dragged right -> go to Previous slide (Slot 0)
+      animateTrackToSlot(-1, vx, -1);
+    } else {
+      // Gesture was not decisive -> smoothly return to Current slide (Slot 1)
+      animateTrackToSlot(0);
+    }
+  }, [total, animateTrackToSlot]);
+
+  const handleTrackTransitionEnd = useCallback(
+    (e: React.TransitionEvent<HTMLDivElement>) => {
+      if (e.target !== trackRef.current || e.propertyName !== "transform") return;
+      if (pendingStepRef.current !== 0) {
+        commitSlideTransition();
+      }
+    },
+    [commitSlideTransition]
+  );
+
+  const handleBackdropClick = useCallback(() => {
+    if (suppressBackdropClickRef.current) {
+      suppressBackdropClickRef.current = false;
+      return;
+    }
+    onClose();
+  }, [onClose]);
+
+  // Bounded 3-slide window: [Previous, Current, Next]
+  const slideWindow = useMemo(() => {
+    if (total === 0) return [];
+    if (total === 1) {
+      return [{ vIndex: virtualIndex, item: items[0], isActive: true }];
+    }
+
+    const prevStep =
+      customStepDelta !== null && customStepDelta < 0 ? customStepDelta : -1;
+    const nextStep =
+      customStepDelta !== null && customStepDelta > 0 ? customStepDelta : 1;
+
+    const prevVIndex = virtualIndex + prevStep;
+    const nextVIndex = virtualIndex + nextStep;
+
+    return [
+      {
+        vIndex: prevVIndex,
+        item: items[wrapIndex(prevVIndex, total)],
+        isActive: false,
+      },
+      {
+        vIndex: virtualIndex,
+        item: items[wrapIndex(virtualIndex, total)],
+        isActive: true,
+      },
+      {
+        vIndex: nextVIndex,
+        item: items[wrapIndex(nextVIndex, total)],
+        isActive: false,
+      },
+    ];
+  }, [items, total, virtualIndex, customStepDelta]);
+
+  // 5 to 7 photos filmstrip carousel window calculation
   const carouselItems = useMemo(() => {
     if (total <= 7) {
       return items.map((item, idx) => ({ item, index: idx }));
     }
 
-    // Target a window of 7 items with safeIndex in the middle (3 before, 3 after)
     let start = safeIndex - 3;
     let end = safeIndex + 3;
 
@@ -346,42 +628,6 @@ export default function GalleryLightbox({
   if (!currentItem) return null;
 
   const currentTitle = currentItem.title || currentItem.altText || "Mountain Moment";
-  const showViewerLayer = isViewerDecoded && !hasViewerError;
-  const showFallbackState = hasViewerError && (hasThumbError || !thumbUrl);
-
-  // Live upcoming slide emerging from the opposite end while dragging on a touch device
-  const dragPreview = useMemo(() => {
-    if (!isSwiping || total <= 1 || Math.abs(touchDeltaX) <= 10) return null;
-    const isDraggingToNext = touchDeltaX < 0;
-    const previewIdx = isDraggingToNext
-      ? safeIndex >= total - 1
-        ? 0
-        : safeIndex + 1
-      : safeIndex <= 0
-      ? total - 1
-      : safeIndex - 1;
-    const previewItem = items[previewIdx];
-    if (!previewItem) return null;
-
-    const previewViewerUrl = getViewerImageUrl(previewItem);
-    const previewSrc = galleryPreloader.isDecoded(previewViewerUrl)
-      ? previewViewerUrl
-      : getThumbnailImageUrl(previewItem) || previewViewerUrl;
-
-    // When dragging left (touchDeltaX < 0), upcoming Next image emerges from the RIGHT (+REEL_SPAN_PX + touchDeltaX)
-    // When dragging right (touchDeltaX > 0), upcoming Prev image emerges from the LEFT (-REEL_SPAN_PX + touchDeltaX)
-    const offsetX = isDraggingToNext
-      ? Math.max(0, REEL_SPAN_PX + touchDeltaX)
-      : Math.min(0, -REEL_SPAN_PX + touchDeltaX);
-    const opacity = Math.min(0.85, Math.max(0.1, Math.abs(touchDeltaX) / REEL_SPAN_PX));
-
-    return {
-      item: previewItem,
-      src: previewSrc,
-      offsetX,
-      opacity,
-    };
-  }, [isSwiping, total, touchDeltaX, safeIndex, items]);
 
   return createPortal(
     <div
@@ -389,9 +635,6 @@ export default function GalleryLightbox({
       aria-modal="true"
       aria-label="Image gallery lightbox"
       className="fixed inset-0 z-[9999] flex flex-col bg-black/95 select-none touch-none backdrop-blur-md"
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
     >
       {/* Top Bar: Counter (Left), Image Title (Center), Close (Right) */}
       <div className="absolute top-0 left-0 right-0 z-30 px-4 sm:px-6 py-3.5 bg-gradient-to-b from-black/95 via-black/60 to-transparent">
@@ -427,14 +670,14 @@ export default function GalleryLightbox({
         </div>
       </div>
 
-      {/* Main Image Stage */}
+      {/* Main Clipped Viewport */}
       <div
-        className="flex-1 relative flex items-center justify-center p-2 sm:p-8 overflow-hidden"
-        onClick={(e) => {
-          if (e.target === e.currentTarget) {
-            onClose();
-          }
-        }}
+        ref={viewportRef}
+        className="flex-1 relative w-full h-full overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEndOrCancel}
+        onTouchCancel={handleTouchEndOrCancel}
       >
         {/* Desktop floating previous arrow */}
         {total > 1 && (
@@ -442,10 +685,10 @@ export default function GalleryLightbox({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handlePrev(0);
+              handlePrev();
             }}
             aria-label="Previous image"
-            className="hidden sm:flex absolute left-4 sm:left-6 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
+            className="hidden sm:flex absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
@@ -453,119 +696,20 @@ export default function GalleryLightbox({
           </button>
         )}
 
-        {/* Live Upcoming Reel Slide during active finger drag (emerges from the opposite end) */}
-        {dragPreview && (
-          <div
-            key={`drag-preview-${dragPreview.item.id}`}
-            aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center p-2 sm:p-8 pointer-events-none z-10"
-            style={{
-              transform: `translate3d(${dragPreview.offsetX}px, 0, 0)`,
-              opacity: dragPreview.opacity,
-            }}
-          >
-            <img
-              src={dragPreview.src}
-              alt={dragPreview.item.altText || dragPreview.item.title || "Upcoming Moment"}
-              width={dragPreview.item.width || undefined}
-              height={dragPreview.item.height || undefined}
-              className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
-              draggable={false}
-            />
-          </div>
-        )}
-
-        {/* Outgoing Slide (completes reel exit in the direction of the swipe) */}
-        {!isSwiping && exitingSlide && (
-          <div
-            key={`exit-${exitingSlide.id}-${exitingSlide.cycle}`}
-            ref={exitingSlideRef}
-            aria-hidden="true"
-            className="absolute inset-0 flex items-center justify-center p-2 sm:p-8 pointer-events-none z-10"
-            style={{
-              transform: `translate3d(${exitingSlide.startX}px, 0, 0)`,
-              opacity: Math.max(0.35, 1 - Math.abs(exitingSlide.startX) / 420),
-            }}
-          >
-            <img
-              src={exitingSlide.src}
-              alt={exitingSlide.alt}
-              width={exitingSlide.width || undefined}
-              height={exitingSlide.height || undefined}
-              className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl"
-              draggable={false}
-            />
-          </div>
-        )}
-
-        {/* Active / Incoming Slide (emerges from the opposite end of the reel) */}
+        {/* Continuous Horizontal Track: [Prev Slide, Current Slide, Next Slide] */}
         <div
-          key={`active-${currentItem.id}-${slideCycle}`}
-          ref={incomingSlideRef}
-          className={`relative z-15 max-w-full max-h-full flex items-center justify-center ${
-            isSwiping
-              ? "transition-none"
-              : "transition-transform duration-200 ease-out motion-reduce:transition-none"
-          }`}
-          style={{
-            transform: isSwiping ? `translate3d(${touchDeltaX}px, 0, 0)` : "translate3d(0px, 0, 0)",
-            opacity: isSwiping ? Math.max(0.45, 1 - Math.abs(touchDeltaX) / 380) : 1
-          }}
+          ref={trackRef}
+          onTransitionEnd={handleTrackTransitionEnd}
+          className="flex w-full h-full will-change-transform"
         >
-          {showFallbackState ? (
-            <div className="w-72 sm:w-96 h-64 rounded-2xl bg-[#0f2922]/80 border border-white/15 flex flex-col items-center justify-center p-6 text-center space-y-2">
-              <span className="text-3xl">🏔️</span>
-              <p className="text-white text-sm font-semibold">{currentTitle}</p>
-              <p className="text-white/60 text-xs">Image temporarily unavailable</p>
-            </div>
-          ) : (
-            <div className="relative flex items-center justify-center max-w-full max-h-full">
-              {/* Layer 1: Immediate Thumbnail / Placeholder while viewer resolution decodes */}
-              {!showViewerLayer && (thumbUrl || placeholderUrl) && !hasThumbError && (
-                <img
-                  key={`thumb-${currentItem.id}`}
-                  src={thumbUrl || placeholderUrl || ""}
-                  alt={currentItem.altText || currentItem.title || "Gallery Moment"}
-                  width={currentItem.width || undefined}
-                  height={currentItem.height || undefined}
-                  className="max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl transition-opacity duration-200 motion-reduce:transition-none"
-                  style={
-                    !thumbUrl && placeholderUrl
-                      ? { filter: "blur(12px)", transform: "scale(1.02)" }
-                      : undefined
-                  }
-                  draggable={false}
-                  onError={() => setHasThumbError(true)}
-                />
-              )}
-
-              {/* Layer 2: Decoded Viewer-Resolution Image (1600w WebP) */}
-              <img
-                key={`viewer-${currentItem.id}`}
-                src={viewerUrl}
-                alt={currentItem.altText || currentItem.title || "Gallery Moment"}
-                width={currentItem.width || undefined}
-                height={currentItem.height || undefined}
-                decoding="async"
-                className={`max-h-[68vh] sm:max-h-[75vh] w-auto max-w-full object-contain rounded-xl shadow-2xl transition-opacity duration-200 ease-out motion-reduce:transition-none ${
-                  showViewerLayer
-                    ? "opacity-100 relative"
-                    : "opacity-0 absolute inset-0 pointer-events-none"
-                }`}
-                draggable={false}
-                onLoad={() => {
-                  if (activeItemIdRef.current === currentItem.id) {
-                    setIsViewerDecoded(true);
-                  }
-                }}
-                onError={() => {
-                  if (activeItemIdRef.current === currentItem.id) {
-                    setHasViewerError(true);
-                  }
-                }}
-              />
-            </div>
-          )}
+          {slideWindow.map((slide) => (
+            <GallerySlide
+              key={slide.vIndex}
+              item={slide.item}
+              isActive={slide.isActive}
+              onBackdropClick={handleBackdropClick}
+            />
+          ))}
         </div>
 
         {/* Desktop floating next arrow */}
@@ -574,10 +718,10 @@ export default function GalleryLightbox({
             type="button"
             onClick={(e) => {
               e.stopPropagation();
-              handleNext(0);
+              handleNext();
             }}
             aria-label="Next image"
-            className="hidden sm:flex absolute right-4 sm:right-6 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
+            className="hidden sm:flex absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-11 h-11 items-center justify-center rounded-full bg-black/40 hover:bg-black/70 text-white/90 hover:text-white border border-white/20 transition-all shadow-lg focus:outline-none focus:ring-2 focus:ring-[#e8622a] cursor-pointer"
           >
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
@@ -606,12 +750,9 @@ export default function GalleryLightbox({
                     type="button"
                     onClick={(e) => {
                       e.stopPropagation();
-                      if (thumb.index !== safeIndex) {
-                        navigateToIndex(
-                          thumb.index,
-                          thumb.index > safeIndex ? "forward" : "backward",
-                          0
-                        );
+                      const delta = thumb.index - safeIndex;
+                      if (delta !== 0) {
+                        triggerNavigationStep(delta);
                       }
                     }}
                     aria-label={`View photo ${thumb.index + 1}: ${thumb.item.title || "Moment"}`}
