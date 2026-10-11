@@ -209,7 +209,7 @@ export default function ReviewsPage() {
           >
             {activeDest ? `${activeDest.name} Traveller Reviews` : "Wanderers Speak From Their Hearts"}
           </h1>
-          <p className="text-white/90 text-xs sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-[15px] sm:text-base max-w-xl leading-relaxed text-contrast-body">
             {activeDest
               ? `Honest, unfiltered experiences from travellers who explored ${activeDest.name} with our local guides.`
               : "Read honest, verified stories from explorers who have experienced the pristine Himalayas with our mindful travel collective."}
@@ -320,7 +320,7 @@ export default function ReviewsPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-3 mb-2">
                           <div>
                             <div className="flex items-center gap-2 flex-wrap">
-                              <h3 className="text-[#0f2922] font-semibold text-base">{r.name}</h3>
+                              <h3 className="text-[#0f2922] font-semibold text-[18px] sm:text-base">{r.name}</h3>
                               <span className="inline-flex items-center gap-1 text-[11px] text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full font-medium">
                                 <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
@@ -351,7 +351,7 @@ export default function ReviewsPage() {
                           </div>
                         </div>
 
-                        <p className="text-[#2d3748] text-sm sm:text-[15px] leading-relaxed mt-3 whitespace-pre-line">
+                        <p className="text-[#2d3748] text-[15px] leading-relaxed mt-3 whitespace-pre-line">
                           "{r.text}"
                         </p>
 

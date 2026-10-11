@@ -347,7 +347,7 @@ export default function CompletedTripDetailPage() {
           <h2 className="text-white text-2xl sm:text-3xl mb-3" style={{ fontFamily: "var(--font-serif)" }}>
             Experience this journey for yourself
           </h2>
-          <p className="text-white/70 text-sm mb-6 max-w-md mx-auto text-center">
+          <p className="text-white/70 text-[15px] sm:text-sm mb-6 max-w-md mx-auto text-center">
             We run similar departures regularly. Get in touch and our team will share the next available dates and pricing.
           </p>
           <button

@@ -289,7 +289,7 @@ export default function PlanMyTripPage() {
           <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Plan My Trip
           </h1>
-          <p className="text-white/80 text-xs sm:text-sm mt-1 max-w-lg leading-relaxed text-contrast-body">
+          <p className="text-white/80 text-[15px] sm:text-sm mt-1 max-w-lg leading-relaxed text-contrast-body">
             A quick 4-step enquiry form. Pick destinations, choose your package, and request an official itinerary briefing.
           </p>
         </div>
@@ -697,7 +697,7 @@ export default function PlanMyTripPage() {
 
             {/* Travellers Counter */}
             <div className="mb-6 pt-3 border-t border-[#e2e8f0]">
-              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+              <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
                 Number of Travellers
               </label>
               <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#f7f8f5] border border-[#e2e8f0]">
@@ -781,7 +781,7 @@ export default function PlanMyTripPage() {
               <form onSubmit={handleSubmitEnquiry} className="space-y-3.5">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                   <div>
-                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                    <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -800,7 +800,7 @@ export default function PlanMyTripPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                    <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                       Phone / WhatsApp <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -820,7 +820,7 @@ export default function PlanMyTripPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Email Address <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                   </label>
                   <input
@@ -833,7 +833,7 @@ export default function PlanMyTripPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Message / Special Requests <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                   </label>
                   <textarea

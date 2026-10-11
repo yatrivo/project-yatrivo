@@ -8,7 +8,7 @@ export default function ToastContainer() {
       {toasts.map((t) => (
         <div
           key={t.id}
-          className={`flex items-center gap-2.5 px-5 py-3 rounded-full shadow-lg text-sm font-medium text-white animate-in fade-in slide-in-from-bottom-3 pointer-events-auto ${
+          className={`flex items-center gap-2.5 px-4 sm:px-5 py-2.5 sm:py-3 max-w-[calc(100vw-2rem)] sm:max-w-none rounded-2xl sm:rounded-full shadow-lg text-xs sm:text-sm font-medium text-white animate-in fade-in slide-in-from-bottom-3 pointer-events-auto ${
             t.type === "success" ? "bg-[#0f2922]" : t.type === "error" ? "bg-red-600" : "bg-[#4a5568]"
           }`}
         >

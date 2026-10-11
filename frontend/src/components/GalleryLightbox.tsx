@@ -740,7 +740,7 @@ export default function GalleryLightbox({
           )}
           {/* Carousel View of 5 to 7 photos (uses 400w thumbnailUrl!) */}
           {total > 1 && (
-            <div className="w-full flex items-center justify-center gap-1.5 sm:gap-2.5 py-1">
+            <div className="w-full flex items-center justify-center gap-1 min-[380px]:gap-1.5 sm:gap-2.5 py-1">
               {carouselItems.map((thumb) => {
                 const isActive = thumb.index === safeIndex;
                 const filmstripSrc = getThumbnailImageUrl(thumb.item);
@@ -759,8 +759,8 @@ export default function GalleryLightbox({
                     aria-current={isActive ? "true" : undefined}
                     className={`relative rounded-lg overflow-hidden transition-all duration-200 motion-reduce:transition-none cursor-pointer shrink-0 ${
                       isActive
-                        ? "w-12 h-12 sm:w-16 sm:h-16 ring-2 ring-[#e8622a] border-2 border-white scale-105 shadow-xl opacity-100 z-10"
-                        : "w-10 h-10 sm:w-13 sm:h-13 border border-white/25 opacity-45 hover:opacity-90 hover:scale-105"
+                        ? "w-11 h-11 min-[380px]:w-12 min-[380px]:h-12 sm:w-16 sm:h-16 ring-2 ring-[#e8622a] border-2 border-white scale-105 shadow-xl opacity-100 z-10"
+                        : "w-9 h-9 min-[380px]:w-10 min-[380px]:h-10 sm:w-13 sm:h-13 border border-white/25 opacity-45 hover:opacity-90 hover:scale-105"
                     }`}
                   >
                     <img

@@ -86,16 +86,16 @@ export default function Navbar() {
           hidden ? "-translate-y-full" : "translate-y-0"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link
             to="/"
-            className={`items-center gap-2.5 shrink-0 ${
+            className={`items-center gap-2 sm:gap-2.5 min-w-0 shrink sm:shrink-0 ${
               pathname === "/" ? "hidden md:flex" : "flex"
             }`}
           >
-            <img src={logoImg} alt="Yatrivo" className={`h-9 w-9 object-contain ${transparent ? "drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" : ""}`} />
-            <div className="block text-left leading-tight">
+            <img src={logoImg} alt="Yatrivo" className={`h-9 w-9 shrink-0 object-contain ${transparent ? "drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" : ""}`} />
+            <div className="block text-left leading-tight min-w-0">
               <div
                 className={`${textColor} font-bold text-base sm:text-[17px] tracking-[0.16em] transition-colors ${transparent && !hidden ? "text-contrast-title" : ""}`}
                 style={{
@@ -105,7 +105,7 @@ export default function Navbar() {
                 YATRIVO
               </div>
               <div
-                className={`transition-colors text-[10px] md:text-[11px] font-medium tracking-[0.09em] uppercase leading-[1.3] whitespace-nowrap ${
+                className={`transition-colors text-[9px] sm:text-[10px] md:text-[11px] font-medium tracking-[0.06em] sm:tracking-[0.09em] uppercase leading-[1.3] truncate sm:whitespace-nowrap ${
                   transparent ? "brand-tagline-light" : "brand-tagline-dark"
                 }`}
               >
@@ -137,7 +137,7 @@ export default function Navbar() {
           </nav>
 
           {/* CTA */}
-          <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0">
+          <div className="flex items-center gap-2 sm:gap-3 ml-auto md:ml-0 shrink-0">
 
             <Link
               to="/plan"
@@ -152,7 +152,7 @@ export default function Navbar() {
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className={`lg:hidden p-2 ${textColor} ${transparent ? "drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" : ""}`}
+              className={`lg:hidden p-2.5 -mr-1 sm:p-2 sm:mr-0 ${textColor} ${transparent ? "drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" : ""}`}
               aria-label="Toggle navigation menu"
             >
               {menuOpen ? (
@@ -175,7 +175,7 @@ export default function Navbar() {
                     key={link.href}
                     to={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className={`text-left px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                    className={`text-left px-3 py-2.5 rounded-lg text-[15px] sm:text-sm transition-colors ${
                       isMatch ? "bg-[#f7f8f5] text-[#0f2922] font-semibold" : "text-[#4a5568] hover:bg-[#f7f8f5]"
                     }`}
                   >

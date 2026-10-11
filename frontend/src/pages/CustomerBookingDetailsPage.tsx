@@ -337,7 +337,7 @@ export default function CustomerBookingDetailsPage() {
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {/* Full Name */}
                     <div className="sm:col-span-2">
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Full Name (as per ID) <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -352,7 +352,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Gender */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Gender
                       </label>
                       <select
@@ -370,7 +370,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Age */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Age
                       </label>
                       <input
@@ -392,7 +392,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Phone */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Phone Number
                       </label>
                       <input
@@ -406,7 +406,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Email */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Email Address (optional)
                       </label>
                       <input
@@ -420,7 +420,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Document Type */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         ID Document Type
                       </label>
                       <select
@@ -438,7 +438,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Document Number */}
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         ID Document Number
                       </label>
                       <input
@@ -452,7 +452,7 @@ export default function CustomerBookingDetailsPage() {
 
                     {/* Notes */}
                     <div className="sm:col-span-2 md:col-span-3">
-                      <label className="block text-xs font-semibold text-[#4a5568] mb-1">
+                      <label className="block text-[13px] sm:text-xs font-semibold text-[#4a5568] mb-1">
                         Special Requests / Food Preferences / Medical Notes (optional)
                       </label>
                       <input

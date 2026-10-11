@@ -26,7 +26,7 @@ export default function DestinationsPage() {
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">EXPLORE THE SACRED STATE</div>
         <h1 className="page-heading text-[#0f2922] mb-4">Our Curated Havens in Uttarakhand</h1>
-        <p className="text-[#4a5568] text-sm sm:text-base max-w-2xl leading-relaxed">
+        <p className="text-[#4a5568] text-[15px] sm:text-base max-w-2xl leading-relaxed">
           From the sacred rapids of Ganga in Rishikesh to the snow-laden slopes of Auli and high alpine quiet of Chopta, discover pristine landscapes curated specifically for active, youthful souls.
         </p>
       </section>
@@ -78,8 +78,8 @@ export default function DestinationsPage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
           <div>
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">SEASONAL HIMALAYAN CALENDAR</div>
-            <h2 className="text-white text-3xl sm:text-4xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>When is the mountains' heartbeat strongest?</h2>
-            <p className="text-white/60 text-sm leading-relaxed mb-7">
+            <h2 className="text-white text-2xl sm:text-4xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>When is the mountains' heartbeat strongest?</h2>
+            <p className="text-white/60 text-[15px] sm:text-sm leading-relaxed mb-7">
               Uttarakhand alters dramatically with seasons. Winter brings powder snow to Auli, Spring dresses Chopta in deep rhododendron pink, Monsoon cleanses Rishikesh, and Autumn unlocks the clearest high-altitude stargazing. Let us guide you on the perfect timing.
             </p>
             <Link

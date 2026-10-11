@@ -562,7 +562,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   </span>
                 ))}
               </div>
-              <h1 className="text-white text-4xl sm:text-5xl mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+              <h1 className="text-white text-3xl sm:text-5xl mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.name ?? "Himalayan Adventure"}
               </h1>
               <div className="flex flex-wrap gap-5 text-white/90 text-sm text-contrast-body">
@@ -584,7 +584,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
               <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.shortDescription || "Trek the Sacred Mountain Ridge"}
               </h2>
-              <p className="text-[#4a5568] text-sm leading-relaxed mb-6">
+              <p className="text-[#4a5568] text-[15px] sm:text-sm leading-relaxed mb-6">
                 {activeTrip?.overview ||
                   "Widely known as the 'Mini Switzerland of India', Chopta is a gorgeous pristine pine forest and meadow valley. Our itinerary is designed with unhurried acclimatization, beautiful wooden cabin stays, and authentic local Pahadi dining."}
               </p>
@@ -1198,7 +1198,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                 /* User Booking & Departures Card */
                 <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white shadow-lg">
                   <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-2 font-bold">STARTING PRICE</div>
-                  <div className="text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                  <div className="text-3xl sm:text-4xl font-bold mb-0.5" style={{ fontFamily: "var(--font-serif)" }}>
                     {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
                   </div>
                   <div className="text-white/60 text-xs mb-6">per person · {activeTrip?.duration ?? "4 Days / 3 Nights"}</div>

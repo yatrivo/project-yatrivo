@@ -17,7 +17,7 @@ export default function TermsPage() {
       <section className="bg-[#0f2922] text-white pt-24 pb-12">
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest mb-3">LEGAL</div>
-          <h1 className="text-4xl sm:text-5xl" style={{ fontFamily: "var(--font-serif)" }}>Terms & Conditions</h1>
+          <h1 className="text-3xl sm:text-5xl" style={{ fontFamily: "var(--font-serif)" }}>Terms & Conditions</h1>
           <p className="text-white/60 text-sm mt-3">Last updated: September 2026</p>
         </div>
       </section>
@@ -30,7 +30,7 @@ export default function TermsPage() {
                 <h2 className="text-[#0f2922] font-semibold text-lg mb-3" style={{ fontFamily: "var(--font-serif)" }}>
                   {s.title}
                 </h2>
-                <p className="text-[#4a5568] text-sm leading-relaxed whitespace-pre-line">
+                <p className="text-[#4a5568] text-[15px] sm:text-sm leading-relaxed whitespace-pre-line">
                   {s.content}
                 </p>
               </div>

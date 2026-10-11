@@ -342,7 +342,7 @@ export default function ReviewPage() {
 
             {/* Rating Picker */}
             <div>
-              <label className="block text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-2">
+              <label className="block text-[13px] sm:text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-2">
                 Overall Experience Rating <span className="text-[#e8622a]">*</span>
               </label>
               <StarPicker value={rating} onChange={setRating} />
@@ -351,7 +351,7 @@ export default function ReviewPage() {
 
             {/* Traveller Name */}
             <div>
-              <label className="block text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
+              <label className="block text-[13px] sm:text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
                 Your Full Name <span className="text-[#e8622a]">*</span>
               </label>
               <input
@@ -367,7 +367,7 @@ export default function ReviewPage() {
             {/* Trip Selector (only if token not provided) */}
             {!token && (
               <div>
-                <label className="block text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
+                <label className="block text-[13px] sm:text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
                   Select Trip <span className="text-[#e8622a]">*</span>
                 </label>
                 <select
@@ -388,7 +388,7 @@ export default function ReviewPage() {
 
             {/* Written Review */}
             <div>
-              <label className="block text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
+              <label className="block text-[13px] sm:text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
                 Your Experience & Memories <span className="text-[#e8622a]">*</span>
               </label>
               <textarea
@@ -408,7 +408,7 @@ export default function ReviewPage() {
 
             {/* Photos Upload */}
             <div>
-              <label className="block text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
+              <label className="block text-[13px] sm:text-xs font-bold text-[#0f2922] uppercase tracking-wider mb-1.5">
                 Share Trip Photos (optional)
               </label>
               <div className="flex gap-2.5 flex-wrap items-center mb-2">

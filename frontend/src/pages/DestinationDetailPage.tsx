@@ -224,8 +224,8 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">Uttarakhand, India</p>
-              <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
-              <p className="text-white/90 text-base text-contrast-body">{dest.tagline} · Best: {dest.season}</p>
+              <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
+              <p className="text-white/90 text-[15px] sm:text-base text-contrast-body">{dest.tagline} · Best: {dest.season}</p>
               {dest.experienceTags && dest.experienceTags.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-3">
                   {dest.experienceTags.map((tag) => (
@@ -257,7 +257,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
             {/* About */}
             <section>
               <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>About {dest.name}</h2>
-              <p className="text-[#4a5568] text-sm leading-relaxed">{dest.description}</p>
+              <p className="text-[#4a5568] text-[15px] sm:text-sm leading-relaxed">{dest.description}</p>
             </section>
 
             {/* Highlights */}

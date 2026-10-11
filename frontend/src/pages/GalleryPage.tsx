@@ -338,12 +338,12 @@ export default function GalleryPage() {
           CURATED TRAVEL MOMENTS
         </div>
         <h1
-          className="text-2xl sm:text-4xl md:text-5xl font-bold text-[#0f2922] mb-2 sm:mb-4 tracking-tight"
+          className="text-[28px] sm:text-4xl md:text-5xl font-bold text-[#0f2922] mb-2 sm:mb-4 tracking-tight"
           style={{ fontFamily: "var(--font-serif, serif)" }}
         >
           Moments from the Mountains
         </h1>
-        <p className="text-[#4a5568] text-xs sm:text-base md:text-lg max-w-2xl leading-relaxed">
+        <p className="text-[#4a5568] text-[15px] sm:text-base md:text-lg max-w-2xl leading-relaxed">
           Explore the places, people and memories that make Uttarakhand unforgettable.
         </p>
       </section>

@@ -21,7 +21,7 @@ export default function TripsPage() {
       <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
         <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">CHOOSE YOUR EXPEDITION</div>
         <h1 className="page-heading text-[#0f2922] mb-4">Curated Himalayan Experiences</h1>
-        <p className="text-[#4a5568] text-sm sm:text-base max-w-xl leading-relaxed">
+        <p className="text-[#4a5568] text-[15px] sm:text-base max-w-xl leading-relaxed">
           No crowded buses, no rushed tourist traps. Enjoy small active explorer groups, pristine wood cabins, and deep connection with nature.
         </p>
       </section>
@@ -54,7 +54,7 @@ export default function TripsPage() {
                       <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px]">{trip.category}</span>
                       <span className="text-[11px] sm:text-xs">{trip.duration}</span>
                     </div>
-                    <h3 className="text-[#0f2922] text-base sm:text-lg font-semibold mb-1 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
+                    <h3 className="text-[#0f2922] text-[18px] sm:text-lg font-semibold mb-1 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
                       <Link to={`/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
                     </h3>
                     <p className="text-[#718096] text-[11px] sm:text-xs leading-snug line-clamp-1">

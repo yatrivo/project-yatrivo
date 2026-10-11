@@ -35,7 +35,7 @@ export default function FAQContactPage() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">FAQ & CONTACT CORNER</div>
           <h1 className="text-white text-3xl sm:text-5xl mb-2.5 sm:mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>We are here to guide you home.</h1>
-          <p className="text-white/90 text-xs sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-[15px] sm:text-base max-w-xl leading-relaxed text-contrast-body">
             Have questions about weather, fitness levels, or customized private booking? Connect with our Dehradun team immediately.
           </p>
         </div>
@@ -47,7 +47,7 @@ export default function FAQContactPage() {
           {/* FAQ */}
           <div className="lg:col-span-3">
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">COMMON MOUNTAIN INQUIRIES</div>
-            <h2 className="text-[#0f2922] text-3xl mb-8" style={{ fontFamily: "var(--font-serif)" }}>Frequently Asked Questions</h2>
+            <h2 className="text-[#0f2922] text-2xl sm:text-3xl mb-8" style={{ fontFamily: "var(--font-serif)" }}>Frequently Asked Questions</h2>
             <div className="space-y-3">
               {faqItems.map((faq, i) => (
                 <div key={faq.id} className="border border-[#e2e8f0] rounded-xl overflow-hidden">
@@ -69,7 +69,7 @@ export default function FAQContactPage() {
                     </svg>
                   </button>
                   {openFaq === i && (
-                    <div className="px-5 pb-5 text-[#4a5568] text-sm leading-relaxed border-t border-[#e2e8f0] pt-4">
+                    <div className="px-5 pb-5 text-[#4a5568] text-[15px] sm:text-sm leading-relaxed border-t border-[#e2e8f0] pt-4">
                       {faq.answer}
                     </div>
                   )}
@@ -83,7 +83,7 @@ export default function FAQContactPage() {
             {/* Main Contact Card */}
             <div style={{ background: "var(--forest)" }} className="rounded-2xl p-7 text-white">
               <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-medium mb-3">CONNECT INSTANTLY</div>
-              <h3 className="text-white text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>Himalayan Support</h3>
+              <h3 className="text-white text-xl sm:text-2xl mb-6" style={{ fontFamily: "var(--font-serif)" }}>Himalayan Support</h3>
               <div className="space-y-4 mb-7">
                 <div className="flex items-start gap-3">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" className="text-[#e8622a] shrink-0 mt-0.5"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51a6.68 6.68 0 00-.57-.01c-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/></svg>

@@ -223,7 +223,7 @@ export default function HomePage() {
                 <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
                   {slide.title ? (
                     <h1
-                      className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
+                      className="text-white text-[28px] sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
                       style={{ fontFamily: "var(--font-serif)" }}
                     >
                       {slide.title.split(". ").map((part, pIdx, arr) => (
@@ -237,7 +237,7 @@ export default function HomePage() {
                   ) : null}
 
                   {slide.subtitle ? (
-                    <p className="text-white/90 text-xs sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-relaxed text-contrast-body line-clamp-2">
+                    <p className="text-white/90 text-[14px] sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-relaxed text-contrast-body line-clamp-2">
                       {slide.subtitle}
                     </p>
                   ) : null}
@@ -356,7 +356,7 @@ export default function HomePage() {
               <h2 className="section-heading text-[#0f2922] mb-4">
                 {whyUsTitle || "The Mindful Adventure Movement"}
               </h2>
-              <p className="text-[#4a5568] text-sm sm:text-[15px] leading-relaxed mb-7 max-w-xl">
+              <p className="text-[#4a5568] text-[15px] leading-relaxed mb-7 max-w-xl">
                 {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
               </p>
               <Link
@@ -463,7 +463,7 @@ export default function HomePage() {
         <div className="absolute inset-0 bg-[#0f2922]/80" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
           <h2 className="section-heading text-white mb-4">Ready to Travel Better?</h2>
-          <p className="text-white/70 text-base mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
+          <p className="text-white/70 text-[15px] sm:text-base mb-8">Join the next departure. Small groups, immersive experiences, and memories that last a lifetime.</p>
           <Link
             to="/plan"
             className="bg-white text-[#0f2922] font-medium px-8 py-3.5 rounded-full hover:bg-[#f7f8f5] transition-colors text-sm tracking-wide inline-block"

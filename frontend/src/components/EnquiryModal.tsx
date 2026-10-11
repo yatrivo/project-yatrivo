@@ -277,24 +277,24 @@ export default function EnquiryModal() {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div style={{ background: "var(--forest, #0f2922)" }} className="px-6 pt-6 pb-5 text-white rounded-t-2xl shrink-0 relative">
+        <div style={{ background: "var(--forest, #0f2922)" }} className="px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-5 text-white rounded-t-2xl shrink-0 relative">
           <button
             onClick={handleClose}
-            className="absolute top-4 right-4 text-white/60 hover:text-white transition p-1 cursor-pointer"
+            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white/60 hover:text-white transition p-2 sm:p-1 cursor-pointer"
             aria-label="Close"
           >
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
-          <div className="flex items-center gap-2 mb-1">
-            <span className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
+          <div className="flex items-center gap-2 mb-1 pr-8 sm:pr-0">
+            <span className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold shrink-0">
               OFFICIAL ENQUIRY
             </span>
-            <span className="text-white/40 text-[10px]">•</span>
-            <span className="text-white/60 text-[11px] truncate max-w-[280px]">{destName}</span>
+            <span className="text-white/40 text-[10px] shrink-0">•</span>
+            <span className="text-white/60 text-[11px] truncate max-w-[150px] sm:max-w-[280px]">{destName}</span>
           </div>
-          <h2 className="text-white text-2xl font-bold leading-tight" style={{ fontFamily: "var(--font-serif, serif)" }}>
+          <h2 className="text-white text-xl sm:text-2xl font-bold leading-tight pr-7 sm:pr-0" style={{ fontFamily: "var(--font-serif, serif)" }}>
             {tripName}
           </h2>
           {departurePrice > 0 && (
@@ -305,16 +305,16 @@ export default function EnquiryModal() {
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 min-h-0 p-6">
+        <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
           {submittedEnquiry ? (
             /* Success confirmation */
-            <div className="text-center py-6">
+            <div className="text-center py-4 sm:py-6">
               <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200">
                 <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h3 className="text-[#0f2922] text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              <h3 className="text-[#0f2922] text-xl sm:text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
                 Enquiry Submitted
               </h3>
               <p className="text-[#4a5568] text-sm max-w-sm mx-auto mb-5 leading-relaxed">
@@ -354,10 +354,10 @@ export default function EnquiryModal() {
             </div>
           ) : (
             /* Enquiry Form */
-            <form onSubmit={handleSubmitEnquiry} className="space-y-4" id="enquiry-form">
+            <form onSubmit={handleSubmitEnquiry} className="space-y-3.5 sm:space-y-4" id="enquiry-form">
               {/* Departure Selection */}
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
                   Select Departure Date <span className="text-red-500">*</span>
                 </label>
                 {availableDepartures.length > 0 ? (
@@ -376,7 +376,7 @@ export default function EnquiryModal() {
                       <option value="flexible">Flexible / Any upcoming departure batch</option>
                     </select>
                     {selectedDeparture && (
-                      <div className="bg-[#f7f8f5] border border-[#e2e8f0]/80 rounded-lg px-3 py-2 text-xs flex items-center justify-between">
+                      <div className="bg-[#f7f8f5] border border-[#e2e8f0]/80 rounded-lg px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-1.5">
                         <span className="text-[#4a5568]">
                           Batch price: <strong>₹{Number(selectedDeparture.price || 0).toLocaleString("en-IN")}</strong> / person
                         </span>
@@ -387,7 +387,7 @@ export default function EnquiryModal() {
                     )}
                   </div>
                 ) : (
-                  <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-xl p-3 text-xs text-[#4a5568] flex items-center justify-between">
+                  <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-xl p-3 text-xs text-[#4a5568] flex flex-wrap items-center justify-between gap-1.5">
                     <span>
                       {foundTrip?.price
                         ? `Flexible / Next scheduled batch (Base price: ₹${Number(foundTrip.price).toLocaleString("en-IN")})`
@@ -400,15 +400,15 @@ export default function EnquiryModal() {
 
               {/* Number of Travellers */}
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
                   Number of Travellers
                 </label>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <div className="flex items-center border border-[#e2e8f0] rounded-xl overflow-hidden bg-white">
                     <button
                       type="button"
                       onClick={() => setTravellers(Math.max(1, travellers - 1))}
-                      className="px-3.5 py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
+                      className="px-3.5 py-2.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
                     >
                       –
                     </button>
@@ -418,13 +418,13 @@ export default function EnquiryModal() {
                     <button
                       type="button"
                       onClick={() => setTravellers(Math.min(20, travellers + 1))}
-                      className="px-3.5 py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
+                      className="px-3.5 py-2.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
                     >
                       +
                     </button>
                   </div>
                   {departurePrice > 0 && (
-                    <div className="text-xs text-[#718096] pl-2">
+                    <div className="text-xs text-[#718096] pl-1 sm:pl-2">
                       Est. Total: <strong className="text-[#0f2922]">₹{Number(totalEstimatedPrice || 0).toLocaleString("en-IN")}</strong>
                     </div>
                   )}
@@ -434,7 +434,7 @@ export default function EnquiryModal() {
               {/* Contact Information */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Your Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -450,7 +450,7 @@ export default function EnquiryModal() {
                 </div>
 
                 <div>
-                  <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Phone / WhatsApp <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -467,7 +467,7 @@ export default function EnquiryModal() {
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                   Email Address <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                 </label>
                 <input
@@ -480,7 +480,7 @@ export default function EnquiryModal() {
               </div>
 
               <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                   Message / Special Requests <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                 </label>
                 <textarea
@@ -497,7 +497,7 @@ export default function EnquiryModal() {
 
         {/* Pinned Footer — only shown when form (not success state) */}
         {!submittedEnquiry && (
-          <div className="bg-white border-t border-[#e2e8f0] px-6 py-4 space-y-3 shrink-0">
+          <div className="bg-white border-t border-[#e2e8f0] px-4 py-3 sm:px-6 sm:py-4 space-y-3 shrink-0">
             {/* 1. Tracked System Enquiry */}
             <button
               type="submit"

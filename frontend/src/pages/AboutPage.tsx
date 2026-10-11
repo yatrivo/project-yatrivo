@@ -31,7 +31,7 @@ export default function AboutPage() {
           <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2.5 sm:mb-4 text-contrast-title whitespace-pre-line" style={{ fontFamily: "var(--font-serif)" }}>
             {about.heroTitle}
           </h1>
-          <p className="text-white/90 text-xs sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-[15px] sm:text-base max-w-xl leading-relaxed text-contrast-body">
             {about.heroDescription}
           </p>
         </div>
@@ -44,11 +44,11 @@ export default function AboutPage() {
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2">
               {about.promiseBadge}
             </div>
-            <h2 className="text-[#0f2922] text-3xl sm:text-4xl md:text-5xl font-medium tracking-tight" style={{ fontFamily: "var(--font-serif)" }}>
+            <h2 className="text-[#0f2922] text-2xl sm:text-4xl md:text-5xl font-medium tracking-tight" style={{ fontFamily: "var(--font-serif)" }}>
               {about.promiseHeading}
             </h2>
           </div>
-          <div className="text-[#4a5568] text-base sm:text-lg leading-relaxed whitespace-pre-line space-y-4">
+          <div className="text-[#4a5568] text-[15px] sm:text-lg leading-relaxed whitespace-pre-line space-y-4">
             {about.promiseText}
           </div>
         </div>
@@ -68,7 +68,7 @@ export default function AboutPage() {
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3">
               {about.ecosystemBadge}
             </div>
-            <h2 className="text-white text-3xl sm:text-4xl mb-7" style={{ fontFamily: "var(--font-serif)" }}>
+            <h2 className="text-white text-2xl sm:text-4xl mb-7" style={{ fontFamily: "var(--font-serif)" }}>
               {about.ecosystemHeading}
             </h2>
             <div className="space-y-6">
@@ -77,7 +77,7 @@ export default function AboutPage() {
                   <div className="text-2xl shrink-0">{item.icon}</div>
                   <div>
                     <div className="text-white font-semibold text-base mb-1">{item.title}</div>
-                    <div className="text-white/70 text-sm sm:text-base leading-relaxed">{item.desc}</div>
+                    <div className="text-white/70 text-[15px] sm:text-base leading-relaxed">{item.desc}</div>
                   </div>
                 </div>
               ))}
@@ -95,10 +95,10 @@ export default function AboutPage() {
         />
         <div className="absolute inset-0 bg-[#0f2922]/85" />
         <div className="relative max-w-2xl mx-auto px-4 text-center">
-          <h2 className="text-white text-4xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+          <h2 className="text-white text-2xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             {about.ctaHeading}
           </h2>
-          <p className="text-white/85 text-base mb-8 text-contrast-body">
+          <p className="text-white/85 text-[15px] sm:text-base mb-8 text-contrast-body">
             {about.ctaDescription}
           </p>
           <Link
