@@ -8,75 +8,85 @@ interface Props {
 
 export default function SplashScreen({ onDone }: Props) {
   const { siteSettings } = useApp();
-  const [phase, setPhase] = useState<"logo" | "tagline" | "fade">("logo");
-
+  const [phase, setPhase] = useState<"init" | "logo" | "tagline" | "fade">("init");
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase("tagline"), 600);
+    const t0 = setTimeout(() => setPhase("logo"), 50);
+    const t1 = setTimeout(() => setPhase("tagline"), 450);
     const t2 = setTimeout(() => setPhase("fade"), 1800);
-    const t3 = setTimeout(() => onDone(), 2400);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    const t3 = setTimeout(() => onDone(), 2300);
+    return () => { clearTimeout(t0); clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
   }, [onDone]);
+
+  const showBrand = phase !== "init";
+  const showTagline = phase === "tagline" || phase === "fade";
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex flex-col items-center justify-center transition-opacity duration-500"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-center px-6 transition-opacity duration-500"
       style={{
         background: "var(--forest)",
         opacity: phase === "fade" ? 0 : 1,
       }}
     >
       {/* Background texture */}
-      <div className="absolute inset-0 opacity-10"
+      <div
+        className="absolute inset-0 opacity-10"
         style={{
-          backgroundImage: "radial-gradient(circle at 30% 70%, #e8622a 0%, transparent 50%), radial-gradient(circle at 70% 30%, #1a6b4a 0%, transparent 50%)",
+          backgroundImage:
+            "radial-gradient(circle at 30% 70%, #e8622a 0%, transparent 50%), radial-gradient(circle at 70% 30%, #1a6b4a 0%, transparent 50%)",
         }}
       />
 
-      <div className="relative flex flex-col items-center gap-5">
+      <div className="relative flex flex-col items-center text-center">
         {/* Logo */}
         <div
-          className="transition-all duration-700"
+          className="transition-all duration-700 mb-3.5 sm:mb-4"
           style={{
-            opacity: phase === "logo" ? 0 : 1,
-            transform: phase === "logo" ? "scale(0.7) translateY(12px)" : "scale(1) translateY(0)",
+            opacity: showBrand ? 1 : 0,
+            transform: showBrand ? "scale(1) translateY(0)" : "scale(0.8) translateY(10px)",
           }}
         >
-          <img src={logoImg} alt="Yatrivo" className="w-20 h-20 object-contain" />
+          <img src={logoImg} alt="Yatrivo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
         </div>
 
         {/* Brand name */}
         <div
-          className="transition-all duration-500 delay-100"
+          className="transition-all duration-500 delay-75"
           style={{
-            opacity: phase === "logo" ? 0 : 1,
-            transform: phase === "logo" ? "translateY(8px)" : "translateY(0)",
+            opacity: showBrand ? 1 : 0,
+            transform: showBrand ? "translateY(0)" : "translateY(8px)",
           }}
         >
-          <div className="text-white text-4xl tracking-[0.2em] uppercase" style={{ fontFamily: "var(--font-serif)" }}>
+          <div
+            className="text-white font-bold text-2xl sm:text-3xl tracking-[0.2em] uppercase leading-tight"
+            style={{ fontFamily: "var(--font-serif)" }}
+          >
             YATRIVO
           </div>
         </div>
 
         {/* Tagline */}
         <div
-          className="transition-all duration-500 delay-200"
+          className="transition-all duration-500 mt-1.5 sm:mt-2"
           style={{
-            opacity: phase === "tagline" || phase === "fade" ? 1 : 0,
-            transform: phase === "logo" ? "translateY(8px)" : "translateY(0)",
+            opacity: showTagline ? 1 : 0,
+            transform: showTagline ? "translateY(0)" : "translateY(6px)",
           }}
         >
-          <div className="text-[#f7f8f5]/90 text-xs sm:text-sm tracking-[0.1em] uppercase font-medium" style={{ fontFamily: "var(--font-sans)" }}>
+          <div
+            className="text-[#e8622a] text-[11px] sm:text-xs tracking-[0.15em] uppercase font-semibold leading-snug"
+            style={{ fontFamily: "var(--font-sans)" }}
+          >
             {siteSettings?.general?.tagline || "Explore More. Travel Better."}
           </div>
         </div>
 
-
         {/* Loading bar */}
-        <div className="mt-4 w-32 h-0.5 bg-white/10 rounded-full overflow-hidden">
+        <div className="mt-6 sm:mt-7 w-28 sm:w-32 h-0.5 bg-white/15 rounded-full overflow-hidden">
           <div
-            className="h-full bg-[#e8622a] rounded-full transition-all duration-1200 ease-out"
-            style={{ width: phase === "logo" ? "20%" : phase === "tagline" ? "75%" : "100%" }}
+            className="h-full bg-[#e8622a] rounded-full transition-all duration-1000 ease-out"
+            style={{ width: phase === "init" ? "10%" : phase === "logo" ? "40%" : phase === "tagline" ? "85%" : "100%" }}
           />
         </div>
       </div>
