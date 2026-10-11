@@ -25,7 +25,7 @@ export default function FAQContactPage() {
         keywords="yatrivo contact, uttarakhand travel faq, trekking fitness requirements, mountain cabin bookings, dehradun travel agency"
       />
       {/* Hero */}
-      <section className="relative h-[45vh] min-h-[300px] flex items-end pb-12 overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.FAQ_HERO}
           alt="Cozy mountain cabin in snow"
@@ -33,9 +33,9 @@ export default function FAQContactPage() {
         />
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">FAQ & CONTACT CORNER</div>
-          <h1 className="text-white text-4xl sm:text-5xl mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>We are here to guide you home.</h1>
-          <p className="text-white/90 text-sm sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">FAQ & CONTACT CORNER</div>
+          <h1 className="text-white text-3xl sm:text-5xl mb-2.5 sm:mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>We are here to guide you home.</h1>
+          <p className="text-white/90 text-xs sm:text-base max-w-xl leading-relaxed text-contrast-body">
             Have questions about weather, fitness levels, or customized private booking? Connect with our Dehradun team immediately.
           </p>
         </div>

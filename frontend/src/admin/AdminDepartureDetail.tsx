@@ -126,29 +126,21 @@ export default function AdminDepartureDetail() {
   const openEditPhotosModal = () => {
     if (!dep) return;
     setEditNotes(dep.notes || "");
-    setEditPhotos(dep.completedPhotos && dep.completedPhotos.length > 0 ? [...dep.completedPhotos] : [""]);
+    setEditPhotos(dep.completedPhotos && dep.completedPhotos.length > 0 ? [...dep.completedPhotos] : []);
     setShowEditPhotosModal(true);
   };
 
-  const handleUpdatePhoto = (idx: number, val: string) => {
+  const handleAddPhoto = (newUrl: string) => {
+    const trimmed = newUrl.trim();
+    if (!trimmed) return;
     setEditPhotos((prev) => {
-      const next = [...prev];
-      next[idx] = val;
-      return next;
+      if (prev.length >= 12 || prev.includes(trimmed)) return prev;
+      return [...prev, trimmed];
     });
-  };
-
-  const handleAddPhotoSlot = () => {
-    if (editPhotos.length < 12) {
-      setEditPhotos((prev) => [...prev, ""]);
-    }
   };
 
   const handleRemovePhotoSlot = (idx: number) => {
-    setEditPhotos((prev) => {
-      if (prev.length <= 1) return [""];
-      return prev.filter((_, i) => i !== idx);
-    });
+    setEditPhotos((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleSavePhotosAndNotes = async (andMarkComplete = false) => {
@@ -417,16 +409,6 @@ export default function AdminDepartureDetail() {
         </div>
 
         <div className="flex items-center gap-2.5 flex-wrap">
-          <button
-            onClick={openEditPhotosModal}
-            className="inline-flex items-center gap-1.5 border border-[#e2e8f0] bg-white hover:bg-[#f7f8f5] text-[#0f2922] px-4 py-2.5 rounded-xl font-medium text-sm shadow-2xs transition cursor-pointer"
-          >
-            <svg className="w-4 h-4 text-[#e8622a]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            {dep.status === "completed" ? "Edit Photos & Notes" : "Complete Trip & Add Photos"}
-          </button>
-
           <button
             onClick={() => {
               setSelectedBookingIds(new Set(dep.enrolledTravellers.map((t) => t.id)));
@@ -1267,7 +1249,7 @@ export default function AdminDepartureDetail() {
         createPortal(
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
             <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={() => setShowEditPhotosModal(false)} />
-            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+            <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
               {/* Header */}
               <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
                 <div>
@@ -1291,80 +1273,116 @@ export default function AdminDepartureDetail() {
 
               {/* Scrollable Body */}
               <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-5">
-                <div>
-                  <div className="text-xs font-semibold text-[#0f2922]">{dep.tripName}</div>
-                  <div className="text-[11px] text-[#718096] mt-0.5">
-                    Departure: {dep.displayDate} • Destination: {dep.destinationName}
+                <div className="bg-[#f7f8f5] rounded-xl px-4 py-3 border border-[#e2e8f0]/80 flex items-center justify-between gap-3">
+                  <div>
+                    <div className="text-xs font-bold text-[#0f2922]">{dep.tripName}</div>
+                    <div className="text-[11px] text-[#718096] mt-0.5">
+                      Departure: {dep.displayDate} • Destination: {dep.destinationName}
+                    </div>
                   </div>
+                  <span
+                    className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                      dep.status === "completed"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : "bg-amber-100 text-amber-800"
+                    }`}
+                  >
+                    {dep.status}
+                  </span>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#4a5568] mb-1">
-                    Trip Completion Notes (optional)
+                  <label className="block text-xs font-semibold text-[#0f2922] mb-1.5">
+                    Trip Completion Notes <span className="text-[#a0aec0] font-normal">(optional)</span>
                   </label>
                   <textarea
                     value={editNotes}
                     onChange={(e) => setEditNotes(e.target.value)}
                     rows={3}
-                    className="w-full border border-[#e2e8f0] rounded-xl px-3 py-2 text-xs sm:text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                    className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none bg-white"
                     placeholder="e.g. Batch completed smoothly. Weather was pleasant, summit achieved by all travellers..."
                   />
-                  <p className="text-[11px] text-[#a0aec0] mt-1">
-                    Internal operational summary and notes about this departure.
+                  <p className="text-[11px] text-[#718096] mt-1">
+                    Shared on the Past Trips recap page and kept as operational summary for this departure.
                   </p>
                 </div>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <label className="block text-xs font-semibold text-[#4a5568]">
-                        Completed Trip Photos (optional)
+                      <label className="block text-xs font-semibold text-[#0f2922]">
+                        Completed Trip Photos <span className="text-[#a0aec0] font-normal">({editPhotos.length}/12)</span>
                       </label>
-                      <p className="text-[11px] text-[#a0aec0]">
-                        Select or upload batch photos. Maximum 12 photos.
+                      <p className="text-[11px] text-[#718096]">
+                        Upload new photos or choose from your Media Library (up to 12 photos).
                       </p>
                     </div>
-                    {editPhotos.length < 12 && (
+                    {editPhotos.length > 0 && (
                       <button
                         type="button"
-                        onClick={handleAddPhotoSlot}
-                        className="text-xs text-[#e8622a] hover:text-[#c44f1c] font-semibold cursor-pointer"
+                        onClick={() => setEditPhotos([])}
+                        className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
                       >
-                        + Add photo slot
+                        Clear all
                       </button>
                     )}
                   </div>
 
-                  <div className="space-y-2.5 max-h-[260px] overflow-y-auto pr-1">
-                    {editPhotos.map((url, i) => (
-                      <div key={i} className="flex gap-2 items-center bg-[#f7f8f5] p-2 rounded-xl border border-[#e2e8f0]">
-                        <span className="text-[#a0aec0] text-xs w-4 shrink-0 font-mono text-center">{i + 1}</span>
-                        <MediaPicker
-                          value={url}
-                          onChange={(newUrl) => handleUpdatePhoto(i, newUrl)}
-                          className="flex-1"
-                          context={{
-                            destinationId: dest?.id,
-                            destinationSlug: dest?.slug,
-                            destinationName: dest?.name,
-                            category: "completed_trips",
-                          }}
-                        />
-                        {editPhotos.length > 1 && (
+                  {/* Visual Thumbnail Grid of Added Photos */}
+                  {editPhotos.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-[#f7f8f5] p-3 rounded-xl border border-[#e2e8f0]">
+                      {editPhotos.map((url, i) => (
+                        <div
+                          key={`${url}-${i}`}
+                          className="group relative aspect-square rounded-lg overflow-hidden border border-[#e2e8f0] bg-white shadow-2xs"
+                        >
+                          <img
+                            src={url}
+                            alt={`Selected trip photo ${i + 1}`}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          <span className="absolute top-1.5 left-1.5 bg-black/65 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                            #{i + 1}
+                          </span>
                           <button
                             type="button"
                             onClick={() => handleRemovePhotoSlot(i)}
-                            className="text-[#a0aec0] hover:text-red-500 p-1.5 transition cursor-pointer"
-                            title="Remove photo slot"
+                            className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-sm transition cursor-pointer"
+                            title="Remove photo"
                           >
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                             </svg>
                           </button>
-                        )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Single Clean MediaPicker Adder */}
+                  {editPhotos.length < 12 ? (
+                    <div className="bg-[#f7f8f5]/70 p-3.5 rounded-xl border border-dashed border-[#cbd5e1]">
+                      <div className="text-[11px] font-semibold text-[#4a5568] mb-2">
+                        {editPhotos.length === 0 ? "Add your first trip photo:" : "Add another photo:"}
                       </div>
-                    ))}
-                  </div>
+                      <MediaPicker
+                        value=""
+                        onChange={handleAddPhoto}
+                        compact
+                        context={{
+                          destinationId: dest?.id,
+                          destinationSlug: dest?.slug,
+                          destinationName: dest?.name,
+                          category: "completed_trips",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
+                      Maximum of 12 photos reached. Remove a photo above to add a different one.
+                    </div>
+                  )}
                 </div>
               </div>
 

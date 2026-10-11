@@ -167,9 +167,9 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   const [notes, setNotes] = useState(instance.notes ?? "");
   const [photos, setPhotos] = useState<string[]>(() => {
     if (instance.completedPhotos && instance.completedPhotos.length > 0) {
-      return instance.completedPhotos;
+      return [...instance.completedPhotos];
     }
-    return ["", "", ""];
+    return [];
   });
 
   useEffect(() => {
@@ -191,24 +191,17 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
     });
   };
 
-  const updatePhoto = (i: number, val: string) => {
-    const next = [...photos];
-    next[i] = val;
-    setPhotos(next);
-  };
-
-  const addPhotoSlot = () => {
-    if (photos.length < 8) {
-      setPhotos([...photos, ""]);
-    }
+  const handleAddPhoto = (newUrl: string) => {
+    const trimmed = newUrl.trim();
+    if (!trimmed) return;
+    setPhotos((prev) => {
+      if (prev.length >= 12 || prev.includes(trimmed)) return prev;
+      return [...prev, trimmed];
+    });
   };
 
   const removePhotoSlot = (i: number) => {
-    if (photos.length <= 1) {
-      setPhotos([""]);
-    } else {
-      setPhotos(photos.filter((_, idx) => idx !== i));
-    }
+    setPhotos((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const isAlreadyCompleted = instance.status === "completed";
@@ -216,7 +209,7 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-3 sm:p-6 overflow-hidden overscroll-contain">
       <div className="fixed inset-0 bg-black/60 backdrop-blur-xs" onClick={onClose} />
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
+      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl z-10 max-h-[88vh] sm:max-h-[90vh] flex flex-col overflow-hidden border border-[#e2e8f0]">
         {/* Header */}
         <div className="bg-[#0f2922] px-6 py-4 flex items-center justify-between shrink-0">
           <div>
@@ -233,42 +226,95 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
         </div>
 
         {/* Scrollable Body */}
-        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-4">
-          <p className="text-xs text-[#718096]">{tripName} — {instance.displayDate}</p>
+        <div className="overflow-y-auto flex-1 min-h-0 p-6 space-y-5">
+          <div className="bg-[#f7f8f5] rounded-xl px-4 py-3 border border-[#e2e8f0]/80 flex items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold text-[#0f2922]">{tripName}</div>
+              <div className="text-[11px] text-[#718096] mt-0.5">Departure: {instance.displayDate}</div>
+            </div>
+            <span
+              className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider shrink-0 ${
+                isAlreadyCompleted ? "bg-emerald-100 text-emerald-800" : "bg-amber-100 text-amber-800"
+              }`}
+            >
+              {instance.status}
+            </span>
+          </div>
 
           <div>
-            <label className="block text-xs font-semibold text-[#4a5568] mb-1">
-              Trip Completion Notes (optional)
+            <label className="block text-xs font-semibold text-[#0f2922] mb-1.5">
+              Trip Completion Notes <span className="text-[#a0aec0] font-normal">(optional)</span>
             </label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               rows={3}
-              className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+              className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none bg-white"
               placeholder="e.g. Batch completed smoothly. Clear skies, summit achieved by all passengers..."
             />
           </div>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <label className="block text-xs font-semibold text-[#4a5568]">Completed Trip Photos (optional)</label>
-              {photos.length < 8 && (
+              <div>
+                <label className="block text-xs font-semibold text-[#0f2922]">
+                  Completed Trip Photos <span className="text-[#a0aec0] font-normal">({photos.length}/12)</span>
+                </label>
+                <p className="text-[11px] text-[#718096]">
+                  Upload new photos or choose from your Media Library (up to 12 photos).
+                </p>
+              </div>
+              {photos.length > 0 && (
                 <button
                   type="button"
-                  onClick={addPhotoSlot}
-                  className="text-[11px] text-[#e8622a] hover:text-[#c44f1c] font-semibold cursor-pointer"
+                  onClick={() => setPhotos([])}
+                  className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
                 >
-                  + Add photo
+                  Clear all
                 </button>
               )}
             </div>
-            {photos.map((url, i) => (
-              <div key={i} className="flex gap-2 items-center">
-                <span className="text-[#a0aec0] text-xs w-4 shrink-0 mt-1">{i + 1}.</span>
+
+            {photos.length > 0 && (
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-[#f7f8f5] p-3 rounded-xl border border-[#e2e8f0]">
+                {photos.map((url, i) => (
+                  <div
+                    key={`${url}-${i}`}
+                    className="group relative aspect-square rounded-lg overflow-hidden border border-[#e2e8f0] bg-white shadow-2xs"
+                  >
+                    <img
+                      src={url}
+                      alt={`Selected trip photo ${i + 1}`}
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                    <span className="absolute top-1.5 left-1.5 bg-black/65 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
+                      #{i + 1}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => removePhotoSlot(i)}
+                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-sm transition cursor-pointer"
+                      title="Remove photo"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {photos.length < 12 ? (
+              <div className="bg-[#f7f8f5]/70 p-3.5 rounded-xl border border-dashed border-[#cbd5e1]">
+                <div className="text-[11px] font-semibold text-[#4a5568] mb-2">
+                  {photos.length === 0 ? "Add your first trip photo:" : "Add another photo:"}
+                </div>
                 <MediaPicker
-                  value={url}
-                  onChange={(newUrl) => updatePhoto(i, newUrl)}
-                  className="flex-1"
+                  value=""
+                  onChange={handleAddPhoto}
+                  compact
                   context={{
                     destinationId: dest?.id,
                     destinationSlug: dest?.slug,
@@ -276,21 +322,15 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
                     category: "completed_trips"
                   }}
                 />
-                {photos.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => removePhotoSlot(i)}
-                    className="text-[#a0aec0] hover:text-red-500 p-1 text-xs transition cursor-pointer"
-                    title="Remove photo slot"
-                  >
-                    ✕
-                  </button>
-                )}
               </div>
-            ))}
+            ) : (
+              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
+                Maximum of 12 photos reached. Remove a photo above to add a different one.
+              </div>
+            )}
           </div>
 
-          <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2.5 text-xs text-amber-700">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs text-amber-800">
             {isAlreadyCompleted
               ? "Update notes and photos for this completed departure."
               : "This will mark the trip as completed and set spots remaining to 0."}
@@ -302,14 +342,14 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-lg transition cursor-pointer"
+            className="px-4 py-2 border border-[#e2e8f0] text-[#4a5568] hover:text-[#0f2922] hover:bg-white text-xs font-semibold rounded-xl transition cursor-pointer"
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded-lg transition cursor-pointer shadow-xs"
+            className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl transition cursor-pointer shadow-xs"
           >
             {isAlreadyCompleted ? "Save Changes" : "Confirm Complete"}
           </button>

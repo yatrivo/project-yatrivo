@@ -21,17 +21,17 @@ export default function PastTripsPage() {
         keywords="past treks, himalayan expedition archives, yatrivo past trips, summit memories"
       />
       {/* Header */}
-      <section className="relative pt-24 pb-16 overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.PAST_TRIPS_HERO}
           alt="Himalayan mountains"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 hero-overlay-compact" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">MEMORIES MADE</div>
-          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-5 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Our Past Adventures</h1>
-          <p className="text-white/90 text-base max-w-2xl mx-auto text-center leading-relaxed text-contrast-body">
+        <div className="absolute inset-0 hero-overlay-directional" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">MEMORIES MADE</div>
+          <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2.5 sm:mb-4 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>Our Past Adventures</h1>
+          <p className="text-white/90 text-xs sm:text-base max-w-2xl leading-relaxed text-contrast-body">
             Every journey we lead becomes a story. Here's a look at the adventures, summits, and moments shared by our past groups. Each trip is proof that travelling with the right people changes everything.
           </p>
         </div>

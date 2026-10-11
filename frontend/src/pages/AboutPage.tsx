@@ -17,7 +17,7 @@ export default function AboutPage() {
         description="Learn about Yatrivo — our philosophy of mindful mountain travel, local mountain guides, and community conservation across Uttarakhand."
       />
       {/* Hero with generous top spacing below floating header */}
-      <section className="relative min-h-[520px] sm:min-h-[580px] flex items-end pb-16 pt-36 sm:pt-44 overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.ABOUT_HERO}
           alt="Hikers on Himalayan trail"
@@ -25,13 +25,13 @@ export default function AboutPage() {
         />
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-3 text-contrast-subtle">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">
             {about.heroBadge}
           </div>
-          <h1 className="text-white text-4xl sm:text-5xl md:text-6xl mb-4 text-contrast-title whitespace-pre-line" style={{ fontFamily: "var(--font-serif)" }}>
+          <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2.5 sm:mb-4 text-contrast-title whitespace-pre-line" style={{ fontFamily: "var(--font-serif)" }}>
             {about.heroTitle}
           </h1>
-          <p className="text-white/90 text-sm sm:text-base max-w-xl leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-xs sm:text-base max-w-xl leading-relaxed text-contrast-body">
             {about.heroDescription}
           </p>
         </div>

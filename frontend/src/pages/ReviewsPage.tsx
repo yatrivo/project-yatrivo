@@ -171,7 +171,7 @@ export default function ReviewsPage() {
       />
 
       {/* Hero */}
-      <section className="relative h-[38vh] sm:h-[44vh] min-h-[260px] flex items-end pb-8 sm:pb-12 overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
         {activeDest?.image ? (
           <ProgressiveImage
             src={activeDest.image}

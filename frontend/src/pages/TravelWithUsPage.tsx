@@ -53,31 +53,31 @@ export default function TravelWithUsPage() {
         keywords="travel with yatrivo, small group himalayan tours, mindful travel collective, ethical trekking uttarakhand"
       />
       {/* Hero */}
-      <section className="relative min-h-[75vh] flex items-center overflow-hidden">
+      <section className="relative h-[48vh] sm:h-[54vh] md:h-[84vh] min-h-[340px] sm:min-h-[380px] md:min-h-[580px] max-h-[840px] flex items-end pb-6 sm:pb-10 md:pb-12 overflow-hidden">
         <SiteImage
           assetKey={SITE_ASSET_KEYS.TRAVEL_WITH_US_HERO}
           alt="Himalayan landscape"
           className="absolute inset-0 w-full h-full object-cover"
         />
-        <div className="absolute inset-0 hero-overlay-directional-side" />
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 py-24 w-full">
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-4 text-contrast-subtle">JOIN THE MOVEMENT</div>
-          <h1 className="text-white text-5xl sm:text-6xl md:text-7xl leading-[1.05] mb-5 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
-            Travel With<br />Yatrivo
+        <div className="absolute inset-0 hero-overlay-directional" />
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 sm:mb-3 text-contrast-subtle">JOIN THE MOVEMENT</div>
+          <h1 className="text-white text-3xl sm:text-5xl md:text-6xl leading-[1.1] mb-2.5 sm:mb-4 max-w-2xl text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+            Travel With Yatrivo
           </h1>
-          <p className="text-white/90 text-sm sm:text-base max-w-md mb-8 leading-relaxed text-contrast-body">
+          <p className="text-white/90 text-xs sm:text-base max-w-md mb-4 sm:mb-6 leading-relaxed text-contrast-body">
             Small groups, authentic experiences, and deep connection with the Himalayas.
           </p>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex flex-wrap gap-3 sm:gap-4">
             <Link
               to="/trips"
-              className="btn-glass-outline text-white px-7 py-3.5 rounded-full text-sm font-medium transition-all shrink-0"
+              className="btn-glass-outline text-white px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-all shrink-0"
             >
               EXPLORE TRIPS
             </Link>
             <Link
               to="/plan"
-              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-7 py-3.5 rounded-full text-sm font-medium transition-colors btn-primary-elevated shrink-0"
+              className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 sm:px-7 py-2.5 sm:py-3.5 rounded-full text-xs sm:text-sm font-medium transition-colors btn-primary-elevated shrink-0"
             >
               PLAN MY TRIP →
             </Link>

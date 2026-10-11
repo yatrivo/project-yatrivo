@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestinations";
 import { destinationsApi } from "@/api/destinations";
+import type { PublicGalleryItem } from "@/api/gallery";
 import { clientCache } from "@/utils/clientCache";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import ProgressiveImage from "@/components/ProgressiveImage";
+import GalleryLightbox from "@/components/GalleryLightbox";
 
 function StarRating({ rating }: { rating: number }) {
   return (
@@ -95,7 +97,29 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const displayedReviews = destReviews.slice(0, 3);
+
+  const galleryLightboxItems: PublicGalleryItem[] = useMemo(
+    () =>
+      (dest?.gallery || []).map((url, idx) => ({
+        id: `${dest?.id || "dest"}-gallery-${idx}`,
+        title: `${dest?.name || "Destination"} — Photo ${idx + 1}`,
+        imageUrl: url,
+        thumbnailUrl: url,
+        viewerUrl: url,
+        originalUrl: url,
+        placeholder: null,
+        width: null,
+        height: null,
+        altText: `${dest?.name || "Destination"} Gallery ${idx + 1}`,
+        category: dest?.category || "Destination",
+        featured: false,
+        displayOrder: idx + 1,
+        createdAt: new Date().toISOString(),
+      })),
+    [dest?.id, dest?.name, dest?.category, dest?.gallery]
+  );
 
   useEffect(() => {
     if (location.hash === "#reviews") {
@@ -187,7 +211,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
       )}
 
       {/* Hero with Single Cover Image */}
-      <section className="relative h-[60vh] min-h-[400px] overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] overflow-hidden">
         <ProgressiveImage
           src={dest.image}
           alt={dest.name}
@@ -196,7 +220,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           priority={true}
         />
         <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-8">
+        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8 md:pb-12">
           <div className="flex items-end justify-between gap-4 flex-wrap">
             <div>
               <p className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">Uttarakhand, India</p>
@@ -381,19 +405,60 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
             {/* Photo Gallery (Separate from Cover Image) */}
             {dest.gallery && dest.gallery.length > 0 && (
               <section id="gallery">
-                <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Photo Gallery</h2>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {dest.gallery.map((img, i) => (
-                    <div key={i} className="h-56 rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm hover:shadow-md transition group">
-                      <ProgressiveImage
-                        src={img}
-                        alt={`${dest.name} Gallery ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        containerClassName="w-full h-full relative"
-                        priority={false}
-                      />
-                    </div>
-                  ))}
+                <div className="flex items-center justify-between mb-4 gap-2">
+                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Photo Gallery</h2>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(0)}
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors cursor-pointer"
+                  >
+                    <span>View All ({dest.gallery.length})</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </button>
+                </div>
+                <div className={`grid ${dest.gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-2 sm:gap-4`}>
+                  {dest.gallery.slice(0, 3).map((img, i) => {
+                    const remaining = dest.gallery.length - 3;
+                    const isLastVisible = i === 2 && remaining > 0;
+                    return (
+                      <div
+                        key={i}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setLightboxIndex(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setLightboxIndex(i);
+                          }
+                        }}
+                        className="relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]"
+                      >
+                        <ProgressiveImage
+                          src={img}
+                          alt={`${dest.name} Gallery ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          containerClassName="w-full h-full relative"
+                          priority={false}
+                        />
+                        {isLastVisible ? (
+                          <div className="absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-sm sm:text-lg font-bold">+{remaining}</span>
+                            <span className="text-[10px] sm:text-xs font-medium inline-flex items-center gap-1 mt-0.5">
+                              View All
+                              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -539,6 +604,15 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           </div>
         </div>
       </div>
+
+      {/* Gallery Lightbox */}
+      {lightboxIndex !== null && galleryLightboxItems.length > 0 && (
+        <GalleryLightbox
+          items={galleryLightboxItems}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
 
       {/* Edit Modal for Admin Mode */}
       {isAdmin && isEditing && (

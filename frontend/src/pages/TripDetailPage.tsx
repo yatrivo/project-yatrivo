@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
+import type { PublicGalleryItem } from "@/api/gallery";
 import { settingsApi, type CancellationRule } from "@/api/settings";
 import type { Trip, TripDestination, TripHighlightCard, TripFaqItem, TripInstance, TripItineraryDay } from "@/data/trips";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
+import GalleryLightbox from "@/components/GalleryLightbox";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
 interface TripDetailPageProps {
@@ -388,6 +390,28 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
   const [openDays, setOpenDays] = useState<Record<number, boolean>>({ 0: true });
   const [faqOpen, setFaqOpen] = useState<number | null>(null);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
+  const galleryLightboxItems: PublicGalleryItem[] = useMemo(
+    () =>
+      (activeTrip?.gallery || []).map((url, idx) => ({
+        id: `${activeTrip?.id || "trip"}-gallery-${idx}`,
+        title: `${activeTrip?.name || "Trip"} — Photo ${idx + 1}`,
+        imageUrl: url,
+        thumbnailUrl: url,
+        viewerUrl: url,
+        originalUrl: url,
+        placeholder: null,
+        width: null,
+        height: null,
+        altText: `${activeTrip?.name || "Trip"} photo ${idx + 1}`,
+        category: activeTrip?.category || "Trip",
+        featured: false,
+        displayOrder: idx + 1,
+        createdAt: new Date().toISOString(),
+      })),
+    [activeTrip?.id, activeTrip?.name, activeTrip?.category, activeTrip?.gallery]
+  );
 
   const toggleDay = (i: number) => {
     setOpenDays((prev) => ({
@@ -506,7 +530,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
       )}
 
       {/* Hero with Single Cover Image (No Gallery Thumbs Carousel Overlay) */}
-      <section className="relative h-[55vh] min-h-[380px] overflow-hidden">
+      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] overflow-hidden">
         {activeTrip?.image ? (
           <img
             src={activeTrip.image}
@@ -517,7 +541,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f18] via-[#143a2d] to-[#0a1f18]" />
         )}
         <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="relative h-full flex items-end pb-8 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="relative h-full flex items-end pb-6 sm:pb-8 md:pb-12 max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-contrast-subtle">
@@ -980,31 +1004,69 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             {/* Photo Gallery (Requirement 4) */}
             {activeTrip?.gallery && activeTrip.gallery.length > 0 && (
               <section id="gallery" className="border-t border-[#e2e8f0] pt-10">
-                <div className="mb-5">
-                  <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
-                    CAPTURED MOMENTS
-                  </div>
-                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
-                    Photo Gallery
-                  </h2>
-                  <p className="text-[#4a5568] text-sm mt-1">
-                    Visual impressions from this route, scenic trails, and camp stays.
-                  </p>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {activeTrip.gallery.map((img, i) => (
-                    <div
-                      key={i}
-                      className="h-56 rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-sm hover:shadow-md transition group"
-                    >
-                      <img
-                        src={img}
-                        alt={`${activeTrip.name} photo ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                        loading="lazy"
-                      />
+                <div className="flex items-end justify-between mb-5 gap-2">
+                  <div>
+                    <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1">
+                      CAPTURED MOMENTS
                     </div>
-                  ))}
+                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>
+                      Photo Gallery
+                    </h2>
+                    <p className="text-[#4a5568] text-sm mt-1">
+                      Visual impressions from this route, scenic trails, and camp stays.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIndex(0)}
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors cursor-pointer shrink-0"
+                  >
+                    <span>View All ({activeTrip.gallery.length})</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </button>
+                </div>
+                <div className={`grid ${activeTrip.gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-2 sm:gap-4`}>
+                  {activeTrip.gallery.slice(0, 3).map((img, i) => {
+                    const remaining = activeTrip.gallery.length - 3;
+                    const isLastVisible = i === 2 && remaining > 0;
+                    return (
+                      <div
+                        key={i}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setLightboxIndex(i)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setLightboxIndex(i);
+                          }
+                        }}
+                        className="relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]"
+                      >
+                        <img
+                          src={img}
+                          alt={`${activeTrip.name} photo ${i + 1}`}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          loading="lazy"
+                        />
+                        {isLastVisible ? (
+                          <div className="absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-sm sm:text-lg font-bold">+{remaining}</span>
+                            <span className="text-[10px] sm:text-xs font-medium inline-flex items-center gap-1 mt-0.5">
+                              View All
+                              <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </section>
             )}
@@ -1314,6 +1376,15 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             <div className="text-[#4a5568] text-xs">per person</div>
           </div>
         </div>
+      )}
+
+      {/* Gallery Lightbox */}
+      {lightboxIndex !== null && galleryLightboxItems.length > 0 && (
+        <GalleryLightbox
+          items={galleryLightboxItems}
+          initialIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
       )}
 
       {!isAdmin && <Footer />}
