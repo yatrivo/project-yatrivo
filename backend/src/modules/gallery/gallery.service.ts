@@ -5,20 +5,41 @@ import { mediaRepository } from "../media/media.repository";
 import { galleryRepository } from "./gallery.repository";
 import type {
   AdminGalleryItemDto,
-  PublicGalleryItemDto,
+  PaginatedPublicGalleryResult,
+  PublicGalleryQueryInput,
   AddToGalleryInput,
   UpdateGalleryItemInput,
   ReorderGalleryItem
 } from "./gallery.types";
 
 const PUBLIC_CACHE_KEY = "gallery:public:items";
+const PUBLIC_CACHE_VERSION_KEY = "gallery:public:version";
 const CACHE_TTL_SECONDS = 900; // 15 mins
+const VERSION_TTL_SECONDS = 86400; // 24 hours
 
-async function invalidateGalleryCache() {
+let inMemoryCacheVersion = "v1";
+
+async function getGalleryCacheVersion(): Promise<string> {
+  if (!redis.configured) {
+    return inMemoryCacheVersion;
+  }
+  try {
+    const version = await redis.get(PUBLIC_CACHE_VERSION_KEY);
+    return version || inMemoryCacheVersion;
+  } catch {
+    return inMemoryCacheVersion;
+  }
+}
+
+export async function invalidateGalleryCache(): Promise<void> {
+  inMemoryCacheVersion = `v-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
   if (redis.configured) {
     try {
-      await redis.del(PUBLIC_CACHE_KEY);
-      logger.info("Public gallery cache invalidated");
+      await Promise.all([
+        redis.del(PUBLIC_CACHE_KEY),
+        redis.set(PUBLIC_CACHE_VERSION_KEY, inMemoryCacheVersion, VERSION_TTL_SECONDS)
+      ]);
+      logger.info({ cacheVersion: inMemoryCacheVersion }, "Public gallery cache invalidated");
     } catch (err) {
       logger.warn({ err }, "Failed to invalidate public gallery cache");
     }
@@ -26,29 +47,36 @@ async function invalidateGalleryCache() {
 }
 
 export const galleryService = {
-  async getPublicGallery(): Promise<PublicGalleryItemDto[]> {
+  async getPublicGallery(options?: PublicGalleryQueryInput): Promise<PaginatedPublicGalleryResult> {
+    const limit = Math.min(100, Math.max(1, options?.limit || 30));
+    const cursor = options?.cursor?.trim() || "";
+
     if (redis.configured) {
       try {
-        const cached = await redis.get(PUBLIC_CACHE_KEY);
+        const version = await getGalleryCacheVersion();
+        const pageKey = `${PUBLIC_CACHE_KEY}:${version}:l:${limit}:c:${cursor || "first"}`;
+        const cached = await redis.get(pageKey);
         if (cached) {
-          return JSON.parse(cached) as PublicGalleryItemDto[];
+          return JSON.parse(cached) as PaginatedPublicGalleryResult;
         }
       } catch (err) {
         logger.warn({ err }, "Redis read error for public gallery, falling back to database");
       }
     }
 
-    const items = await galleryRepository.findPublicItems();
+    const result = await galleryRepository.findPublicItemsPaginated({ limit, cursor: cursor || undefined });
 
-    if (redis.configured && items.length > 0) {
+    if (redis.configured) {
       try {
-        await redis.set(PUBLIC_CACHE_KEY, JSON.stringify(items), CACHE_TTL_SECONDS);
+        const version = await getGalleryCacheVersion();
+        const pageKey = `${PUBLIC_CACHE_KEY}:${version}:l:${limit}:c:${cursor || "first"}`;
+        await redis.set(pageKey, JSON.stringify(result), CACHE_TTL_SECONDS);
       } catch (err) {
         logger.warn({ err }, "Redis write error for public gallery");
       }
     }
 
-    return items;
+    return result;
   },
 
   async getAdminGallery(): Promise<AdminGalleryItemDto[]> {

@@ -2,10 +2,12 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
-  HeadObjectCommand
+  HeadObjectCommand,
+  GetObjectCommand
 } from "@aws-sdk/client-s3";
 import crypto from "node:crypto";
 import path from "node:path";
+import type { Readable } from "node:stream";
 import { env, isStorageConfigured } from "../config/env";
 import { logger } from "../config/logger";
 import { AppError } from "../errors/AppError";
@@ -76,6 +78,19 @@ export function generateStorageKey(
   return `${cleanCategory}/images/${uuid}-${sanitized}${ext}`;
 }
 
+export function buildVariantStorageKey(
+  originalKey: string,
+  variantSuffix: "thumb" | "medium" | "viewer",
+  ext = ".webp"
+): string {
+  const normalizedExt = ext.startsWith(".") ? ext : `.${ext}`;
+  const currentExt = path.posix.extname(originalKey);
+  const baseWithoutExt = currentExt
+    ? originalKey.slice(0, originalKey.length - currentExt.length)
+    : originalKey;
+  return `${baseWithoutExt}-${variantSuffix}${normalizedExt}`;
+}
+
 export function buildPublicUrl(bucket: string, key: string): string {
   const endpoint = (env.AWS_ENDPOINT_URL_S3 || "").replace(/\/$/, "");
   return `${endpoint}/${bucket}/${key}`;
@@ -86,6 +101,7 @@ export async function uploadBufferToStorage(params: {
   key: string;
   contentType: string;
   bucket?: string;
+  cacheControl?: string;
 }): Promise<{ bucket: string; key: string; publicUrl: string }> {
   const client = getS3Client();
   const bucket = params.bucket || env.AWS_BUCKET_NAME;
@@ -96,7 +112,7 @@ export async function uploadBufferToStorage(params: {
       Key: params.key,
       Body: params.buffer,
       ContentType: params.contentType,
-      CacheControl: "public, max-age=31536000, immutable"
+      CacheControl: params.cacheControl || "public, max-age=31536000, immutable"
     });
 
     await client.send(command);
@@ -110,6 +126,64 @@ export async function uploadBufferToStorage(params: {
       502,
       "STORAGE_UPLOAD_ERROR",
       `Failed to upload file to storage: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
+  }
+}
+
+export async function downloadBufferFromStorage(
+  key: string,
+  bucket = env.AWS_BUCKET_NAME,
+  maxBytes = 25 * 1024 * 1024
+): Promise<Buffer> {
+  const client = getS3Client();
+
+  try {
+    const response = await client.send(
+      new GetObjectCommand({
+        Bucket: bucket,
+        Key: key
+      })
+    );
+
+    if (!response.Body) {
+      throw new Error("Empty object body returned from storage");
+    }
+
+    if (typeof response.ContentLength === "number" && response.ContentLength > maxBytes) {
+      throw new Error(
+        `Storage object exceeds maximum allowed download size (${response.ContentLength} bytes > ${maxBytes} bytes)`
+      );
+    }
+
+    const bodyAny = response.Body as unknown as {
+      transformToByteArray?: () => Promise<Uint8Array>;
+    } & Readable;
+
+    if (typeof bodyAny.transformToByteArray === "function") {
+      const bytes = await bodyAny.transformToByteArray();
+      if (bytes.byteLength > maxBytes) {
+        throw new Error(`Storage object exceeds maximum allowed size (${bytes.byteLength} bytes)`);
+      }
+      return Buffer.from(bytes);
+    }
+
+    const chunks: Buffer[] = [];
+    let totalBytes = 0;
+    for await (const chunk of bodyAny) {
+      const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+      totalBytes += buf.length;
+      if (totalBytes > maxBytes) {
+        throw new Error(`Storage stream exceeded maximum allowed size (${maxBytes} bytes)`);
+      }
+      chunks.push(buf);
+    }
+    return Buffer.concat(chunks);
+  } catch (error) {
+    logger.error({ err: error, bucket, key }, "Failed to download file from storage");
+    throw new AppError(
+      502,
+      "STORAGE_DOWNLOAD_ERROR",
+      `Failed to download file from storage: ${error instanceof Error ? error.message : "Unknown error"}`
     );
   }
 }

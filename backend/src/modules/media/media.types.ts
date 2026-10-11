@@ -4,6 +4,39 @@ export interface MediaDestinationLink {
   slug: string;
 }
 
+export interface MediaVariantMetadata {
+  key?: string;
+  url: string;
+  width: number;
+  height: number;
+  fileSizeBytes?: number;
+  mimeType?: string;
+}
+
+export interface MediaVariantsRecord {
+  thumbnail?: MediaVariantMetadata;
+  medium?: MediaVariantMetadata;
+  viewer?: MediaVariantMetadata;
+}
+
+export interface PublicMediaVariantsDto {
+  thumbnail?: {
+    url: string;
+    width: number;
+    height: number;
+  };
+  medium?: {
+    url: string;
+    width: number;
+    height: number;
+  };
+  viewer?: {
+    url: string;
+    width: number;
+    height: number;
+  };
+}
+
 export interface MediaAssetRecord {
   id: string;
   folder_id: string | null;
@@ -15,6 +48,11 @@ export interface MediaAssetRecord {
   storage_key: string | null;
   external_url: string | null;
   public_url: string | null;
+  thumbnail_url?: string | null;
+  medium_url?: string | null;
+  viewer_url?: string | null;
+  placeholder_base64?: string | null;
+  variants?: MediaVariantsRecord | string | null;
   mime_type: string | null;
   file_size_bytes: number | null;
   width: number | null;
@@ -54,6 +92,11 @@ export interface MediaAssetDto {
   storageKey: string | null;
   externalUrl: string | null;
   url: string;
+  thumbnailUrl: string;
+  mediumUrl: string;
+  viewerUrl: string;
+  placeholder: string | null;
+  variants?: PublicMediaVariantsDto | null;
   mimeType: string | null;
   fileSizeBytes: number | null;
   width: number | null;
@@ -79,6 +122,11 @@ export interface CreateStorageMediaInput {
   storageBucket: string;
   storageKey: string;
   publicUrl: string;
+  thumbnailUrl?: string | null;
+  mediumUrl?: string | null;
+  viewerUrl?: string | null;
+  placeholderBase64?: string | null;
+  variants?: MediaVariantsRecord | null;
   mimeType: string;
   fileSizeBytes: number;
   width?: number | null;

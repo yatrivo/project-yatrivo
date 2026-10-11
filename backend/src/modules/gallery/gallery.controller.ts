@@ -2,18 +2,25 @@ import type { Request, Response } from "express";
 import { galleryService } from "./gallery.service";
 import type {
   AddToGalleryValidated,
+  PublicGalleryQueryValidated,
   ReorderGalleryValidated,
   UpdateGalleryItemValidated
 } from "./gallery.schemas";
 import { recordAuditLog } from "../audit/audit.service";
 
 export const galleryController = {
-  async listPublic(_req: Request, res: Response): Promise<void> {
-    const items = await galleryService.getPublicGallery();
+  async listPublic(req: Request, res: Response): Promise<void> {
+    const query = (res.locals.validated?.query || req.query) as Partial<PublicGalleryQueryValidated>;
+    const limit = query?.limit ? Number(query.limit) : 30;
+    const cursor = typeof query?.cursor === "string" ? query.cursor : undefined;
+
+    const result = await galleryService.getPublicGallery({ limit, cursor });
+    res.setHeader("Cache-Control", "public, max-age=0, must-revalidate");
     res.status(200).json({
       status: "success",
-      data: items,
-      total: items.length
+      data: result.items,
+      total: result.pagination.total,
+      pagination: result.pagination
     });
   },
 

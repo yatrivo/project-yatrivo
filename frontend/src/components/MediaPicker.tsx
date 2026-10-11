@@ -645,10 +645,21 @@ export default function MediaPicker({
                           }`}
                         >
                           {/* Image preview box */}
-                          <div className="aspect-[4/3] w-full overflow-hidden bg-[#e2e8f0] relative">
+                          <div
+                            className="aspect-[4/3] w-full overflow-hidden bg-[#e2e8f0] relative bg-cover bg-center"
+                            style={
+                              img.placeholder
+                                ? { backgroundImage: `url(${img.placeholder})` }
+                                : undefined
+                            }
+                          >
                             <img
-                              src={img.url}
+                              src={img.thumbnailUrl || img.url}
                               alt={img.label ?? ""}
+                              loading="lazy"
+                              decoding="async"
+                              width={img.width || 400}
+                              height={img.height || 300}
                               className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                               onError={(e) => {
                                 (e.target as HTMLImageElement).style.opacity = "0.3";

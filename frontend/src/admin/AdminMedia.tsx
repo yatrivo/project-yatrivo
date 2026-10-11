@@ -549,7 +549,13 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                       className="group relative bg-[#f7f8f5] rounded-lg border border-[#e2e8f0] overflow-hidden hover:border-[#e8622a] hover:shadow-md transition cursor-pointer flex flex-col"
                     >
                       <div className="aspect-square bg-gray-100 overflow-hidden relative">
-                        <img src={m.url} alt={m.label || ""} className="w-full h-full object-cover group-hover:scale-105 transition" />
+                        <img
+                          src={m.thumbnailUrl || m.url}
+                          alt={m.label || ""}
+                          loading="lazy"
+                          decoding="async"
+                          className="w-full h-full object-cover group-hover:scale-105 transition"
+                        />
                         <span className="absolute top-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded capitalize">
                           {m.category}
                         </span>
@@ -938,8 +944,9 @@ export default function AdminMedia() {
             </div>
             <div className="max-h-[60vh] bg-black/90 flex items-center justify-center p-2">
               <img
-                src={selectedAsset.url}
+                src={selectedAsset.viewerUrl || selectedAsset.mediumUrl || selectedAsset.url}
                 alt={galleryTitleInput || selectedAsset.label || ""}
+                decoding="async"
                 className="max-h-[55vh] w-auto max-w-full object-contain rounded-lg"
               />
             </div>
@@ -1093,10 +1100,21 @@ export default function AdminMedia() {
                     }`}
                   >
                     {/* Thumbnail with status tags */}
-                    <div className="aspect-[4/3] bg-[#f7f8f5] overflow-hidden relative">
+                    <div
+                      className="aspect-[4/3] bg-[#f7f8f5] overflow-hidden relative bg-cover bg-center"
+                      style={
+                        img.placeholder
+                          ? { backgroundImage: `url(${img.placeholder})` }
+                          : undefined
+                      }
+                    >
                       <img
-                        src={img.url}
+                        src={img.thumbnailUrl || img.url}
                         alt={img.label ?? ""}
+                        loading="lazy"
+                        decoding="async"
+                        width={img.width || 400}
+                        height={img.height || 300}
                         className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.opacity = "0.3";
@@ -1176,8 +1194,9 @@ export default function AdminMedia() {
               {/* Full Preview */}
               <div className="rounded-lg overflow-hidden border border-[#e2e8f0] bg-[#f7f8f5] aspect-video relative group">
                 <img
-                  src={selectedAsset.url}
+                  src={selectedAsset.viewerUrl || selectedAsset.mediumUrl || selectedAsset.url}
                   alt={selectedAsset.label ?? ""}
+                  decoding="async"
                   className="w-full h-full object-cover"
                 />
                 {isSafeHttpUrl(selectedAsset.url) && (

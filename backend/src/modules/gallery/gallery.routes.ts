@@ -6,6 +6,7 @@ import { galleryController } from "./gallery.controller";
 import {
   addToGallerySchema,
   galleryIdParamSchema,
+  publicGalleryQuerySchema,
   reorderGallerySchema,
   updateGalleryItemSchema
 } from "./gallery.schemas";
@@ -15,6 +16,7 @@ export const galleryRouter = Router();
 // ─── Public endpoint (read-only, no auth required) ──────────────────────────
 galleryRouter.get(
   "/gallery",
+  validate({ query: publicGalleryQuerySchema }),
   asyncHandler(galleryController.listPublic)
 );
 

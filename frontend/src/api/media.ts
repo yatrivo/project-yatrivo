@@ -1,10 +1,23 @@
 import { authApi, tokenStorage } from "./auth";
 import { API_BASE } from "./baseUrl";
+import { clientCache } from "@/utils/clientCache";
 
 export interface MediaDestinationLink {
   id: string;
   name: string;
   slug: string;
+}
+
+export interface MediaVariantInfo {
+  url: string;
+  width: number;
+  height: number;
+}
+
+export interface MediaVariantsMap {
+  thumbnail?: MediaVariantInfo;
+  medium?: MediaVariantInfo;
+  viewer?: MediaVariantInfo;
 }
 
 export interface MediaAsset {
@@ -27,6 +40,11 @@ export interface MediaAsset {
   storageKey: string | null;
   externalUrl: string | null;
   url: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  viewerUrl?: string;
+  placeholder?: string | null;
+  variants?: MediaVariantsMap | null;
   mimeType: string | null;
   fileSizeBytes: number | null;
   width: number | null;
@@ -176,6 +194,10 @@ export const mediaApi = {
       throw new Error(body?.error?.message || "Failed to upload file");
     }
 
+    if (options?.showInGallery) {
+      clientCache.invalidate("gallery:public");
+    }
+
     return body.data as MediaAsset;
   },
 
@@ -199,6 +221,10 @@ export const mediaApi = {
       throw new Error(body?.error?.message || "Failed to save external image");
     }
 
+    if (params.showInGallery) {
+      clientCache.invalidate("gallery:public");
+    }
+
     return body.data as MediaAsset;
   },
 
@@ -214,6 +240,7 @@ export const mediaApi = {
       throw new Error(body?.error?.message || "Failed to delete media asset");
     }
 
+    clientCache.invalidate("gallery:public");
     return body.data;
   },
 

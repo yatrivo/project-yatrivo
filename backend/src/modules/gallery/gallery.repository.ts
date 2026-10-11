@@ -1,8 +1,11 @@
 import type { PoolClient, QueryResultRow } from "pg";
 import { query } from "../../db/postgres";
+import { toPublicVariantsDto } from "../media/media.repository";
 import type {
   AdminGalleryItemDto,
   PublicGalleryItemDto,
+  PaginatedPublicGalleryResult,
+  PublicGalleryQueryInput,
   AddToGalleryInput,
   UpdateGalleryItemInput,
   ReorderGalleryItem
@@ -36,6 +39,11 @@ interface GalleryItemRecord {
   updated_at: string | Date;
   public_url: string | null;
   external_url: string | null;
+  thumbnail_url: string | null;
+  medium_url: string | null;
+  viewer_url: string | null;
+  placeholder_base64: string | null;
+  variants: unknown;
   label: string | null;
   alt_text: string | null;
   category: string;
@@ -45,26 +53,86 @@ interface GalleryItemRecord {
   destination_slug: string | null;
 }
 
+interface GalleryCursorPayload {
+  s: number;
+  c: string;
+  id: string;
+}
+
+export function encodeGalleryCursor(row: { sortOrder: number; createdAt: string; id: string }): string {
+  const payload: GalleryCursorPayload = {
+    s: row.sortOrder,
+    c: row.createdAt,
+    id: row.id
+  };
+  return Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+}
+
+export function decodeGalleryCursor(cursor?: string): GalleryCursorPayload | null {
+  if (!cursor || typeof cursor !== "string") return null;
+  try {
+    const decoded = JSON.parse(Buffer.from(cursor, "base64url").toString("utf8")) as Partial<GalleryCursorPayload>;
+    if (
+      typeof decoded.s === "number" &&
+      Number.isInteger(decoded.s) &&
+      typeof decoded.c === "string" &&
+      !Number.isNaN(Date.parse(decoded.c)) &&
+      typeof decoded.id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(decoded.id)
+    ) {
+      return {
+        s: decoded.s,
+        c: new Date(decoded.c).toISOString(),
+        id: decoded.id
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function toPublicGalleryDto(row: GalleryItemRecord): PublicGalleryItemDto {
+  const originalUrl = row.public_url || row.external_url || "";
+  const variants = toPublicVariantsDto(row.variants);
+  const viewerUrl = row.viewer_url || variants?.viewer?.url || originalUrl;
+  const mediumUrl = row.medium_url || variants?.medium?.url || viewerUrl || originalUrl;
+  const thumbnailUrl = row.thumbnail_url || variants?.thumbnail?.url || mediumUrl || originalUrl;
+
   return {
     id: row.id,
     mediaId: row.media_id,
-    url: row.public_url || row.external_url || "",
+    url: viewerUrl || originalUrl,
+    thumbnailUrl,
+    mediumUrl,
+    viewerUrl,
+    placeholder: row.placeholder_base64 || null,
+    variants,
     title: row.custom_title || row.label || null,
     caption: row.caption || null,
     sortOrder: row.sort_order,
     width: row.width,
     height: row.height,
-    altText: row.alt_text || row.label || null,
+    altText: row.alt_text || row.custom_title || row.label || null,
     createdAt: new Date(row.created_at).toISOString()
   };
 }
 
 function toAdminGalleryDto(row: GalleryItemRecord): AdminGalleryItemDto {
+  const originalUrl = row.public_url || row.external_url || "";
+  const variants = toPublicVariantsDto(row.variants);
+  const viewerUrl = row.viewer_url || variants?.viewer?.url || originalUrl;
+  const mediumUrl = row.medium_url || variants?.medium?.url || viewerUrl || originalUrl;
+  const thumbnailUrl = row.thumbnail_url || variants?.thumbnail?.url || mediumUrl || originalUrl;
+
   return {
     id: row.id,
     mediaId: row.media_id,
-    url: row.public_url || row.external_url || "",
+    url: originalUrl,
+    thumbnailUrl,
+    mediumUrl,
+    viewerUrl,
+    placeholder: row.placeholder_base64 || null,
     customTitle: row.custom_title || null,
     caption: row.caption || null,
     sortOrder: row.sort_order,
@@ -83,7 +151,7 @@ function toAdminGalleryDto(row: GalleryItemRecord): AdminGalleryItemDto {
 async function normalizeGallerySortOrders(executor: QueryExecutor): Promise<void> {
   await executor.query(
     `WITH renumbered AS (
-       SELECT id, ROW_NUMBER() OVER (ORDER BY sort_order ASC, created_at ASC) as new_order
+       SELECT id, ROW_NUMBER() OVER (ORDER BY sort_order ASC, created_at ASC, id ASC) as new_order
        FROM public_gallery_items
      )
      UPDATE public_gallery_items pgi
@@ -93,36 +161,96 @@ async function normalizeGallerySortOrders(executor: QueryExecutor): Promise<void
   );
 }
 
+const GALLERY_SELECT_COLUMNS = `
+  pgi.id, pgi.media_id, pgi.sort_order, pgi.custom_title, pgi.caption,
+  pgi.created_at, pgi.updated_at,
+  m.public_url, m.external_url, m.thumbnail_url, m.medium_url, m.viewer_url,
+  m.placeholder_base64, m.variants,
+  m.label, m.alt_text, m.category,
+  m.width, m.height,
+  d.name as destination_name, d.slug as destination_slug
+`;
+
 export const galleryRepository = {
   async findPublicItems(client?: PoolClient): Promise<PublicGalleryItemDto[]> {
     const executor = getExecutor(client);
     const result = await executor.query<GalleryItemRecord>(
-      `SELECT pgi.id, pgi.media_id, pgi.sort_order, pgi.custom_title, pgi.caption,
-              pgi.created_at, pgi.updated_at,
-              m.public_url, m.external_url, m.label, m.alt_text, m.category,
-              m.width, m.height,
-              d.name as destination_name, d.slug as destination_slug
+      `SELECT ${GALLERY_SELECT_COLUMNS}
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id
-       ORDER BY pgi.sort_order ASC, pgi.created_at ASC`
+       ORDER BY pgi.sort_order ASC, pgi.created_at ASC, pgi.id ASC`
     );
 
     return result.rows.map(toPublicGalleryDto);
   },
 
+  async findPublicItemsPaginated(
+    options?: PublicGalleryQueryInput,
+    client?: PoolClient
+  ): Promise<PaginatedPublicGalleryResult> {
+    const executor = getExecutor(client);
+    const limit = Math.min(100, Math.max(1, options?.limit || 30));
+    const parsedCursor = decodeGalleryCursor(options?.cursor);
+
+    const countResult = await executor.query<{ total: string }>(
+      `SELECT COUNT(*)::text as total
+       FROM public_gallery_items pgi
+       JOIN media_assets m ON m.id = pgi.media_id`
+    );
+    const total = parseInt(countResult.rows[0]?.total ?? "0", 10) || 0;
+
+    let rows: GalleryItemRecord[];
+    if (parsedCursor) {
+      const res = await executor.query<GalleryItemRecord>(
+        `SELECT ${GALLERY_SELECT_COLUMNS}
+         FROM public_gallery_items pgi
+         JOIN media_assets m ON m.id = pgi.media_id
+         LEFT JOIN destinations d ON d.id = m.destination_id
+         WHERE (pgi.sort_order, date_trunc('milliseconds', pgi.created_at), pgi.id) > ($1::int, date_trunc('milliseconds', $2::timestamptz), $3::uuid)
+         ORDER BY pgi.sort_order ASC, date_trunc('milliseconds', pgi.created_at) ASC, pgi.id ASC
+         LIMIT $4`,
+        [parsedCursor.s, parsedCursor.c, parsedCursor.id, limit + 1]
+      );
+      rows = res.rows;
+    } else {
+      const res = await executor.query<GalleryItemRecord>(
+        `SELECT ${GALLERY_SELECT_COLUMNS}
+         FROM public_gallery_items pgi
+         JOIN media_assets m ON m.id = pgi.media_id
+         LEFT JOIN destinations d ON d.id = m.destination_id
+         ORDER BY pgi.sort_order ASC, date_trunc('milliseconds', pgi.created_at) ASC, pgi.id ASC
+         LIMIT $1`,
+        [limit + 1]
+      );
+      rows = res.rows;
+    }
+
+    const hasMore = rows.length > limit;
+    const pageRows = hasMore ? rows.slice(0, limit) : rows;
+    const items = pageRows.map(toPublicGalleryDto);
+    const lastItem = items.length > 0 ? items[items.length - 1] : null;
+    const nextCursor = hasMore && lastItem ? encodeGalleryCursor(lastItem) : null;
+
+    return {
+      items,
+      pagination: {
+        limit,
+        nextCursor,
+        hasMore,
+        total
+      }
+    };
+  },
+
   async findAdminItems(client?: PoolClient): Promise<AdminGalleryItemDto[]> {
     const executor = getExecutor(client);
     const result = await executor.query<GalleryItemRecord>(
-      `SELECT pgi.id, pgi.media_id, pgi.sort_order, pgi.custom_title, pgi.caption,
-              pgi.created_at, pgi.updated_at,
-              m.public_url, m.external_url, m.label, m.alt_text, m.category,
-              m.width, m.height,
-              d.name as destination_name, d.slug as destination_slug
+      `SELECT ${GALLERY_SELECT_COLUMNS}
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id
-       ORDER BY pgi.sort_order ASC, pgi.created_at ASC`
+       ORDER BY pgi.sort_order ASC, pgi.created_at ASC, pgi.id ASC`
     );
 
     return result.rows.map(toAdminGalleryDto);
@@ -131,11 +259,7 @@ export const galleryRepository = {
   async findById(id: string, client?: PoolClient): Promise<AdminGalleryItemDto | null> {
     const executor = getExecutor(client);
     const result = await executor.query<GalleryItemRecord>(
-      `SELECT pgi.id, pgi.media_id, pgi.sort_order, pgi.custom_title, pgi.caption,
-              pgi.created_at, pgi.updated_at,
-              m.public_url, m.external_url, m.label, m.alt_text, m.category,
-              m.width, m.height,
-              d.name as destination_name, d.slug as destination_slug
+      `SELECT ${GALLERY_SELECT_COLUMNS}
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id
@@ -150,11 +274,7 @@ export const galleryRepository = {
   async findByMediaId(mediaId: string, client?: PoolClient): Promise<AdminGalleryItemDto | null> {
     const executor = getExecutor(client);
     const result = await executor.query<GalleryItemRecord>(
-      `SELECT pgi.id, pgi.media_id, pgi.sort_order, pgi.custom_title, pgi.caption,
-              pgi.created_at, pgi.updated_at,
-              m.public_url, m.external_url, m.label, m.alt_text, m.category,
-              m.width, m.height,
-              d.name as destination_name, d.slug as destination_slug
+      `SELECT ${GALLERY_SELECT_COLUMNS}
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id

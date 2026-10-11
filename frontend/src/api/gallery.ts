@@ -1,10 +1,17 @@
 import { authApi, tokenStorage } from "./auth";
 import { API_BASE } from "./baseUrl";
+import type { MediaVariantsMap } from "./media";
+import { clientCache } from "@/utils/clientCache";
 
 export interface PublicGalleryItem {
   id: string;
   mediaId: string;
   url: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  viewerUrl?: string;
+  placeholder?: string | null;
+  variants?: MediaVariantsMap | null;
   title: string | null;
   caption: string | null;
   sortOrder: number;
@@ -14,10 +21,26 @@ export interface PublicGalleryItem {
   createdAt: string;
 }
 
+export interface PublicGalleryPagination {
+  limit: number;
+  nextCursor: string | null;
+  hasMore: boolean;
+  total: number;
+}
+
+export interface PaginatedPublicGalleryResponse {
+  items: PublicGalleryItem[];
+  pagination: PublicGalleryPagination;
+}
+
 export interface AdminGalleryItem {
   id: string;
   mediaId: string;
   url: string;
+  thumbnailUrl?: string;
+  mediumUrl?: string;
+  viewerUrl?: string;
+  placeholder?: string | null;
   customTitle: string | null;
   caption: string | null;
   sortOrder: number;
@@ -47,7 +70,7 @@ export interface UpdateGalleryItemInput {
 
 async function authFetch(url: string, options: RequestInit = {}): Promise<Response> {
   const headers = new Headers(options.headers || {});
-  let accessToken = tokenStorage.getAccessToken();
+  const accessToken = tokenStorage.getAccessToken();
 
   if (accessToken) {
     headers.set("Authorization", `Bearer ${accessToken}`);
@@ -72,19 +95,56 @@ async function authFetch(url: string, options: RequestInit = {}): Promise<Respon
 }
 
 export const galleryApi = {
+  async getPublicPaginated(params?: {
+    limit?: number;
+    cursor?: string;
+    bypassCache?: boolean;
+  }): Promise<PaginatedPublicGalleryResponse> {
+    const limit = params?.limit ?? 30;
+    const cursor = params?.cursor ?? "";
+    const cacheKey = `gallery:public:page:${limit}:${cursor || "first"}`;
+
+    return clientCache.fetchWithCache(
+      cacheKey,
+      async () => {
+        const query = new URLSearchParams();
+        query.set("limit", String(limit));
+        if (cursor) {
+          query.set("cursor", cursor);
+        }
+        const url = `${API_BASE}/api/v1/gallery?${query.toString()}`;
+        const res = await fetch(url, {
+          method: "GET",
+          headers: { "Content-Type": "application/json" }
+        });
+
+        const body = await res.json();
+        if (!res.ok) {
+          throw new Error(body?.error?.message || "Failed to load gallery");
+        }
+
+        const items = Array.isArray(body.data) ? (body.data as PublicGalleryItem[]) : [];
+        const total = typeof body.total === "number" ? body.total : items.length;
+        const pagination: PublicGalleryPagination = body.pagination || {
+          limit,
+          nextCursor: null,
+          hasMore: false,
+          total
+        };
+
+        return { items, pagination };
+      },
+      {
+        staleTimeMs: 2 * 60 * 1000, // 2 min in-memory stale time
+        maxAgeMs: 15 * 60 * 1000,
+        bypassCache: params?.bypassCache
+      }
+    );
+  },
+
   async getPublic(): Promise<PublicGalleryItem[]> {
-    const url = `${API_BASE}/api/v1/gallery`;
-    const res = await fetch(url, {
-      method: "GET",
-      headers: { "Content-Type": "application/json" }
-    });
-
-    const body = await res.json();
-    if (!res.ok) {
-      throw new Error(body?.error?.message || "Failed to load gallery");
-    }
-
-    return Array.isArray(body.data) ? (body.data as PublicGalleryItem[]) : [];
+    const res = await this.getPublicPaginated({ limit: 100 });
+    return res.items;
   },
 
   async getAdminList(): Promise<AdminGalleryItem[]> {
@@ -115,6 +175,7 @@ export const galleryApi = {
       throw new Error(body?.error?.message || "Failed to add image to gallery");
     }
 
+    clientCache.invalidate("gallery:public");
     return body.data as AdminGalleryItem;
   },
 
@@ -131,6 +192,7 @@ export const galleryApi = {
       throw new Error(body?.error?.message || "Failed to update gallery item");
     }
 
+    clientCache.invalidate("gallery:public");
     return body.data as AdminGalleryItem;
   },
 
@@ -145,6 +207,8 @@ export const galleryApi = {
     if (!res.ok) {
       throw new Error(body?.error?.message || "Failed to remove image from gallery");
     }
+
+    clientCache.invalidate("gallery:public");
   },
 
   async reorder(items: Array<{ id: string; sortOrder: number }>): Promise<void> {
@@ -159,5 +223,7 @@ export const galleryApi = {
     if (!res.ok) {
       throw new Error(body?.error?.message || "Failed to reorder gallery");
     }
+
+    clientCache.invalidate("gallery:public");
   }
 };

@@ -7,7 +7,9 @@ import type {
   MediaAssetRecord,
   MediaDestinationLink,
   MediaFilters,
-  MediaReferenceInfo
+  MediaReferenceInfo,
+  MediaVariantsRecord,
+  PublicMediaVariantsDto
 } from "./media.types";
 
 type QueryExecutor = {
@@ -26,6 +28,52 @@ function getExecutor(client?: PoolClient): QueryExecutor {
   return {
     query: (text, params) => query(text, params)
   };
+}
+
+export function parseVariantsRecord(raw: unknown): MediaVariantsRecord | null {
+  if (!raw) return null;
+  let obj: Record<string, unknown> | null = null;
+  if (typeof raw === "string") {
+    try {
+      obj = JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  } else if (typeof raw === "object") {
+    obj = raw as Record<string, unknown>;
+  }
+  if (!obj) return null;
+  return obj as MediaVariantsRecord;
+}
+
+export function toPublicVariantsDto(raw: unknown): PublicMediaVariantsDto | null {
+  const parsed = parseVariantsRecord(raw);
+  if (!parsed) return null;
+
+  const dto: PublicMediaVariantsDto = {};
+  if (parsed.thumbnail?.url && parsed.thumbnail.width && parsed.thumbnail.height) {
+    dto.thumbnail = {
+      url: parsed.thumbnail.url,
+      width: Number(parsed.thumbnail.width),
+      height: Number(parsed.thumbnail.height)
+    };
+  }
+  if (parsed.medium?.url && parsed.medium.width && parsed.medium.height) {
+    dto.medium = {
+      url: parsed.medium.url,
+      width: Number(parsed.medium.width),
+      height: Number(parsed.medium.height)
+    };
+  }
+  if (parsed.viewer?.url && parsed.viewer.width && parsed.viewer.height) {
+    dto.viewer = {
+      url: parsed.viewer.url,
+      width: Number(parsed.viewer.width),
+      height: Number(parsed.viewer.height)
+    };
+  }
+
+  return Object.keys(dto).length > 0 ? dto : null;
 }
 
 async function addAssetToGalleryInternal(executor: QueryExecutor, mediaId: string): Promise<void> {
@@ -61,6 +109,12 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
   destination_names?: string | null;
 }): MediaAssetDto {
   const url = record.public_url || record.external_url || "";
+  const variantsDto = toPublicVariantsDto(record.variants);
+  const thumbnailUrl = record.thumbnail_url || variantsDto?.thumbnail?.url || url;
+  const viewerUrl = record.viewer_url || variantsDto?.viewer?.url || url;
+  const mediumUrl = record.medium_url || variantsDto?.medium?.url || viewerUrl || url;
+  const placeholder = record.placeholder_base64 || null;
+
   const categoriesSet = new Set<string>();
 
   let parsedDestinations: MediaDestinationLink[] = [];
@@ -135,6 +189,11 @@ export function toMediaAssetDto(record: MediaAssetRecord & {
     storageKey: record.storage_key,
     externalUrl: record.external_url,
     url,
+    thumbnailUrl,
+    mediumUrl,
+    viewerUrl,
+    placeholder,
+    variants: variantsDto,
     mimeType: record.mime_type,
     fileSizeBytes: record.file_size_bytes,
     width: record.width,
@@ -412,9 +471,10 @@ export const mediaRepository = {
     const result = await executor.query<MediaAssetRecord>(
       `INSERT INTO media_assets (
         category, destination_id, label, alt_text, storage_bucket, storage_key,
-        public_url, mime_type, file_size_bytes, width, height,
+        public_url, thumbnail_url, medium_url, viewer_url, placeholder_base64, variants,
+        mime_type, file_size_bytes, width, height,
         uploaded_by_user_id
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
       RETURNING *`,
       [
         dbCat,
@@ -424,6 +484,11 @@ export const mediaRepository = {
         data.storageBucket,
         data.storageKey,
         data.publicUrl,
+        data.thumbnailUrl || null,
+        data.mediumUrl || null,
+        data.viewerUrl || null,
+        data.placeholderBase64 || null,
+        data.variants ? JSON.stringify(data.variants) : null,
         data.mimeType,
         data.fileSizeBytes,
         data.width || null,
@@ -439,6 +504,78 @@ export const mediaRepository = {
     }
 
     return (await this.findById(createdId, client)) || toMediaAssetDto(result.rows[0]);
+  },
+
+  async updateAssetVariants(
+    id: string,
+    data: {
+      thumbnailUrl?: string | null;
+      mediumUrl?: string | null;
+      viewerUrl?: string | null;
+      placeholderBase64?: string | null;
+      variants?: MediaVariantsRecord | null;
+      width?: number | null;
+      height?: number | null;
+    },
+    client?: PoolClient
+  ): Promise<void> {
+    const executor = getExecutor(client);
+    await executor.query(
+      `UPDATE media_assets
+       SET thumbnail_url = COALESCE($2, thumbnail_url),
+           medium_url = COALESCE($3, medium_url),
+           viewer_url = COALESCE($4, viewer_url),
+           placeholder_base64 = COALESCE($5, placeholder_base64),
+           variants = COALESCE($6::jsonb, variants),
+           width = COALESCE($7, width),
+           height = COALESCE($8, height),
+           updated_at = now()
+       WHERE id = $1`,
+      [
+        id,
+        data.thumbnailUrl ?? null,
+        data.mediumUrl ?? null,
+        data.viewerUrl ?? null,
+        data.placeholderBase64 ?? null,
+        data.variants ? JSON.stringify(data.variants) : null,
+        data.width ?? null,
+        data.height ?? null
+      ]
+    );
+  },
+
+  async getStorageKeysForDelete(
+    id: string,
+    client?: PoolClient
+  ): Promise<{ bucket: string | null; keys: string[] }> {
+    const executor = getExecutor(client);
+    const res = await executor.query<{
+      storage_bucket: string | null;
+      storage_key: string | null;
+      variants: unknown;
+    }>(
+      `SELECT storage_bucket, storage_key, variants FROM media_assets WHERE id = $1`,
+      [id]
+    );
+
+    const row = res.rows[0];
+    if (!row) {
+      return { bucket: null, keys: [] };
+    }
+
+    const keys = new Set<string>();
+    if (row.storage_key) {
+      keys.add(row.storage_key);
+    }
+    const parsedVariants = parseVariantsRecord(row.variants);
+    if (parsedVariants?.thumbnail?.key) keys.add(parsedVariants.thumbnail.key);
+    if (parsedVariants?.medium?.key) keys.add(parsedVariants.medium.key);
+    if (parsedVariants?.viewer?.key) keys.add(parsedVariants.viewer.key);
+
+    return {
+      bucket: row.storage_bucket,
+      keys: Array.from(keys)
+    };
   },
 
   async createExternalAsset(
