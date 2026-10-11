@@ -184,7 +184,7 @@ export default function AdminReviews() {
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-5">
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>

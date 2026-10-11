@@ -312,7 +312,7 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
   const events = enquiry.events || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {/* Quote Action Modal */}
       {quoteModalOpen &&
         createPortal(

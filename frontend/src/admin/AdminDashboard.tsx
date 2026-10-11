@@ -138,7 +138,7 @@ export default function AdminDashboard({ setAdminPage }: Props = {}) {
       }));
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {/* Title & Refresh Button */}
       <div className="flex items-center justify-between">
         <div>

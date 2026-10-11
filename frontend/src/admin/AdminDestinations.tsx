@@ -699,7 +699,7 @@ export default function AdminDestinations() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {modalMode === "add" && (
         <DestinationModal
           title="Add Destination"
@@ -844,7 +844,7 @@ export default function AdminDestinations() {
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
           {sortedAndFiltered.map((dest) => {
             const isArchived = dest.status === "archived";
 

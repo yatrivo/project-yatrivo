@@ -456,7 +456,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
       {/* Main form */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
           {activeSection === "basic" && (
             <div className="space-y-5">
               <div>

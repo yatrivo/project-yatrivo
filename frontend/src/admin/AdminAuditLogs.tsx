@@ -100,7 +100,7 @@ export default function AdminAuditLogs() {
   }
 
   return (
-    <div className="p-6 space-y-5 max-w-7xl mx-auto">
+    <div className="p-6 space-y-5 max-w-[1400px] mx-auto w-full">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>

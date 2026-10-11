@@ -451,7 +451,7 @@ export default function AdminTripInstances() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
+    <div className="p-6 max-w-[1400px] mx-auto w-full">
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
           <h2 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>

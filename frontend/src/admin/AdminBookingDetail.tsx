@@ -475,7 +475,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
   const payments = booking.payments || [];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {/* Record Payment Modal */}
       {payModalOpen &&
         createPortal(

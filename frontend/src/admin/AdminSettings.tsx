@@ -252,7 +252,7 @@ export default function AdminSettings({ initialTab }: AdminSettingsProps = {}) {
 
       {/* Content */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-6 space-y-6">
+        <div className="max-w-4xl mx-auto p-6 space-y-6">
 
           {loadingInitial ? (
             <div className="flex items-center justify-center py-20 text-[#718096] text-sm gap-2">

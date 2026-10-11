@@ -515,7 +515,7 @@ export default function AdminBookings({ setAdminPage }: Props = {}) {
   };
 
   return (
-    <div className="p-6 space-y-5">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-5">
       {addModalOpen && (
         <AddBookingModal
           onClose={() => setAddModalOpen(false)}

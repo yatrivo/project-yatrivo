@@ -376,7 +376,7 @@ export default function AdminDepartureDetail() {
   const returnDate = calculateReturnDate(dep.startsOn, dep.durationDays, dep.durationLabel);
 
   return (
-    <div className="p-6 max-w-7xl mx-auto space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

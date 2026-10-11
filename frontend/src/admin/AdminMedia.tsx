@@ -896,7 +896,7 @@ export default function AdminMedia() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-6 max-w-[1400px] mx-auto w-full space-y-6">
       {uploadModalOpen && (
         <SimpleUploadModal
           onClose={() => setUploadModalOpen(false)}
@@ -1079,7 +1079,7 @@ export default function AdminMedia() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {mediaList.map((img) => {
                 const isInspecting = selectedAsset?.id === img.id;
                 const formattedDate = img.createdAt

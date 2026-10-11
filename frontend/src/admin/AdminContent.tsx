@@ -1722,7 +1722,7 @@ export default function AdminContent() {
 
       {/* Content area */}
       <div className="flex-1 overflow-y-auto">
-        <div className="max-w-2xl mx-auto p-6">
+        <div className="max-w-4xl mx-auto p-6">
           {activeTab === "hero" && <HeroTab />}
           {activeTab === "featured" && <FeaturedTab />}
           {activeTab === "why-us" && <WhyUsTab />}
