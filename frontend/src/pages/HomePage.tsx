@@ -7,10 +7,12 @@ import ProgressiveImage from "@/components/ProgressiveImage";
 import { SITE_ASSET_KEYS } from "@/api/siteAssets";
 import logoImg from "@/imports/logo.png";
 
-const Stars = () => (
+const Stars = ({ rating = 5 }: { rating?: number }) => (
   <div className="flex gap-0.5">
     {Array.from({ length: 5 }).map((_, i) => (
-      <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill="#f59e0b"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+      <svg key={i} width="13" height="13" viewBox="0 0 24 24" fill={i < rating ? "#f59e0b" : "#e2e8f0"}>
+        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+      </svg>
     ))}
   </div>
 );
@@ -373,15 +375,79 @@ export default function HomePage() {
         <section className="py-16 bg-[#f7f8f5]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6">
             <h2 className="section-heading text-[#0f2922] text-center mb-10">Wanderers Speak From Their Hearts</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-              {featuredReviews.map((r) => (
-                <div key={r.id} className="bg-white rounded-2xl p-6 border border-[#e2e8f0]">
-                  <Stars />
-                  <p className="text-[#4a5568] text-sm leading-relaxed mt-4 mb-5 italic">"{r.text}"</p>
-                  <div className="text-[#0f2922] font-medium text-sm">{r.name}</div>
-                  <div className="text-[#e8622a] text-xs mt-0.5">{r.tripName}</div>
-                </div>
-              ))}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {featuredReviews.map((r) => {
+                const norm = (s?: string) => (s || "").trim().toLowerCase();
+                const matchedDest = destinations.find(
+                  (d) =>
+                    (r.destinationId && d.id === r.destinationId) ||
+                    (r.destinationSlug && (d.slug === r.destinationSlug || d.id === r.destinationSlug)) ||
+                    (r.destination &&
+                      (norm(d.id) === norm(r.destination) ||
+                        norm(d.slug) === norm(r.destination) ||
+                        norm(d.name) === norm(r.destination) ||
+                        (norm(r.destination).length >= 3 &&
+                          (norm(d.name).includes(norm(r.destination)) || norm(r.destination).includes(norm(d.name))))))
+                );
+                let targetDestSlug = matchedDest ? matchedDest.slug || matchedDest.id : r.destinationSlug || "";
+                if (!targetDestSlug) {
+                  const matchedTrip = trips.find(
+                    (t) =>
+                      (r.tripId && (t.id === r.tripId || t.slug === r.tripId)) ||
+                      (r.tripName && norm(t.name) === norm(r.tripName))
+                  );
+                  if (matchedTrip) {
+                    if (matchedTrip.destinations && matchedTrip.destinations.length > 0) {
+                      targetDestSlug = matchedTrip.destinations[0].slug || matchedTrip.destinations[0].id;
+                    } else {
+                      const tripDest = destinations.find(
+                        (d) =>
+                          (matchedTrip.destinationId && d.id === matchedTrip.destinationId) ||
+                          (matchedTrip.destination &&
+                            (norm(d.id) === norm(matchedTrip.destination) ||
+                              norm(d.slug) === norm(matchedTrip.destination) ||
+                              norm(d.name) === norm(matchedTrip.destination)))
+                      );
+                      if (tripDest) targetDestSlug = tripDest.slug || tripDest.id;
+                    }
+                  }
+                }
+                const targetUrl = targetDestSlug ? `/destinations/${targetDestSlug}#reviews` : "/reviews";
+
+                return (
+                  <Link
+                    key={r.id}
+                    to={targetUrl}
+                    className="bg-white rounded-2xl p-5 sm:p-6 border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-md transition-all flex flex-col justify-between h-full group cursor-pointer"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between gap-2">
+                        <Stars rating={r.rating} />
+                        <span className="text-[11px] text-[#718096] group-hover:text-[#e8622a] transition-colors inline-flex items-center gap-1 font-medium">
+                          Read more
+                          <svg className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </span>
+                      </div>
+                      <p className="text-[#4a5568] text-sm leading-relaxed mt-3.5 mb-5 italic line-clamp-4">
+                        "{r.text}"
+                      </p>
+                    </div>
+                    <div className="pt-3 border-t border-[#f1f5f9] flex items-center justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="text-[#0f2922] font-medium text-sm truncate">{r.name}</div>
+                        <div className="text-[#e8622a] text-xs mt-0.5 truncate">{r.tripName}</div>
+                      </div>
+                      {matchedDest && (
+                        <span className="text-[11px] bg-[#f7f8f5] border border-[#e2e8f0] text-[#0f2922] px-2.5 py-1 rounded-full shrink-0 font-medium group-hover:bg-[#0f2922] group-hover:text-white transition-colors">
+                          {matchedDest.name}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
             </div>
           </div>
         </section>

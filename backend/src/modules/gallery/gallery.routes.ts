@@ -19,36 +19,41 @@ galleryRouter.get(
 );
 
 // ─── Admin endpoints (requires authentication & admin role) ─────────────────
-const adminGalleryRouter = Router();
-adminGalleryRouter.use(authenticate, requireAdmin);
-
-adminGalleryRouter.get(
+galleryRouter.get(
   "/gallery/admin",
+  authenticate,
+  requireAdmin,
   asyncHandler(galleryController.listAdmin)
 );
 
-adminGalleryRouter.post(
+galleryRouter.post(
   "/gallery",
+  authenticate,
+  requireAdmin,
   validate({ body: addToGallerySchema }),
   asyncHandler(galleryController.addItem)
 );
 
-adminGalleryRouter.put(
+galleryRouter.put(
   "/gallery/reorder",
+  authenticate,
+  requireAdmin,
   validate({ body: reorderGallerySchema }),
   asyncHandler(galleryController.reorder)
 );
 
-adminGalleryRouter.patch(
+galleryRouter.patch(
   "/gallery/:id",
+  authenticate,
+  requireAdmin,
   validate({ params: galleryIdParamSchema, body: updateGalleryItemSchema }),
   asyncHandler(galleryController.updateItem)
 );
 
-adminGalleryRouter.delete(
+galleryRouter.delete(
   "/gallery/:id",
+  authenticate,
+  requireAdmin,
   validate({ params: galleryIdParamSchema }),
   asyncHandler(galleryController.removeItem)
 );
-
-galleryRouter.use(adminGalleryRouter);

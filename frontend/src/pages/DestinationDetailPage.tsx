@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestinations";
@@ -71,20 +71,40 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
     return false;
   });
-  const destReviews = reviews.filter(
-    (r) =>
-      r.status === "published" &&
-      (r.destination === destId ||
-        (dest && r.destinationId === dest.id) ||
-        (dest?.slug && r.destinationSlug === dest.slug) ||
-        (dest && r.destination === dest.name) ||
-        (dest && (r.destination === dest.id || r.destination === dest.slug)))
-  );
+  const destReviews = reviews.filter((r) => {
+    if (r.status !== "published") return false;
+    const norm = (s?: string) => (s || "").trim().toLowerCase();
+    const rDest = norm(r.destination);
+    const targets = [norm(destId), norm(dest?.id), norm(dest?.slug), norm(dest?.name)].filter(Boolean);
 
-  const [showAllReviews, setShowAllReviews] = useState(false);
+    if (dest && r.destinationId === dest.id) return true;
+    if (dest?.slug && norm(r.destinationSlug) === norm(dest.slug)) return true;
+    if (rDest && targets.includes(rDest)) return true;
+    if (rDest && targets.some((t) => t.length >= 3 && (rDest.includes(t) || t.includes(rDest)))) return true;
+    if (
+      destTrips.some(
+        (t) =>
+          (r.tripId && (t.id === r.tripId || t.slug === r.tripId)) ||
+          (r.tripName && norm(t.name) === norm(r.tripName))
+      )
+    ) {
+      return true;
+    }
+    return false;
+  });
+
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const displayedReviews = showAllReviews ? destReviews : destReviews.slice(0, 3);
+  const displayedReviews = destReviews.slice(0, 3);
+
+  useEffect(() => {
+    if (location.hash === "#reviews") {
+      const timer = setTimeout(() => {
+        document.getElementById("reviews")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [location.hash, dest?.id]);
 
   const handleSave = async (form: DestFormData) => {
     if (!dest) return;
@@ -380,38 +400,92 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
             {/* Reviews */}
             {destReviews.length > 0 && (
-              <section>
-                <h2 className="text-[#0f2922] text-2xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>Traveller Reviews</h2>
-                <div className="space-y-4">
+              <section id="reviews" className="scroll-mt-24">
+                <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+                  <div>
+                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Traveller Reviews</h2>
+                    <p className="text-[#718096] text-sm mt-1">
+                      Verified stories from explorers who visited {dest.name}
+                    </p>
+                  </div>
+                  <Link
+                    to={`/destinations/${dest.slug || dest.id}/reviews`}
+                    className="text-xs font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors inline-flex items-center gap-1"
+                  >
+                    Show All ({destReviews.length}) →
+                  </Link>
+                </div>
+                <div className="space-y-3.5">
                   {displayedReviews.map((review) => (
-                    <div key={review.id} className="bg-white border border-[#e2e8f0] rounded-2xl p-5">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0">
-                          {review.avatar}
+                    <Link
+                      key={review.id}
+                      to={`/destinations/${dest.slug || dest.id}/reviews#review-${review.id}`}
+                      className="block bg-white border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-sm rounded-2xl p-4 sm:p-5 transition-all group"
+                    >
+                      <div className="flex items-start gap-3.5 sm:gap-4">
+                        <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm shrink-0">
+                          {review.avatar || review.name?.slice(0, 2).toUpperCase() || "TR"}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                            <div>
+                            <div className="min-w-0">
                               <span className="text-[#0f2922] font-medium text-sm">{review.name}</span>
-                              <span className="text-[#4a5568] text-xs ml-2">· {review.tripName}</span>
+                              {review.tripName && (
+                                <span className="text-[#4a5568] text-xs ml-1.5">· {review.tripName}</span>
+                              )}
                             </div>
-                            <span className="text-[#4a5568] text-xs shrink-0">{new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })}</span>
+                            <span className="text-[#718096] text-xs shrink-0">
+                              {review.date && !isNaN(new Date(review.date).getTime())
+                                ? new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+                                : review.date}
+                            </span>
                           </div>
                           <StarRating rating={review.rating} />
-                          <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic">"{review.text}"</p>
+                          <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic line-clamp-3 sm:line-clamp-4">
+                            "{review.text}"
+                          </p>
+                          {review.photos && review.photos.length > 0 && (
+                            <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-[#f1f5f9]">
+                              {review.photos.slice(0, 3).map((photo, idx) => {
+                                const remaining = review.photos!.length - 3;
+                                const showMoreBadge = idx === 2 && remaining > 0;
+                                return (
+                                  <div
+                                    key={idx}
+                                    className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#e2e8f0] shrink-0 bg-[#f7f8f5]"
+                                  >
+                                    <img
+                                      src={photo}
+                                      alt={`${review.name} review photo ${idx + 1}`}
+                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                                      loading="lazy"
+                                    />
+                                    {showMoreBadge && (
+                                      <div className="absolute inset-0 bg-black/55 flex items-center justify-center text-white text-xs font-semibold">
+                                        +{remaining}
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
-                {destReviews.length > 3 && !showAllReviews && (
-                  <button
-                    onClick={() => setShowAllReviews(true)}
-                    className="mt-4 text-sm text-[#0f2922] border border-[#0f2922] px-5 py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
+                <div className="mt-5">
+                  <Link
+                    to={`/destinations/${dest.slug || dest.id}/reviews`}
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-medium text-[#0f2922] border border-[#0f2922] px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
                   >
-                    View All {destReviews.length} Reviews
-                  </button>
-                )}
+                    Show All Reviews ({destReviews.length})
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </Link>
+                </div>
               </section>
             )}
           </div>

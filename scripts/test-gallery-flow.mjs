@@ -69,11 +69,15 @@ async function run() {
     adminToken = loginRes.data?.data?.tokens?.accessToken;
     assert(Boolean(adminToken), 'Received admin access token');
 
-    // 2. Public Gallery endpoint (no auth required)
-    console.log('\n2. Public Gallery access (unauthenticated)');
+    // 2. Public Gallery & Site Assets endpoints (no auth required)
+    console.log('\n2. Public Gallery & Site Assets access (unauthenticated)');
     const publicRes = await request('/gallery');
     assert(publicRes.status === 200, `Public GET /gallery returns 200 OK (got ${publicRes.status})`);
     assert(Array.isArray(publicRes.data?.data), 'Public gallery returns an array of items');
+
+    const siteAssetsRes = await request('/site-assets');
+    assert(siteAssetsRes.status === 200, `Public GET /site-assets returns 200 OK without auth (got ${siteAssetsRes.status})`);
+    assert(Array.isArray(siteAssetsRes.data?.data), 'Public site-assets returns an array of assets');
 
     // 3. Admin authorization requirement on gallery mutations
     console.log('\n3. Security & authorization validation');
