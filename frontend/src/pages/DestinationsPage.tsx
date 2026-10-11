@@ -23,24 +23,24 @@ export default function DestinationsPage() {
         keywords="Uttarakhand destinations, Chopta, Auli, Kedarnath, Rishikesh, Mussoorie, Kanatal, Chakrata, travel Uttarakhand"
       />
       {/* Header */}
-      <section className="pt-14 pb-10 max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">EXPLORE THE SACRED STATE</div>
-        <h1 className="page-heading text-[#0f2922] mb-4">Our Curated Havens in Uttarakhand</h1>
-        <p className="text-[#4a5568] text-[15px] sm:text-base max-w-2xl leading-relaxed">
+      <section className="pt-10 sm:pt-14 pb-6 sm:pb-10 max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2.5 sm:mb-3">EXPLORE THE SACRED STATE</div>
+        <h1 className="page-heading text-[#0f2922] max-sm:text-[29px] max-sm:leading-[1.12] mb-3 sm:mb-4">Our Curated Havens in Uttarakhand</h1>
+        <p className="text-[#4a5568] text-[15px] sm:text-base max-w-2xl leading-[1.5] sm:leading-relaxed max-sm:mb-0">
           From the sacred rapids of Ganga in Rishikesh to the snow-laden slopes of Auli and high alpine quiet of Chopta, discover pristine landscapes curated specifically for active, youthful souls.
         </p>
       </section>
 
       {/* Cards Grid */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-16">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {activeDestinations.map((d, idx) => (
             <Link
               key={d.id}
               to={`/destinations/${d.slug || d.id}`}
-              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all duration-300 group block w-full text-left cursor-pointer"
+              className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all duration-300 group block w-full min-w-0 text-left cursor-pointer"
             >
-              <div className="h-52 overflow-hidden relative">
+              <div className="h-[220px] sm:h-52 overflow-hidden relative">
                 <ProgressiveImage
                   src={d.image}
                   alt={d.name}
@@ -49,22 +49,22 @@ export default function DestinationsPage() {
                   priority={idx < 3}
                 />
                 {d.season && (
-                  <span className="absolute top-3 right-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
+                  <span className="absolute top-3 right-3 max-w-[calc(100%-1.5rem)] truncate text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
                     {d.season}
                   </span>
                 )}
                 <div className="absolute inset-0 card-overlay-bottom pointer-events-none" />
-                <div className="absolute bottom-0 left-0 p-4 z-10">
+                <div className="absolute bottom-0 left-0 right-0 p-3.5 sm:p-4 z-10">
                   <div className="text-white font-semibold text-lg sm:text-xl leading-snug text-contrast-title drop-shadow-xs" style={{ fontFamily: "var(--font-serif)" }}>
                     {d.name}
                   </div>
                 </div>
               </div>
-              <div className="px-4 py-2.5 flex items-center justify-between border-t border-[#f0f4f2] bg-white">
-                <span className="text-[#718096] text-xs font-medium truncate flex-1 pr-3 leading-tight">
+              <div className="px-3.5 sm:px-4 py-2.5 flex items-center justify-between gap-3 min-w-0 border-t border-[#f0f4f2] bg-white">
+                <span className="text-[#718096] text-xs font-medium min-w-0 truncate flex-1 leading-normal sm:leading-tight">
                   {d.tagline || d.description || "Pristine Himalayan destination"}
                 </span>
-                <span className="text-[#e8622a] text-xs font-medium group-hover:underline shrink-0 leading-tight">
+                <span className="text-[#e8622a] text-xs font-medium group-hover:underline shrink-0 whitespace-nowrap leading-tight">
                   EXPLORE →
                 </span>
               </div>
@@ -74,8 +74,8 @@ export default function DestinationsPage() {
       </div>
 
       {/* Seasonal Calendar */}
-      <section style={{ background: "var(--forest)" }} className="py-16">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section style={{ background: "var(--forest)" }} className="py-10 sm:py-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-2 gap-8 sm:gap-12 items-center">
           <div>
             <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3">SEASONAL HIMALAYAN CALENDAR</div>
             <h2 className="text-white text-2xl sm:text-4xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>When is the mountains' heartbeat strongest?</h2>
