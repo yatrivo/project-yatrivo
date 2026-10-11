@@ -52,23 +52,23 @@ export default function Footer() {
   ];
 
   return (
-    <footer style={{ background: "var(--forest)" }} className="text-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 sm:py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-10">
+    <footer style={{ background: "var(--forest)" }} className="text-white border-t border-white/10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 sm:py-14 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
         {/* Brand */}
         <div>
-          <Link to="/" className="inline-block text-[30px] sm:text-2xl leading-tight sm:leading-normal font-bold tracking-widest mb-1 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
+          <Link to="/" className="inline-block text-2xl leading-tight sm:leading-normal font-bold tracking-widest mb-2 sm:mb-1 hover:text-[#e8622a] transition-colors" style={{ fontFamily: "var(--font-serif)" }}>
             YATRIVO
           </Link>
-          <div className="text-[#f7f8f5]/85 text-[14px] sm:text-[13px] leading-snug font-medium tracking-[0.09em] uppercase mb-2 sm:mb-4" style={{ fontFamily: "var(--font-sans)" }}>{tagline}</div>
-          <p className="text-white/60 text-[15px] sm:text-sm leading-snug sm:leading-relaxed max-sm:mb-0">
+          <div className="text-[#f7f8f5]/85 text-xs sm:text-[13px] leading-snug font-medium tracking-[0.09em] uppercase mb-3 sm:mb-4" style={{ fontFamily: "var(--font-sans)" }}>{tagline}</div>
+          <p className="text-white/60 text-sm leading-relaxed max-sm:mb-0">
             {siteDescription}
           </p>
         </div>
 
         {/* Popular Spots */}
         <div>
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2 sm:mb-4">POPULAR SPOTS</div>
-          <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:block sm:space-y-2.5">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3.5 sm:mb-4">POPULAR SPOTS</div>
+          <ul className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:block sm:space-y-2.5">
             {[
               { label: "Chopta", dest: "chopta" },
               { label: "Auli Snow Slopes", dest: "auli" },
@@ -77,10 +77,10 @@ export default function Footer() {
               { label: "Mussoorie Hills", dest: "mussoorie" },
               { label: "Kanatal Woods", dest: "kanatal" },
             ].map((s) => (
-              <li key={s.label} className="leading-snug sm:leading-[1.6]">
+              <li key={s.label} className="leading-normal sm:leading-[1.6]">
                 <Link
                   to={`/destinations/${s.dest}`}
-                  className="text-white/70 hover:text-white text-[15px] sm:text-sm leading-snug sm:leading-normal transition-colors block text-left"
+                  className="text-white/70 hover:text-white text-sm leading-normal transition-colors block text-left"
                 >
                   {s.label}
                 </Link>
@@ -91,38 +91,38 @@ export default function Footer() {
 
         {/* Connect */}
         <div>
-          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-2 sm:mb-4">CONNECT WITH US</div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 sm:block sm:space-y-2.5 mb-3 sm:mb-4">
+          <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-3.5 sm:mb-4">CONNECT WITH US</div>
+          <div className="grid grid-cols-2 gap-x-6 gap-y-2.5 sm:block sm:space-y-2.5 mb-5 sm:mb-4">
             {[
               { label: "Travel With Us", path: "/travel-with-us" },
               { label: "Past Trips", path: "/past-trips" },
               { label: "About Us", path: "/about" },
               { label: "FAQ & Contact", path: "/faq" },
             ].map((l) => (
-              <div key={l.path} className="leading-snug sm:leading-[1.6]">
+              <div key={l.path} className="leading-normal sm:leading-[1.6]">
                 <Link
                   to={l.path}
-                  className="text-white/70 hover:text-white text-[15px] sm:text-sm leading-snug sm:leading-normal transition-colors block text-left"
+                  className="text-white/70 hover:text-white text-sm leading-normal transition-colors block text-left"
                 >
                   {l.label}
                 </Link>
               </div>
             ))}
           </div>
-          <div className="space-y-1.5 sm:space-y-3 text-[14px] sm:text-sm text-white/70 mt-3 sm:mt-4">
-            <p className="whitespace-pre-line leading-snug sm:leading-[1.6] max-sm:mb-0">{address}</p>
-            <p className="leading-snug sm:leading-[1.6] max-sm:mb-0">
+          <div className="space-y-2.5 sm:space-y-3 text-sm text-white/70 pt-4 sm:pt-0 border-t border-white/10 sm:border-t-0 mt-4">
+            <p className="whitespace-pre-line leading-relaxed sm:leading-[1.6] max-sm:mb-0">{address}</p>
+            <p className="leading-normal sm:leading-[1.6] max-sm:mb-0">
               <a href={`mailto:${contactEmail}`} className="hover:text-white transition-colors">
                 {contactEmail}
               </a>
             </p>
-            <p className="leading-snug sm:leading-[1.6] max-sm:mb-0">
+            <p className="leading-normal sm:leading-[1.6] max-sm:mb-0">
               <a href={`tel:${phone.replace(/\s+/g, "")}`} className="hover:text-white transition-colors">
                 {phone}
               </a>
             </p>
             {whatsapp && (
-              <p className="leading-snug sm:leading-[1.6] max-sm:mb-0">
+              <p className="leading-normal sm:leading-[1.6] max-sm:mb-0">
                 <a
                   href={`https://wa.me/${whatsapp.replace(/\D/g, "")}`}
                   target="_blank"
@@ -135,7 +135,7 @@ export default function Footer() {
             )}
           </div>
 
-          <div className="flex items-center gap-3 mt-4 sm:mt-5">
+          <div className="flex items-center gap-3 mt-6 sm:mt-5">
             {socialLinks.map(({ label, href, path }) => (
               <a
                 key={label}
@@ -154,7 +154,7 @@ export default function Footer() {
       </div>
 
       <div className="border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 text-xs text-white/40 text-center sm:text-left">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-2.5 sm:gap-3 text-xs text-white/40 text-center sm:text-left">
           <span>© 2026 Yatrivo Travel Brand. Designed with mindfulness in Dehradun.</span>
           <div className="flex flex-wrap justify-center gap-x-4 gap-y-1">
             <Link to="/terms" className="hover:text-white/70 transition-colors">Terms & Conditions</Link>
