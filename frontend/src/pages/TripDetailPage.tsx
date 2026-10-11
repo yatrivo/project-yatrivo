@@ -530,7 +530,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
       )}
 
       {/* Hero with Single Cover Image (No Gallery Thumbs Carousel Overlay) */}
-      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] overflow-hidden">
+      <section className="relative h-[82vh] md:h-[84vh] min-h-[500px] md:min-h-[580px] max-h-[840px] overflow-hidden">
         {activeTrip?.image ? (
           <img
             src={activeTrip.image}

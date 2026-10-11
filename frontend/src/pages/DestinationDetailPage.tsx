@@ -211,7 +211,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
       )}
 
       {/* Hero with Single Cover Image */}
-      <section className="relative h-[44vh] sm:h-[52vh] md:h-[84vh] min-h-[300px] sm:min-h-[360px] md:min-h-[580px] max-h-[840px] overflow-hidden">
+      <section className="relative flex items-end h-[82vh] md:h-[84vh] min-h-[500px] md:min-h-[580px] max-h-[840px] overflow-hidden">
         <ProgressiveImage
           src={dest.image}
           alt={dest.name}
@@ -220,16 +220,17 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           priority={true}
         />
         <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="absolute bottom-0 left-0 right-0 max-w-7xl mx-auto px-4 sm:px-6 pb-6 sm:pb-8 md:pb-12">
-          <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div className="sm:hidden absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/65 via-black/30 to-transparent pointer-events-none" />
+        <div className="relative z-10 w-full sm:absolute sm:bottom-0 sm:left-0 sm:right-0 max-w-7xl mx-auto px-4 sm:px-6 pt-24 sm:pt-0 pb-6 sm:pb-8 md:pb-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-3 sm:gap-4 flex-wrap">
             <div>
-              <p className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-2 text-contrast-subtle">Uttarakhand, India</p>
-              <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
-              <p className="text-white/90 text-[15px] sm:text-base text-contrast-body">{dest.tagline} · Best: {dest.season}</p>
+              <p className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1 sm:mb-2 text-contrast-subtle">Uttarakhand, India</p>
+              <h1 className="text-white text-[30px] sm:text-5xl md:text-6xl leading-[1.08] sm:leading-none mb-1.5 sm:mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{dest.name}</h1>
+              <p className="text-white/95 sm:text-white/90 text-[13px] sm:text-base leading-snug sm:leading-normal text-contrast-body max-sm:mb-0">{dest.tagline} · Best: {dest.season}</p>
               {dest.experienceTags && dest.experienceTags.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-3">
+                <div className="flex flex-wrap gap-1 sm:gap-2 mt-2 sm:mt-3">
                   {dest.experienceTags.map((tag) => (
-                    <span key={tag} className="text-xs badge-glass-dark text-white px-3 py-1 rounded-full font-medium">
+                    <span key={tag} className="text-[10px] sm:text-xs badge-glass-dark text-white/95 sm:text-white px-2 sm:px-3 py-[2px] sm:py-1 rounded-full font-normal sm:font-medium leading-tight sm:leading-normal">
                       {tag}
                     </span>
                   ))}
@@ -237,10 +238,10 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
               )}
             </div>
             {!isAdmin && (
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 mt-0.5 sm:mt-0">
                 <button
                   onClick={() => document.getElementById("packages")?.scrollIntoView({ behavior: "smooth" })}
-                  className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-sm font-medium transition-colors cursor-pointer btn-primary-elevated"
+                  className="bg-[#e8622a] hover:bg-[#d45520] text-white px-5 py-2.5 rounded-full text-[13px] sm:text-sm font-semibold sm:font-medium transition-colors cursor-pointer btn-primary-elevated"
                 >
                   Explore Packages
                 </button>
@@ -250,24 +251,24 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
         </div>
       </section>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 sm:py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 sm:gap-10">
           {/* Main content */}
-          <div className="lg:col-span-2 space-y-10">
+          <div className="lg:col-span-2 space-y-8 sm:space-y-10">
             {/* About */}
             <section>
-              <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>About {dest.name}</h2>
-              <p className="text-[#4a5568] text-[15px] sm:text-sm leading-relaxed">{dest.description}</p>
+              <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-2.5 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>About {dest.name}</h2>
+              <p className="text-[#4a5568] text-[13.5px] sm:text-sm leading-relaxed max-sm:mb-0">{dest.description}</p>
             </section>
 
             {/* Highlights */}
             <section>
-              <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Why Visit</h2>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-3 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>Why Visit</h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
                 {dest.highlights.map((h) => (
-                  <div key={h} className="flex items-start gap-3 border border-[#e2e8f0] rounded-xl p-4">
+                  <div key={h} className="flex items-start gap-2.5 sm:gap-3 border border-[#e2e8f0] rounded-xl p-3.5 sm:p-4">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#e8622a" strokeWidth="2.5" className="shrink-0 mt-0.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    <span className="text-[#4a5568] text-sm">{h}</span>
+                    <span className="text-[#4a5568] text-[13.5px] sm:text-sm leading-snug sm:leading-[1.6]">{h}</span>
                   </div>
                 ))}
               </div>
@@ -275,116 +276,88 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
 
             {/* Activities */}
             <section>
-              <h2 className="text-[#0f2922] text-2xl mb-4" style={{ fontFamily: "var(--font-serif)" }}>Activities & Experiences</h2>
-              <div className="flex flex-wrap gap-2">
+              <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-2.5 sm:mb-4" style={{ fontFamily: "var(--font-serif)" }}>Activities & Experiences</h2>
+              <div className="flex flex-wrap gap-1.5 sm:gap-2">
                 {dest.activities.map((a) => (
-                  <span key={a} className="bg-[#f7f8f5] border border-[#e2e8f0] text-[#0f2922] text-sm px-4 py-2 rounded-full">{a}</span>
+                  <span key={a} className="bg-[#f7f8f5] border border-[#e2e8f0] text-[#0f2922] text-[11.5px] sm:text-xs leading-tight sm:leading-snug px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-full max-w-full">{a}</span>
                 ))}
               </div>
             </section>
 
             {/* Packages */}
             <section id="packages">
-              <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+              <div className="flex items-center sm:items-end justify-between mb-3.5 sm:mb-5 gap-2">
                 <div>
-                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Related Packages</h2>
-                  <p className="text-[#718096] text-sm mt-1">
+                  <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-0" style={{ fontFamily: "var(--font-serif)" }}>Related Packages</h2>
+                  <p className="hidden sm:block text-[#718096] text-sm mt-1">
                     Handcrafted treks, expeditions, and itineraries in {dest.name}
                   </p>
                 </div>
                 {destTrips.length > 0 && (
-                  <span className="text-xs text-[#718096]">
+                  <span className="text-xs text-[#718096] shrink-0">
                     {destTrips.length} {destTrips.length === 1 ? "package" : "packages"} available
                   </span>
                 )}
               </div>
 
               {destTrips.length > 0 ? (
-                <div className="grid sm:grid-cols-2 gap-5">
-                  {destTrips.map((trip) => {
-                    const tripUpcoming = tripInstances
-                      .filter((inst) => inst.status === "upcoming" && (inst.tripId === trip.id || (trip.slug && inst.tripId === trip.slug)))
-                      .sort((a, b) => a.date.localeCompare(b.date));
-                    const nearestInstance = tripUpcoming[0];
-
-                    return (
-                      <div key={trip.id} className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between">
-                        <div>
-                          <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`} className="relative h-48 overflow-hidden block">
-                            <ProgressiveImage
-                              src={trip.image}
-                              alt={trip.name}
-                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                              containerClassName="w-full h-full relative"
-                              priority={false}
-                            />
-                            {(trip.badge || trip.category) && (
-                              <span className="absolute top-3 left-3 text-[10px] font-semibold tracking-wide uppercase px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
-                                {trip.badge || trip.category}
-                              </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5">
+                  {destTrips.map((trip) => (
+                    <div key={trip.id} className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between">
+                      <div>
+                        <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`} className="relative h-40 sm:h-44 overflow-hidden block">
+                          <ProgressiveImage
+                            src={trip.image}
+                            alt={trip.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            containerClassName="w-full h-full relative"
+                            priority={false}
+                          />
+                          {(trip.badge || trip.category) && (
+                            <span className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 text-[10px] font-semibold tracking-wide uppercase px-2 sm:px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
+                              {trip.badge || trip.category}
+                            </span>
+                          )}
+                          {trip.duration && (
+                            <span className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-3 text-[10px] sm:text-[11px] font-medium px-2 sm:px-2.5 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm z-10">
+                              {trip.duration}
+                            </span>
+                          )}
+                        </Link>
+                        <div className="px-3.5 pt-3 pb-2.5 sm:p-3.5">
+                          <div className="flex items-center justify-between gap-2 text-xs text-[#718096] mb-1">
+                            <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px] leading-tight">{trip.category}</span>
+                            {trip.difficulty && (
+                              <span className="text-[10px] sm:text-[11px] text-[#718096] leading-tight">{trip.difficulty}</span>
                             )}
-                            {trip.duration && (
-                              <span className="absolute bottom-3 right-3 text-[11px] font-medium px-2.5 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm z-10">
-                                {trip.duration}
-                              </span>
-                            )}
-                          </Link>
-                          <div className="p-4">
-                            <div className="flex items-center justify-between text-xs text-[#718096] mb-1.5">
-                              <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px]">{trip.category}</span>
-                              {trip.difficulty && (
-                                <span className="text-[11px] text-[#718096]">{trip.difficulty}</span>
-                              )}
-                            </div>
-                            <h3 className="text-[#0f2922] text-lg font-semibold mb-1.5 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
-                              <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
-                            </h3>
-                            <p className="text-[#718096] text-xs leading-relaxed line-clamp-2 mb-3">
-                              {trip.shortDescription || trip.overview || "Experience handcrafted trails, local culture, and pristine views."}
-                            </p>
-
-                            {/* Departure status indicator */}
-                            <div className="pt-2.5 border-t border-[#f1f5f9] flex items-center justify-between text-xs">
-                              {tripUpcoming.length > 0 ? (
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2.5 py-1 rounded-full">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                                  {tripUpcoming.length} upcoming {tripUpcoming.length === 1 ? "departure" : "departures"}
-                                  {nearestInstance?.displayDate && (
-                                    <span className="text-emerald-600/80 hidden sm:inline">· Next: {nearestInstance.displayDate}</span>
-                                  )}
-                                </span>
-                              ) : (
-                                <span className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[#4a5568] bg-[#f7f8f5] border border-[#e2e8f0] px-2.5 py-1 rounded-full">
-                                  <span className="w-1.5 h-1.5 rounded-full bg-[#a0aec0]" />
-                                  Flexible dates · On demand
-                                </span>
-                              )}
-                            </div>
                           </div>
-                        </div>
-
-                        <div className="px-4 py-3 border-t border-[#e2e8f0] bg-[#fafafa] flex items-center justify-between mt-auto">
-                          <div>
-                            <div className="text-[10px] text-[#718096] uppercase tracking-wider font-medium">STARTING PRICE</div>
-                            <div className="text-[#0f2922] text-lg font-bold" style={{ fontFamily: "var(--font-serif)" }}>
-                              ₹{trip.price.toLocaleString("en-IN")}
-                              <span className="text-xs font-normal text-[#718096]"> / person</span>
-                            </div>
-                          </div>
-                          <Link
-                            to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}
-                            className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold px-4 py-2 rounded-full transition-colors cursor-pointer"
-                          >
-                            {isAdmin ? "MANAGE TRIP" : "VIEW PACKAGE"}
-                          </Link>
+                          <h3 className="text-[#0f2922] text-[15.5px] sm:text-[17px] leading-snug font-semibold mb-0 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
+                            <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
+                          </h3>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      <div className="px-3.5 py-2.5 sm:px-3.5 sm:py-2.5 border-t border-[#f1f5f9] sm:border-[#e2e8f0] bg-white sm:bg-[#fafafa] flex items-center justify-between gap-2 flex-wrap mt-auto">
+                        <div className="min-w-0">
+                          <div className="text-[9px] sm:text-[10px] text-[#718096] uppercase tracking-wider font-medium leading-tight">STARTING PRICE</div>
+                          <div className="text-[#0f2922] text-[17px] sm:text-lg font-bold leading-tight mt-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                            ₹{trip.price.toLocaleString("en-IN")}
+                            <span className="text-[11px] sm:text-xs font-normal text-[#718096]"> / person</span>
+                          </div>
+                        </div>
+                        <Link
+                          to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}
+                          className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-[11px] sm:text-xs font-semibold px-4 py-2 rounded-full transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                        >
+                          {isAdmin ? "MANAGE TRIP" : "VIEW PACKAGE"}
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="bg-[#f7f8f5] rounded-2xl p-8 text-center border border-[#e2e8f0]">
-                  <p className="text-[#4a5568] text-sm mb-4">No packages currently listed for {dest.name}.</p>
+                <div className="bg-[#f7f8f5] rounded-2xl p-6 sm:p-8 text-center border border-[#e2e8f0]">
+                  <p className="text-[#4a5568] text-[13.5px] sm:text-sm mb-4">No packages currently listed for {dest.name}.</p>
                   <div className="flex items-center justify-center gap-3 flex-wrap">
                     <Link to={isAdmin ? "/admin/trips" : "/trips"} className="bg-[#0f2922] text-white text-sm px-6 py-2.5 rounded-full hover:bg-[#1a4a39] transition-colors inline-block">
                       {isAdmin ? "View All Trips" : "Browse All Trips"}
@@ -405,12 +378,12 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
             {/* Photo Gallery (Separate from Cover Image) */}
             {dest.gallery && dest.gallery.length > 0 && (
               <section id="gallery">
-                <div className="flex items-center justify-between mb-4 gap-2">
-                  <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Photo Gallery</h2>
+                <div className="flex items-center justify-between mb-3.5 sm:mb-4 gap-2">
+                  <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-0" style={{ fontFamily: "var(--font-serif)" }}>Photo Gallery</h2>
                   <button
                     type="button"
                     onClick={() => setLightboxIndex(0)}
-                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors cursor-pointer"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors cursor-pointer shrink-0"
                   >
                     <span>View All ({dest.gallery.length})</span>
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -418,10 +391,12 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                     </svg>
                   </button>
                 </div>
-                <div className={`grid ${dest.gallery.length === 2 ? "grid-cols-2" : "grid-cols-3"} gap-2 sm:gap-4`}>
+                <div className={`grid grid-cols-2 ${dest.gallery.length === 2 ? "sm:grid-cols-2" : "sm:grid-cols-3"} gap-2.5 sm:gap-4`}>
                   {dest.gallery.slice(0, 3).map((img, i) => {
-                    const remaining = dest.gallery.length - 3;
-                    const isLastVisible = i === 2 && remaining > 0;
+                    const remainingDesktop = dest.gallery.length - 3;
+                    const remainingMobile = dest.gallery.length - 2;
+                    const isLastDesktop = i === 2 && remainingDesktop > 0;
+                    const isLastMobile = i === 1 && remainingMobile > 0;
                     return (
                       <div
                         key={i}
@@ -434,7 +409,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                             setLightboxIndex(i);
                           }
                         }}
-                        className="relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]"
+                        className={`${i === 2 ? "hidden sm:block " : ""}relative aspect-[4/3] sm:h-48 sm:aspect-auto rounded-xl sm:rounded-2xl overflow-hidden border border-[#e2e8f0] shadow-xs hover:shadow-md transition group cursor-pointer bg-[#f7f8f5]`}
                       >
                         <ProgressiveImage
                           src={img}
@@ -443,9 +418,15 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                           containerClassName="w-full h-full relative"
                           priority={false}
                         />
-                        {isLastVisible ? (
-                          <div className="absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
-                            <span className="text-sm sm:text-lg font-bold">+{remaining}</span>
+                        {isLastMobile && (
+                          <div className="sm:hidden absolute inset-0 bg-black/50 hover:bg-black/60 transition-colors flex flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-lg font-bold leading-none">+{remainingMobile}</span>
+                            <span className="text-[11px] font-medium mt-1">Photos</span>
+                          </div>
+                        )}
+                        {isLastDesktop ? (
+                          <div className="hidden sm:flex absolute inset-0 bg-black/55 hover:bg-black/65 transition-colors flex-col items-center justify-center text-white p-2 text-center">
+                            <span className="text-sm sm:text-lg font-bold">+{remainingDesktop}</span>
                             <span className="text-[10px] sm:text-xs font-medium inline-flex items-center gap-1 mt-0.5">
                               View All
                               <svg className="w-3 h-3 sm:w-3.5 sm:h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -454,7 +435,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                             </span>
                           </div>
                         ) : (
-                          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
+                          <div className={`${isLastMobile ? "hidden sm:block " : ""}absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors`} />
                         )}
                       </div>
                     );
@@ -466,58 +447,65 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
             {/* Reviews */}
             {destReviews.length > 0 && (
               <section id="reviews" className="scroll-mt-24">
-                <div className="flex items-end justify-between mb-5 flex-wrap gap-2">
+                <div className="flex items-center sm:items-end justify-between mb-3.5 sm:mb-5 gap-2">
                   <div>
-                    <h2 className="text-[#0f2922] text-2xl" style={{ fontFamily: "var(--font-serif)" }}>Traveller Reviews</h2>
-                    <p className="text-[#718096] text-sm mt-1">
+                    <h2 className="text-[#0f2922] text-[22px] sm:text-2xl font-normal sm:font-light mb-0" style={{ fontFamily: "var(--font-serif)" }}>Traveller Reviews</h2>
+                    <p className="hidden sm:block text-[#718096] text-sm mt-1">
                       Verified stories from explorers who visited {dest.name}
                     </p>
                   </div>
                   <Link
                     to={`/destinations/${dest.slug || dest.id}/reviews`}
-                    className="text-xs font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors inline-flex items-center gap-1"
+                    className="inline-flex items-center gap-1.5 text-xs sm:text-sm font-semibold text-[#e8622a] hover:text-[#d45520] transition-colors shrink-0"
                   >
-                    Show All ({destReviews.length}) →
+                    <span>Show All ({destReviews.length})</span>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
                   </Link>
                 </div>
-                <div className="space-y-3.5">
+                <div className="space-y-3 sm:space-y-3.5">
                   {displayedReviews.map((review) => (
                     <Link
                       key={review.id}
                       to={`/destinations/${dest.slug || dest.id}/reviews#review-${review.id}`}
-                      className="block bg-white border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-sm rounded-2xl p-4 sm:p-5 transition-all group"
+                      className="block bg-white border border-[#e2e8f0] hover:border-[#0f2922]/30 hover:shadow-sm rounded-2xl p-3.5 sm:p-5 transition-all group"
                     >
-                      <div className="flex items-start gap-3.5 sm:gap-4">
+                      <div className="grid grid-cols-[2.25rem_minmax(0,1fr)] gap-x-2.5 sm:flex sm:items-start sm:gap-4">
                         <div className="w-9 h-9 sm:w-10 sm:h-10 bg-[#0f2922] rounded-full flex items-center justify-center text-white font-semibold text-xs sm:text-sm shrink-0">
                           {review.avatar || review.name?.slice(0, 2).toUpperCase() || "TR"}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between gap-2 mb-1 flex-wrap">
-                            <div className="min-w-0">
-                              <span className="text-[#0f2922] font-medium text-sm">{review.name}</span>
-                              {review.tripName && (
-                                <span className="text-[#4a5568] text-xs ml-1.5">· {review.tripName}</span>
-                              )}
+                        <div className="contents sm:block sm:flex-1 sm:min-w-0">
+                          <div className="min-w-0">
+                            <div className="flex items-start sm:items-center justify-between gap-2 mb-1 sm:flex-wrap">
+                              <div className="min-w-0 flex-1 sm:flex-initial">
+                                <span className="block sm:inline text-[#0f2922] font-semibold sm:font-medium text-sm leading-tight sm:leading-normal truncate">{review.name}</span>
+                                {review.tripName && (
+                                  <span className="block sm:inline text-[#4a5568] text-[11px] sm:text-xs leading-tight sm:leading-normal truncate sm:ml-1.5 mt-0.5 sm:mt-0">
+                                    <span className="hidden sm:inline">· </span>{review.tripName}
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-[#718096] text-[11px] sm:text-xs leading-tight sm:leading-normal shrink-0">
+                                {review.date && !isNaN(new Date(review.date).getTime())
+                                  ? new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
+                                  : review.date}
+                              </span>
                             </div>
-                            <span className="text-[#718096] text-xs shrink-0">
-                              {review.date && !isNaN(new Date(review.date).getTime())
-                                ? new Date(review.date).toLocaleDateString("en-IN", { month: "short", year: "numeric" })
-                                : review.date}
-                            </span>
+                            <StarRating rating={review.rating} />
                           </div>
-                          <StarRating rating={review.rating} />
-                          <p className="text-[#4a5568] text-sm leading-relaxed mt-2 italic line-clamp-3 sm:line-clamp-4">
+                          <p className="col-span-2 text-[#4a5568] text-[13.5px] sm:text-sm leading-[1.5] sm:leading-relaxed mt-2 italic line-clamp-4 max-sm:mb-0">
                             "{review.text}"
                           </p>
                           {review.photos && review.photos.length > 0 && (
-                            <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-[#f1f5f9]">
+                            <div className="col-span-2 flex items-center gap-2 sm:gap-2.5 mt-2.5 sm:mt-3 pt-2 sm:pt-2.5 border-t border-[#f1f5f9] overflow-hidden">
                               {review.photos.slice(0, 3).map((photo, idx) => {
                                 const remaining = review.photos!.length - 3;
                                 const showMoreBadge = idx === 2 && remaining > 0;
                                 return (
                                   <div
                                     key={idx}
-                                    className="relative w-16 h-16 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#e2e8f0] shrink-0 bg-[#f7f8f5]"
+                                    className="relative w-14 h-14 sm:w-20 sm:h-20 rounded-xl overflow-hidden border border-[#e2e8f0] shrink-0 bg-[#f7f8f5]"
                                   >
                                     <img
                                       src={photo}
@@ -540,13 +528,13 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                     </Link>
                   ))}
                 </div>
-                <div className="mt-5">
+                <div className="mt-3.5 sm:mt-5">
                   <Link
                     to={`/destinations/${dest.slug || dest.id}/reviews`}
-                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-sm font-medium text-[#0f2922] border border-[#0f2922] px-6 py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
+                    className="w-full sm:w-auto inline-flex items-center justify-center gap-2 text-xs sm:text-sm font-medium text-[#0f2922] border border-[#0f2922] px-5 sm:px-6 py-2 sm:py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all cursor-pointer"
                   >
                     Show All Reviews ({destReviews.length})
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                     </svg>
                   </Link>
@@ -556,33 +544,33 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-5">
-            <div style={{ background: "var(--forest)" }} className="rounded-2xl p-6 text-white sticky top-24">
-              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest mb-3">
+          <div className="space-y-4 sm:space-y-5">
+            <div style={{ background: "var(--forest)" }} className="rounded-2xl p-4 sm:p-6 text-white sticky top-24">
+              <div className="text-[#e8622a] text-[10px] uppercase tracking-widest leading-tight mb-1 sm:mb-3">
                 {isAdmin ? "DESTINATION DETAILS" : "PLAN YOUR VISIT"}
               </div>
-              <h3 className="text-white text-xl mb-5" style={{ fontFamily: "var(--font-serif)" }}>
+              <h3 className="text-white text-[17px] sm:text-xl font-normal sm:font-light leading-snug mb-3 sm:mb-5" style={{ fontFamily: "var(--font-serif)" }}>
                 {isAdmin ? `${dest.name} Overview` : `Interested in ${dest.name}?`}
               </h3>
-              <div className="space-y-3 text-sm mb-6">
+              <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm mb-3.5 sm:mb-6">
                 {[
                   { label: "Best Season", val: dest.season },
                   { label: "Region", val: "Uttarakhand, India" },
                   { label: "Packages Available", val: `${destTrips.length || "Custom"} curated trips` },
                   ...(dest.elevation ? [{ label: "Elevation", val: dest.elevation }] : []),
                 ].map((row) => (
-                  <div key={row.label} className="flex justify-between border-b border-white/10 pb-3">
-                    <span className="text-white/60">{row.label}</span>
-                    <span className="text-white font-medium">{row.val}</span>
+                  <div key={row.label} className="flex justify-between items-center gap-2 border-b border-white/10 pb-2 sm:pb-3 leading-snug">
+                    <span className="text-white/60 leading-snug">{row.label}</span>
+                    <span className="text-white font-medium text-right leading-snug">{row.val}</span>
                   </div>
                 ))}
               </div>
               {isAdmin ? (
                 <button
                   onClick={() => setIsEditing(true)}
-                  className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3 cursor-pointer inline-flex items-center justify-center gap-1.5"
+                  className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold transition-colors mb-2 sm:mb-3 cursor-pointer inline-flex items-center justify-center gap-1.5"
                 >
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
                   Edit Destination
@@ -591,11 +579,11 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                 <>
                   <button
                     onClick={() => openEnquiryModal(destTrips[0]?.id || dest.slug || dest.id)}
-                    className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-3 rounded-full text-sm font-semibold transition-colors mb-3 cursor-pointer"
+                    className="w-full bg-[#e8622a] hover:bg-[#d45520] text-white py-2 sm:py-3 rounded-full text-xs sm:text-sm font-semibold leading-snug transition-colors mb-2 sm:mb-3 cursor-pointer"
                   >
                     Enquire About {dest.name}
                   </button>
-                  <Link to={`/plan?destination=${encodeURIComponent(dest.slug || dest.id)}`} className="w-full border border-white/30 text-white py-3 rounded-full text-sm transition-colors hover:bg-white/10 text-center block">
+                  <Link to={`/plan?destination=${encodeURIComponent(dest.slug || dest.id)}`} className="w-full border border-white/30 text-white py-2 sm:py-3 rounded-full text-xs sm:text-sm leading-snug transition-colors hover:bg-white/10 text-center block">
                     Plan a Custom Trip
                   </Link>
                 </>
