@@ -1,7 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { createPortal } from "react-dom";
-import { useParams, Link, useNavigate } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { useBackNavigate } from "@/utils/backNavigation";
+import BackLink from "@/components/BackLink";
 import { reviewsApi, type DepartureOperational, type EnrolledTraveller, type ReviewItem } from "@/api/reviews";
 import { tripsApi } from "@/api/trips";
 import MediaPicker from "@/components/MediaPicker";
@@ -84,7 +86,7 @@ function calculateReturnDate(startsOn: string, durationDays?: number | null, dur
 
 export default function AdminDepartureDetail() {
   const { id } = useParams<{ id: string }>();
-  const navigate = useNavigate();
+  const backNavigate = useBackNavigate();
   const { showToast, destinations, refreshTrips } = useApp();
 
   const [dep, setDep] = useState<DepartureOperational | null>(null);
@@ -363,7 +365,7 @@ export default function AdminDepartureDetail() {
         <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
           <p className="text-red-700 font-semibold mb-2">{error || "Departure not found."}</p>
           <button
-            onClick={() => navigate("/admin/trip-instances")}
+            onClick={() => backNavigate("/admin/trip-instances")}
             className="mt-4 inline-flex items-center gap-1.5 px-4 py-2 bg-[#0f2922] text-white rounded-lg text-sm font-medium hover:bg-[#1b4332] transition"
           >
             ← Back to Departures
@@ -380,7 +382,7 @@ export default function AdminDepartureDetail() {
       {/* Top Breadcrumb & Actions Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <Link
+          <BackLink
             to="/admin/trip-instances"
             className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#718096] hover:text-[#0f2922] transition mb-2"
           >
@@ -388,7 +390,7 @@ export default function AdminDepartureDetail() {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
             </svg>
             Back to Departures
-          </Link>
+          </BackLink>
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="text-2xl font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
               {dep.tripName}

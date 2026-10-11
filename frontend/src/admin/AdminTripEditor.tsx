@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import { useBackNavigate } from "@/utils/backNavigation";
+import BackLink from "@/components/BackLink";
 import { destinationsApi } from "@/api/destinations";
 import { tripsApi } from "@/api/trips";
 import type { Destination } from "@/data/destinations";
@@ -32,7 +34,7 @@ interface Props {
 
 export default function AdminTripEditor({ setAdminPage }: Props = {}) {
   const { id } = useParams<{ id?: string }>();
-  const navigate = useNavigate();
+  const backNavigate = useBackNavigate();
   const { showToast, trips, refreshTrips, destinations: appDestinations } = useApp();
 
   const existingTrip = id ? trips.find((t) => t.id === id || t.slug === id) : null;
@@ -404,7 +406,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
       await refreshTrips({ bypassCache: true });
       setAdminPage?.("trips");
-      navigate("/admin/trips");
+      backNavigate("/admin/trips");
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : "Failed to save trip";
       showToast(message, "error");
@@ -422,7 +424,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
       {/* Left section nav */}
       <div className="w-52 shrink-0 bg-white border-r border-[#e2e8f0] py-4">
         <div className="px-4 mb-4">
-          <Link
+          <BackLink
             to="/admin/trips"
             onClick={() => setAdminPage?.("trips")}
             className="inline-flex items-center gap-1.5 text-[#718096] hover:text-[#0f2922] text-xs transition"
@@ -431,7 +433,7 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
             </svg>
             Back to Trips
-          </Link>
+          </BackLink>
           <h3 className="font-semibold text-[#0f2922] text-sm mt-3">
             {existingTrip ? "Edit Trip" : "New Trip"}
           </h3>
@@ -1219,13 +1221,13 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
 
         {/* Bottom actions */}
         <div className="sticky bottom-0 bg-white border-t border-[#e2e8f0] px-6 py-4 flex items-center justify-between z-20">
-          <Link
+          <BackLink
             to="/admin/trips"
             onClick={() => setAdminPage?.("trips")}
             className="text-xs text-[#718096] hover:text-[#0f2922] font-medium transition inline-flex items-center gap-1"
           >
             ← Cancel & Return to Trips
-          </Link>
+          </BackLink>
 
           <div className="flex items-center gap-3">
             {/* Show Save Draft ONLY if:

@@ -5,6 +5,7 @@ import { DestinationModal, destToForm, DestFormData } from "@/admin/AdminDestina
 import { destinationsApi } from "@/api/destinations";
 import type { PublicGalleryItem } from "@/api/gallery";
 import { clientCache } from "@/utils/clientCache";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import ProgressiveImage from "@/components/ProgressiveImage";
@@ -184,7 +185,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
       {isAdmin && (
         <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">
           <div className="flex items-center gap-3">
-            <Link
+            <BackLink
               to="/admin/destinations"
               className="inline-flex items-center gap-1.5 text-xs text-[#a3bfb5] hover:text-white transition font-medium"
             >
@@ -192,7 +193,7 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back to Destinations
-            </Link>
+            </BackLink>
             <span className="text-white/20">|</span>
             <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-semibold px-2 py-0.5 rounded">
               Admin Preview Mode

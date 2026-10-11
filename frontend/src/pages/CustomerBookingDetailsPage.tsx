@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import BackLink from "@/components/BackLink";
 import SEO from "@/components/SEO";
 import {
   bookingsApi,
@@ -149,12 +150,12 @@ export default function CustomerBookingDetailsPage() {
           <p className="text-xs text-[#718096] mb-6">
             {error || "The link you followed is invalid, has expired, or the booking could not be found."}
           </p>
-          <Link
+          <BackLink
             to="/"
             className="inline-flex items-center justify-center px-5 py-2.5 bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium text-xs rounded-xl transition shadow-xs"
           >
             Go to Yatrivo Home
-          </Link>
+          </BackLink>
         </div>
       </div>
     );
@@ -222,12 +223,12 @@ export default function CustomerBookingDetailsPage() {
               >
                 Edit Submitted Details
               </button>
-              <Link
+              <BackLink
                 to="/"
                 className="px-5 py-2 bg-[#0f2922] hover:bg-[#1a3d31] text-white rounded-xl text-xs font-semibold transition shadow-xs"
               >
                 Back to Homepage
-              </Link>
+              </BackLink>
             </div>
           </div>
         ) : (

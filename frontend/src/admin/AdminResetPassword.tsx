@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { useBackNavigate } from "@/utils/backNavigation";
+import BackLink from "@/components/BackLink";
 import { authApi } from "@/api/auth";
 import logoImg from "@/imports/logo.png";
 
 export default function AdminResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
-  const navigate = useNavigate();
+  const backNavigate = useBackNavigate();
 
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -76,12 +78,12 @@ export default function AdminResetPassword() {
               <p className="text-sm text-[#718096] mb-6">
                 This password reset link is invalid or incomplete. Please request a new password reset link from the login page.
               </p>
-              <Link
+              <BackLink
                 to="/admin/login"
                 className="inline-block w-full bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium py-3 rounded-xl transition text-center"
               >
                 Back to Sign In
-              </Link>
+              </BackLink>
             </div>
           ) : success ? (
             <div className="text-center py-4">
@@ -98,7 +100,7 @@ export default function AdminResetPassword() {
               </p>
               <button
                 type="button"
-                onClick={() => navigate("/admin/login")}
+                onClick={() => backNavigate("/admin/login")}
                 className="w-full bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium py-3 rounded-xl transition cursor-pointer"
               >
                 Proceed to Sign In
@@ -211,9 +213,9 @@ export default function AdminResetPassword() {
               </form>
 
               <div className="mt-6 pt-4 border-t border-[#e2e8f0] text-center">
-                <Link to="/admin/login" className="text-xs text-[#718096] hover:text-[#0f2922] transition">
+                <BackLink to="/admin/login" className="text-xs text-[#718096] hover:text-[#0f2922] transition">
                   ← Return to Admin Sign In
-                </Link>
+                </BackLink>
               </div>
             </div>
           )}

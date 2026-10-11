@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 
@@ -23,12 +24,12 @@ export default function NotFoundPage() {
           The ridge you are looking for doesn't exist, has shifted, or the path is temporarily closed. Let's get you back on track.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-4">
-          <Link
+          <BackLink
             to="/"
             className="bg-[#0f2922] hover:bg-[#1a4a39] text-white px-7 py-3 rounded-full text-sm font-medium transition-colors"
           >
             Return to Home
-          </Link>
+          </BackLink>
           <Link
             to="/destinations"
             className="border border-[#0f2922] text-[#0f2922] hover:bg-[#0f2922] hover:text-white px-7 py-3 rounded-full text-sm font-medium transition-all"

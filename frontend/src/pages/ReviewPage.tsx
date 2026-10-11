@@ -3,6 +3,7 @@ import { useParams, useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { mediaApi } from "@/api/media";
 import { reviewsApi, type TokenContextResponse } from "@/api/reviews";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 
@@ -227,12 +228,12 @@ export default function ReviewPage() {
             <p className="text-xs text-[#718096] mb-6 leading-relaxed">
               {tokenError} Please reach out to our Yatrivo support team or check the link sent to your WhatsApp.
             </p>
-            <Link
+            <BackLink
               to="/"
               className="inline-block px-5 py-2.5 bg-[#0f2922] text-white text-xs font-semibold rounded-xl hover:bg-[#1b4332] transition"
             >
               Return to Yatrivo Homepage
-            </Link>
+            </BackLink>
           </div>
         )}
 

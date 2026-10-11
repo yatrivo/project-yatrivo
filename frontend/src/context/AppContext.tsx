@@ -496,7 +496,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setAdminLoggedIn(false);
     setAdminRole(null);
     setAdminUser(null);
-    routerNavigate("/admin/login");
+    routerNavigate("/admin/login", { replace: true });
   }, [routerNavigate]);
 
   const setSplashDone = useCallback(() => {

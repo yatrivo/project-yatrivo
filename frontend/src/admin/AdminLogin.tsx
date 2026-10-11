@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams, Navigate, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import BackLink from "@/components/BackLink";
 import ForgotPasswordModal from "./ForgotPasswordModal";
 import logoImg from "@/imports/logo.png";
 
@@ -144,9 +145,9 @@ export default function AdminLogin() {
           </form>
 
           <div className="mt-6 pt-6 border-t border-[#e2e8f0] flex items-center justify-between text-xs text-[#718096]">
-            <Link to="/" className="hover:text-[#0f2922] transition flex items-center gap-1">
+            <BackLink to="/" className="hover:text-[#0f2922] transition flex items-center gap-1">
               ← Return to public website
-            </Link>
+            </BackLink>
             <span>Authorized access</span>
           </div>
         </div>

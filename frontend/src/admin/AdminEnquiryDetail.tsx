@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import BackLink from "@/components/BackLink";
 import type { AdminPage } from "./AdminLayout";
 import {
   enquiriesApi,
@@ -296,13 +297,13 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
       <div className="p-8 text-center text-[#718096]">
         <p className="text-base text-red-600 mb-2 font-semibold">Enquiry not found or could not be loaded.</p>
         <p className="text-xs mb-4">{error}</p>
-        <Link
+        <BackLink
           to="/admin/enquiries"
           onClick={() => setAdminPage?.("enquiries")}
           className="inline-block bg-[#0f2922] text-white px-5 py-2 rounded-lg text-xs font-semibold hover:bg-[#1a4a39] transition cursor-pointer"
         >
           ← Back to Enquiries
-        </Link>
+        </BackLink>
       </div>
     );
   }
@@ -393,7 +394,7 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
 
       {/* Top Breadcrumb & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <Link
+        <BackLink
           to="/admin/enquiries"
           onClick={() => setAdminPage?.("enquiries")}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#718096] hover:text-[#0f2922] transition"
@@ -402,7 +403,7 @@ export default function AdminEnquiryDetail({ setAdminPage }: Props = {}) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           <span>Back to Enquiries</span>
-        </Link>
+        </BackLink>
 
         <div className="flex items-center gap-2">
           <span className="text-xs text-[#718096]">Enquiry ID:</span>

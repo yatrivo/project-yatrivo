@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import BackLink from "@/components/BackLink";
 import type { AdminPage } from "./AdminLayout";
 import {
   bookingsApi,
@@ -460,13 +461,13 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
       <div className="p-8 text-center text-[#718096]">
         <p className="text-base text-red-600 mb-2 font-semibold">Booking not found or could not be loaded.</p>
         <p className="text-xs mb-4">{error}</p>
-        <Link
+        <BackLink
           to="/admin/bookings"
           onClick={() => setAdminPage?.("bookings")}
           className="inline-block bg-[#0f2922] text-white px-5 py-2 rounded-lg text-xs font-semibold hover:bg-[#1a4a39] transition cursor-pointer"
         >
           ← Back to Bookings
-        </Link>
+        </BackLink>
       </div>
     );
   }
@@ -764,7 +765,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
 
       {/* Top Back Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <Link
+        <BackLink
           to="/admin/bookings"
           onClick={() => setAdminPage?.("bookings")}
           className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#718096] hover:text-[#0f2922] transition"
@@ -773,7 +774,7 @@ export default function AdminBookingDetail({ setAdminPage }: Props = {}) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
           <span>Back to Bookings</span>
-        </Link>
+        </BackLink>
 
         {booking.enquiryId && (
           <Link

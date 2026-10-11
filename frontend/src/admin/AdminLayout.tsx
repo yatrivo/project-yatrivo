@@ -197,7 +197,7 @@ export default function AdminLayout({ adminPage, setAdminPage, children }: Admin
                 onClick={async () => {
                   setLogoutConfirmOpen(false);
                   await adminLogout();
-                  navigate("/admin/login");
+                  navigate("/admin/login", { replace: true });
                 }}
                 className="flex-1 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold py-2.5 rounded-lg transition cursor-pointer"
               >

@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { Link, useParams, useSearchParams, useLocation } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import SiteImage from "@/components/SiteImage";
@@ -191,7 +192,7 @@ export default function ReviewsPage() {
         <div className="sm:hidden absolute inset-x-0 bottom-0 h-4/5 bg-gradient-to-t from-black/70 via-black/35 to-transparent pointer-events-none" />
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 w-full">
           {activeDest && (
-            <Link
+            <BackLink
               to={`/destinations/${activeDest.slug || activeDest.id}#reviews`}
               className="inline-flex items-center gap-1.5 text-[11px] sm:text-sm text-white/95 sm:text-white/90 hover:text-white bg-black/40 sm:bg-black/35 backdrop-blur-sm px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full mb-2.5 sm:mb-4 transition-colors"
             >
@@ -199,7 +200,7 @@ export default function ReviewsPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
               Back to {activeDest.name}
-            </Link>
+            </BackLink>
           )}
           <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1 sm:mb-2 text-contrast-subtle">
             {activeDest ? `${activeDest.name} · VERIFIED REVIEWS` : "AUTHENTIC TESTIMONIALS"}
@@ -242,12 +243,12 @@ export default function ReviewsPage() {
             <div className="flex items-center gap-2 overflow-x-auto pb-0.5 sm:pb-0 no-scrollbar -mx-4 px-4 sm:mx-0 sm:px-0">
               {slug ? (
                 <>
-                  <Link
+                  <BackLink
                     to={`/destinations/${activeDest?.slug || slug}#reviews`}
                     className="shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium border border-[#e2e8f0] text-[#4a5568] hover:border-[#0f2922] hover:text-[#0f2922] transition-all"
                   >
                     ← {activeDest?.name || "Destination"} Page
-                  </Link>
+                  </BackLink>
                   <Link
                     to="/reviews"
                     className="shrink-0 px-3 sm:px-4 py-1.5 rounded-full text-[11.5px] sm:text-sm font-medium bg-[#0f2922] text-white border border-[#0f2922] transition-all"

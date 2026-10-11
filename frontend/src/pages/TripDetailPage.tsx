@@ -5,6 +5,7 @@ import { tripsApi } from "@/api/trips";
 import type { PublicGalleryItem } from "@/api/gallery";
 import { settingsApi, type CancellationRule } from "@/api/settings";
 import type { Trip, TripDestination, TripHighlightCard, TripFaqItem, TripInstance, TripItineraryDay } from "@/data/trips";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import GalleryLightbox from "@/components/GalleryLightbox";
@@ -433,12 +434,12 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         <p className="text-[#718096] text-sm max-w-md mb-6 leading-relaxed">
           This Himalayan package is currently drafted or archived and not open for public bookings. Explore our active scheduled departures.
         </p>
-        <Link
+        <BackLink
           to="/trips"
           className="bg-[#0f2922] hover:bg-[#1a3d31] text-white font-medium text-sm px-6 py-2.5 rounded-lg transition"
         >
           Explore All Active Trips
-        </Link>
+        </BackLink>
       </div>
     );
   }
@@ -457,7 +458,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         <>
           <div className="bg-[#0f2922] text-white px-4 sm:px-6 py-3 border-b border-white/10 flex items-center justify-between sticky top-0 z-30 shadow-md">
             <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-              <Link
+              <BackLink
                 to="/admin/trips"
                 className="inline-flex items-center gap-1.5 text-xs text-[#a3bfb5] hover:text-white transition font-medium"
               >
@@ -465,7 +466,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
                 </svg>
                 Back to Trips
-              </Link>
+              </BackLink>
               <span className="text-white/20">|</span>
               <span className="bg-amber-400/20 text-amber-300 border border-amber-400/30 text-[11px] font-semibold px-2 py-0.5 rounded">
                 Admin Preview Mode
@@ -545,9 +546,9 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
               <div className="flex flex-wrap items-center gap-2 mb-3 text-xs text-contrast-subtle">
-                <Link to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-semibold">
+                <BackLink to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-semibold">
                   {activeTrip?.category ?? "EXPERIENCE"}
-                </Link>
+                </BackLink>
                 <span className="text-white/60">·</span>
                 <span className="text-white/90 uppercase tracking-wide font-medium">{activeTrip?.badge ?? "ADVENTURE"}</span>
                 {tripDestinations.map((d) => (

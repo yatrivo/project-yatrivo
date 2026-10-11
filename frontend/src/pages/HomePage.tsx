@@ -310,8 +310,8 @@ export default function HomePage() {
               <div className="text-[#e8622a] text-xs uppercase tracking-widest font-medium mb-1.5 sm:mb-2">CURATED HIMALAYAN WONDERS</div>
               <h2 className="section-heading text-[#0f2922] max-sm:mb-0">Destinations that Stir the Soul</h2>
             </div>
-            <Link to="/destinations" className="border border-[#0f2922] text-[#0f2922] text-xs sm:text-sm px-4 sm:px-5 py-1.5 sm:py-2 rounded-full hover:bg-[#0f2922] hover:text-white transition-all shrink-0 inline-block">
-              VIEW ALL DESTINATIONS
+            <Link to="/destinations" className="border border-[#0f2922] bg-[#0f2922] text-white md:bg-transparent md:text-[#0f2922] text-xs sm:text-sm px-4 sm:px-5 py-1.5 sm:py-2 rounded-full md:hover:bg-[#0f2922] md:hover:text-white transition-all shrink-0 inline-block">
+              VIEW ALL DESTINATIONS →
             </Link>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 sm:gap-5">
@@ -361,7 +361,7 @@ export default function HomePage() {
               </p>
               <Link
                 to="/travel-with-us"
-                className="border border-[#0f2922] text-[#0f2922] text-xs sm:text-sm px-5 sm:px-6 py-2 sm:py-2.5 rounded-full hover:bg-[#0f2922] hover:text-white transition-all font-medium inline-block"
+                className="border border-[#0f2922] bg-[#0f2922] text-white md:bg-transparent md:text-[#0f2922] text-xs sm:text-sm px-5 sm:px-6 py-2 sm:py-2.5 rounded-full md:hover:bg-[#0f2922] md:hover:text-white transition-all font-medium inline-block"
               >
                 Travel With Us →
               </Link>

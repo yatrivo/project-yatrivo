@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { PublicGalleryItem } from "@/api/gallery";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 import GalleryLightbox from "@/components/GalleryLightbox";
@@ -49,12 +50,12 @@ export default function CompletedTripDetailPage() {
       <div className="min-h-screen flex flex-col items-center justify-center gap-4 text-[#4a5568]">
         <SEO title="Trip Not Found" noindex={true} />
         <p className="text-lg">Trip not found.</p>
-        <Link
+        <BackLink
           to="/past-trips"
           className="bg-[#0f2922] text-white px-6 py-2.5 rounded-full text-sm hover:bg-[#1a4a39] transition-colors"
         >
           Back to Past Trips
-        </Link>
+        </BackLink>
       </div>
     );
   }
@@ -127,13 +128,13 @@ export default function CompletedTripDetailPage() {
         />
         <div className="absolute inset-0 hero-overlay-directional" />
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full">
-          <Link
+          <BackLink
             to="/past-trips"
             className="inline-flex items-center gap-2 text-white/85 hover:text-white text-xs sm:text-sm mb-3 sm:mb-5 transition-colors text-contrast-subtle font-medium"
           >
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
             Back to Past Trips
-          </Link>
+          </BackLink>
           <div className="text-[#e8622a] text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2 text-contrast-subtle">{destination.name}</div>
           <h1 className="text-white text-3xl sm:text-5xl md:text-6xl mb-2.5 sm:mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>{trip.name}</h1>
           <div className="flex flex-wrap items-center gap-2 sm:gap-3">

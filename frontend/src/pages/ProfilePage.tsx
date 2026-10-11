@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
+import BackLink from "@/components/BackLink";
 import Footer from "@/components/Footer";
 import SEO from "@/components/SEO";
 
@@ -173,14 +174,14 @@ export default function ProfilePage() {
             </div>
             <div className="bg-white rounded-2xl border border-[#e2e8f0] p-7">
               <h3 className="text-[#0f2922] font-medium mb-4">Account</h3>
-              <Link
+              <BackLink
                 to="/"
                 onClick={() => showToast("Returned to home.", "info")}
                 className="inline-flex items-center gap-2 text-red-600 text-sm font-medium hover:text-red-700 transition-colors"
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/></svg>
                 Go Home
-              </Link>
+              </BackLink>
             </div>
           </div>
         )}
