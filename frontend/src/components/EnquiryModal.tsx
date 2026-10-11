@@ -1,11 +1,17 @@
-import { useState, useEffect } from "react";
+// @refresh reset
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useApp, type Enquiry } from "@/context/AppContext";
 import { enquiriesApi } from "@/api/enquiries";
 import { YATRIVO_CONTACT } from "@/constants/contact";
 
 export default function EnquiryModal() {
+  const { enquiryModalOpen } = useApp();
+  if (!enquiryModalOpen) return null;
+  return <EnquiryModalContent />;
+}
+
+function EnquiryModalContent() {
   const {
-    enquiryModalOpen,
     closeEnquiryModal,
     enquiryTripId,
     enquiryDepartureId,
@@ -80,7 +86,15 @@ export default function EnquiryModal() {
     return combined.filter((d) => d && d.status === "upcoming");
   })();
 
-  const [selectedDepartureId, setSelectedDepartureId] = useState<string>("");
+  const [selectedDepartureId, setSelectedDepartureId] = useState<string>(() => {
+    if (enquiryDepartureId && availableDepartures.some((d) => d?.id === enquiryDepartureId)) {
+      return enquiryDepartureId;
+    }
+    if (availableDepartures.length > 0 && availableDepartures[0]?.id) {
+      return availableDepartures[0].id;
+    }
+    return "flexible";
+  });
   const [travellers, setTravellers] = useState<number>(2);
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
@@ -97,34 +111,54 @@ export default function EnquiryModal() {
   } | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset or initialize selection whenever modal opens or trip/departure changes
-  useEffect(() => {
-    if (!enquiryModalOpen) return;
+  const sheetRef = useRef<HTMLDivElement | null>(null);
+  const backdropRef = useRef<HTMLDivElement | null>(null);
+  const touchStartYRef = useRef<number | null>(null);
+  const dragOffsetYRef = useRef<number>(0);
+  const isClosingRef = useRef<boolean>(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    if (enquiryDepartureId && availableDepartures.some((d) => d?.id === enquiryDepartureId)) {
-      setSelectedDepartureId(enquiryDepartureId);
-    } else if (availableDepartures.length > 0 && availableDepartures[0]?.id) {
-      setSelectedDepartureId(availableDepartures[0].id);
-    } else {
-      setSelectedDepartureId("flexible");
+  // Set initial off-screen state before first paint, then slide up smoothly
+  useLayoutEffect(() => {
+    const sheet = sheetRef.current;
+    const backdrop = backdropRef.current;
+    if (sheet && backdrop) {
+      sheet.style.transition = "none";
+      sheet.style.transform = "translate3d(0, 100%, 0)";
+      backdrop.style.transition = "none";
+      backdrop.style.opacity = "0";
+    }
+  }, []);
+
+  useEffect(() => {
+    const origOverflow = typeof document !== "undefined" ? document.body.style.overflow : "";
+    if (typeof document !== "undefined") {
+      document.body.style.overflow = "hidden";
     }
 
-    setSubmittedEnquiry(null);
-    setErrors({});
-    setIsSubmitting(false);
-  }, [enquiryModalOpen, enquiryDepartureId, enquiryTripId, availableDepartures.length]);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => {
+        const sheet = sheetRef.current;
+        const backdrop = backdropRef.current;
+        if (sheet && backdrop) {
+          sheet.style.transition = "transform 300ms cubic-bezier(0.22, 1, 0.36, 1)";
+          sheet.style.transform = "translate3d(0, 0px, 0)";
+          backdrop.style.transition = "opacity 300ms ease-out";
+          backdrop.style.opacity = "1";
+        }
+      });
+    });
 
-  // Lock body scroll while modal is open
-  useEffect(() => {
-    if (!enquiryModalOpen || typeof document === "undefined") return;
-    const orig = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     return () => {
-      document.body.style.overflow = orig;
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+      if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
+      if (typeof document !== "undefined") {
+        document.body.style.overflow = origOverflow;
+      }
     };
-  }, [enquiryModalOpen]);
-
-  if (!enquiryModalOpen) return null;
+  }, []);
 
   // Active departure ID: state or fallback to first available
   const activeDepartureId =
@@ -152,10 +186,68 @@ export default function EnquiryModal() {
     return errs;
   };
 
+  // Smoothly slide down first (zero React re-renders during animation), then close in AppContext
   const handleClose = () => {
-    closeEnquiryModal();
-    setSubmittedEnquiry(null);
-    setErrors({});
+    if (isClosingRef.current) return;
+    isClosingRef.current = true;
+    touchStartYRef.current = null;
+
+    const sheet = sheetRef.current;
+    const backdrop = backdropRef.current;
+    if (sheet && backdrop) {
+      const closeDist = (sheet.offsetHeight || window.innerHeight) + 32;
+      sheet.style.transition = "transform 260ms cubic-bezier(0.32, 0.72, 0, 1)";
+      backdrop.style.transition = "opacity 260ms ease-out";
+      void sheet.getBoundingClientRect();
+      sheet.style.transform = `translate3d(0, ${closeDist}px, 0)`;
+      backdrop.style.opacity = "0";
+    }
+
+    closeTimerRef.current = setTimeout(() => {
+      closeEnquiryModal();
+    }, 260);
+  };
+
+  // Swipe-down to close handlers (attached ONLY to Header and Backdrop above form)
+  const handleSwipeStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 1 || isClosingRef.current) return;
+    touchStartYRef.current = e.touches[0].clientY;
+    dragOffsetYRef.current = 0;
+
+    if (sheetRef.current && backdropRef.current) {
+      sheetRef.current.style.transition = "none";
+      backdropRef.current.style.transition = "none";
+    }
+  };
+
+  const handleSwipeMove = (e: React.TouchEvent) => {
+    if (touchStartYRef.current === null || isClosingRef.current) return;
+    const deltaY = Math.max(0, e.touches[0].clientY - touchStartYRef.current);
+    dragOffsetYRef.current = deltaY;
+
+    if (sheetRef.current && backdropRef.current) {
+      sheetRef.current.style.transform = `translate3d(0, ${deltaY}px, 0)`;
+      backdropRef.current.style.opacity = String(Math.max(0, 1 - deltaY / 420));
+    }
+  };
+
+  const handleSwipeEnd = () => {
+    if (touchStartYRef.current === null || isClosingRef.current) return;
+    touchStartYRef.current = null;
+    const deltaY = dragOffsetYRef.current;
+
+    if (deltaY > 55) {
+      handleClose();
+    } else {
+      dragOffsetYRef.current = 0;
+      if (sheetRef.current && backdropRef.current) {
+        sheetRef.current.style.transition = "transform 240ms cubic-bezier(0.22, 1, 0.36, 1)";
+        backdropRef.current.style.transition = "opacity 240ms ease-out";
+        void sheetRef.current.getBoundingClientRect();
+        sheetRef.current.style.transform = "translate3d(0, 0px, 0)";
+        backdropRef.current.style.opacity = "1";
+      }
+    }
   };
 
   // 1. Submit Enquiry (Tracked, saved to PostgreSQL & notifies admin)
@@ -268,60 +360,76 @@ export default function EnquiryModal() {
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden overscroll-contain animate-fade-in"
+      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden overscroll-contain"
       onClick={handleClose}
     >
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm" />
       <div
-        className="relative bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden z-10"
+        ref={backdropRef}
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm touch-none will-change-[opacity]"
+        onTouchStart={handleSwipeStart}
+        onTouchMove={handleSwipeMove}
+        onTouchEnd={handleSwipeEnd}
+        onTouchCancel={handleSwipeEnd}
+      />
+      <div
+        ref={sheetRef}
+        className="relative bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl shadow-2xl max-h-[92vh] sm:max-h-[90vh] flex flex-col overflow-hidden z-10 will-change-transform"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div style={{ background: "var(--forest, #0f2922)" }} className="px-4 pt-4 pb-4 sm:px-6 sm:pt-6 sm:pb-5 text-white rounded-t-2xl shrink-0 relative">
+        {/* Header — swipe down here (or above) closes the form */}
+        <div
+          style={{ background: "var(--forest, #0f2922)" }}
+          className="px-4 pt-2 pb-3 sm:px-6 sm:pt-6 sm:pb-5 text-white rounded-t-2xl shrink-0 relative touch-none select-none"
+          onTouchStart={handleSwipeStart}
+          onTouchMove={handleSwipeMove}
+          onTouchEnd={handleSwipeEnd}
+          onTouchCancel={handleSwipeEnd}
+        >
+          <div className="w-9 h-1 bg-white/25 rounded-full mx-auto mb-2 sm:hidden" />
           <button
             onClick={handleClose}
-            className="absolute top-3 right-3 sm:top-4 sm:right-4 text-white/60 hover:text-white transition p-2 sm:p-1 cursor-pointer"
+            className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 text-white/60 hover:text-white transition p-1.5 sm:p-1 cursor-pointer"
             aria-label="Close"
           >
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="sm:w-5 sm:h-5">
               <path d="M18 6L6 18M6 6l12 12" />
             </svg>
           </button>
-          <div className="flex items-center gap-2 mb-1 pr-8 sm:pr-0">
-            <span className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold shrink-0">
+          <div className="flex items-center gap-1.5 sm:gap-2 mb-0.5 sm:mb-1 pr-8 sm:pr-0">
+            <span className="text-[#e8622a] text-[9.5px] sm:text-[10px] uppercase tracking-widest font-bold shrink-0">
               OFFICIAL ENQUIRY
             </span>
             <span className="text-white/40 text-[10px] shrink-0">•</span>
-            <span className="text-white/60 text-[11px] truncate max-w-[150px] sm:max-w-[280px]">{destName}</span>
+            <span className="text-white/60 text-[10.5px] sm:text-[11px] truncate max-w-[170px] sm:max-w-[280px]">{destName}</span>
           </div>
-          <h2 className="text-white text-xl sm:text-2xl font-bold leading-tight pr-7 sm:pr-0" style={{ fontFamily: "var(--font-serif, serif)" }}>
+          <h2 className="text-white text-[18px] sm:text-2xl font-bold leading-snug sm:leading-tight pr-7 sm:pr-0" style={{ fontFamily: "var(--font-serif, serif)" }}>
             {tripName}
           </h2>
           {departurePrice > 0 && (
-            <div className="text-emerald-400 text-xs font-medium mt-1">
+            <div className="text-emerald-400 text-[11px] sm:text-xs font-medium mt-0.5 sm:mt-1">
               Starting at ₹{Number(departurePrice).toLocaleString("en-IN")} per person
             </div>
           )}
         </div>
 
         {/* Scrollable Content */}
-        <div className="overflow-y-auto flex-1 min-h-0 p-4 sm:p-6">
+        <div className="overflow-y-auto flex-1 min-h-0 px-4 py-3 sm:p-6">
           {submittedEnquiry ? (
             /* Success confirmation */
             <div className="text-center py-4 sm:py-6">
-              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4 border border-emerald-200">
-                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4 border border-emerald-200">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
-              <h3 className="text-[#0f2922] text-xl sm:text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
+              <h3 className="text-[#0f2922] text-lg sm:text-2xl font-bold mb-1.5 sm:mb-2" style={{ fontFamily: "var(--font-serif, serif)" }}>
                 Enquiry Submitted
               </h3>
-              <p className="text-[#4a5568] text-sm max-w-sm mx-auto mb-5 leading-relaxed">
+              <p className="text-[#4a5568] text-[13px] sm:text-sm max-w-sm mx-auto mb-4 sm:mb-5 leading-relaxed">
                 Thank you{name ? `, ${name}` : ""}! Your enquiry has been received. We will contact you within 24 hours.
               </p>
 
-              <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg p-3.5 text-xs text-[#4a5568] max-w-xs mx-auto text-left mb-6 space-y-1.5">
+              <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg p-3 sm:p-3.5 text-xs text-[#4a5568] max-w-xs mx-auto text-left mb-5 sm:mb-6 space-y-1.5">
                 {phone && (
                   <div className="flex justify-between">
                     <span className="text-[#718096]">Contact:</span>
@@ -334,7 +442,7 @@ export default function EnquiryModal() {
                 </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 sm:gap-3">
                 <button
                   onClick={handleConnectWhatsApp}
                   className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-[#16a34a] hover:bg-[#15803d] text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-sm"
@@ -354,18 +462,18 @@ export default function EnquiryModal() {
             </div>
           ) : (
             /* Enquiry Form */
-            <form onSubmit={handleSubmitEnquiry} className="space-y-3.5 sm:space-y-4" id="enquiry-form">
+            <form onSubmit={handleSubmitEnquiry} className="space-y-2.5 sm:space-y-4" id="enquiry-form">
               {/* Departure Selection */}
               <div>
-                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+                <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1 sm:mb-1.5">
                   Select Departure Date <span className="text-red-500">*</span>
                 </label>
                 {availableDepartures.length > 0 ? (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5 sm:space-y-2">
                     <select
                       value={activeDepartureId}
                       onChange={(e) => setSelectedDepartureId(e.target.value)}
-                      className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 text-sm bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                      className="w-full border border-[#e2e8f0] rounded-lg sm:rounded-xl px-3 py-2 sm:px-3.5 sm:py-2.5 text-[13px] sm:text-sm bg-white focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
                     >
                       {availableDepartures.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -376,55 +484,62 @@ export default function EnquiryModal() {
                       <option value="flexible">Flexible / Any upcoming departure batch</option>
                     </select>
                     {selectedDeparture && (
-                      <div className="bg-[#f7f8f5] border border-[#e2e8f0]/80 rounded-lg px-3 py-2 text-xs flex flex-wrap items-center justify-between gap-1.5">
+                      <div className="bg-[#f7f8f5] border border-[#e2e8f0]/80 rounded-lg px-2.5 py-1.5 sm:px-3 sm:py-2 text-[11.5px] sm:text-xs flex flex-wrap items-center justify-between gap-1.5">
                         <span className="text-[#4a5568]">
                           Batch price: <strong>₹{Number(selectedDeparture.price || 0).toLocaleString("en-IN")}</strong> / person
                         </span>
-                        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[11px] font-semibold border border-emerald-200">
+                        <span className="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded text-[10.5px] sm:text-[11px] font-semibold border border-emerald-200">
                           {selectedDeparture.spotsLeft ?? selectedDeparture.spotsTotal ?? 0} spots remaining
                         </span>
                       </div>
                     )}
                   </div>
                 ) : (
-                  <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-xl p-3 text-xs text-[#4a5568] flex flex-wrap items-center justify-between gap-1.5">
-                    <span>
-                      {foundTrip?.price
-                        ? `Flexible / Next scheduled batch (Base price: ₹${Number(foundTrip.price).toLocaleString("en-IN")})`
-                        : "Custom dates & flexible schedule"}
+                  <div className="border border-[#e2e8f0] bg-[#f7f8f5] rounded-lg sm:rounded-xl px-3 py-2 sm:p-3 text-xs text-[#4a5568] flex items-center justify-between gap-2">
+                    <span className="min-w-0 leading-snug text-[12px] sm:text-xs">
+                      {foundTrip?.price ? (
+                        <>
+                          Flexible / Next batch{" "}
+                          <span className="hidden sm:inline">
+                            (Base price: ₹{Number(foundTrip.price).toLocaleString("en-IN")})
+                          </span>
+                        </>
+                      ) : (
+                        "Custom dates & flexible schedule"
+                      )}
                     </span>
-                    <span className="text-[#e8622a] font-semibold">Flexible Dates</span>
+                    <span className="text-[#e8622a] text-[11px] sm:text-xs font-semibold shrink-0">Flexible Dates</span>
                   </div>
                 )}
               </div>
 
               {/* Number of Travellers */}
               <div>
-                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+                <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1 sm:mb-1.5">
                   Number of Travellers
                 </label>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="flex items-center border border-[#e2e8f0] rounded-xl overflow-hidden bg-white">
+                <div className="flex items-center justify-between sm:justify-start gap-2">
+                  <div className="flex items-center border border-[#e2e8f0] rounded-lg sm:rounded-xl overflow-hidden bg-white">
                     <button
                       type="button"
                       onClick={() => setTravellers(Math.max(1, travellers - 1))}
-                      className="px-3.5 py-2.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
+                      className="px-3 py-1.5 sm:px-3.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
                     >
                       –
                     </button>
-                    <span className="px-4 py-2 text-sm font-semibold text-[#0f2922] min-w-[3rem] text-center">
+                    <span className="px-3 py-1.5 sm:px-4 sm:py-2 text-[13px] sm:text-sm font-semibold text-[#0f2922] min-w-[2.5rem] sm:min-w-[3rem] text-center">
                       {travellers}
                     </span>
                     <button
                       type="button"
                       onClick={() => setTravellers(Math.min(20, travellers + 1))}
-                      className="px-3.5 py-2.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
+                      className="px-3 py-1.5 sm:px-3.5 sm:py-2 text-[#0f2922] hover:bg-[#f7f8f5] transition font-bold text-sm cursor-pointer"
                     >
                       +
                     </button>
                   </div>
                   {departurePrice > 0 && (
-                    <div className="text-xs text-[#718096] pl-1 sm:pl-2">
+                    <div className="text-xs text-[#718096] sm:pl-2">
                       Est. Total: <strong className="text-[#0f2922]">₹{Number(totalEstimatedPrice || 0).toLocaleString("en-IN")}</strong>
                     </div>
                   )}
@@ -432,9 +547,9 @@ export default function EnquiryModal() {
               </div>
 
               {/* Contact Information */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3 pt-0.5 sm:pt-1">
                 <div>
-                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Your Name <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -442,15 +557,15 @@ export default function EnquiryModal() {
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="e.g. Aarav Sharma"
-                    className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none text-[#0f2922] ${
+                    className={`w-full border rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm focus:outline-none text-[#0f2922] ${
                       errors.name ? "border-red-400 bg-red-50/20" : "border-[#e2e8f0] focus:border-[#0f2922]"
                     }`}
                   />
-                  {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+                  {errors.name && <p className="text-red-500 text-[11px] sm:text-xs mt-1 mb-0">{errors.name}</p>}
                 </div>
 
                 <div>
-                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Phone / WhatsApp <span className="text-red-500">*</span>
                   </label>
                   <input
@@ -458,16 +573,16 @@ export default function EnquiryModal() {
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     placeholder="+91 98765 43210"
-                    className={`w-full border rounded-xl px-3.5 py-2 text-sm focus:outline-none text-[#0f2922] ${
+                    className={`w-full border rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm focus:outline-none text-[#0f2922] ${
                       errors.phone ? "border-red-400 bg-red-50/20" : "border-[#e2e8f0] focus:border-[#0f2922]"
                     }`}
                   />
-                  {errors.phone && <p className="text-red-500 text-xs mt-1">{errors.phone}</p>}
+                  {errors.phone && <p className="text-red-500 text-[11px] sm:text-xs mt-1 mb-0">{errors.phone}</p>}
                 </div>
               </div>
 
               <div>
-                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                   Email Address <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                 </label>
                 <input
@@ -475,12 +590,12 @@ export default function EnquiryModal() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="aarav@example.com"
-                  className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                  className="w-full border border-[#e2e8f0] rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
                 />
               </div>
 
               <div>
-                <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                   Message / Special Requests <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                 </label>
                 <textarea
@@ -488,7 +603,7 @@ export default function EnquiryModal() {
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Tell us about fitness levels, dietary preferences, or specific questions..."
-                  className="w-full border border-[#e2e8f0] rounded-xl px-3.5 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                  className="w-full border border-[#e2e8f0] rounded-lg sm:rounded-xl px-3 py-1.5 sm:px-3.5 sm:py-2 text-[13px] sm:text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
                 />
               </div>
             </form>
@@ -497,13 +612,13 @@ export default function EnquiryModal() {
 
         {/* Pinned Footer — only shown when form (not success state) */}
         {!submittedEnquiry && (
-          <div className="bg-white border-t border-[#e2e8f0] px-4 py-3 sm:px-6 sm:py-4 space-y-3 shrink-0">
+          <div className="bg-white border-t border-[#e2e8f0] px-4 py-2.5 pb-[calc(0.625rem+env(safe-area-inset-bottom,0px))] sm:px-6 sm:py-4 space-y-3 shrink-0">
             {/* 1. Tracked System Enquiry */}
             <button
               type="submit"
               form="enquiry-form"
               disabled={isSubmitting}
-              className="w-full bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-3.5 rounded-full text-sm font-semibold transition cursor-pointer shadow-sm flex items-center justify-center gap-2"
+              className="w-full bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-50 text-white py-2.5 sm:py-3.5 rounded-full text-[13px] sm:text-sm font-semibold transition cursor-pointer shadow-sm flex items-center justify-center gap-2"
             >
               {isSubmitting ? (
                 <>
@@ -512,7 +627,7 @@ export default function EnquiryModal() {
                 </>
               ) : (
                 <>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="sm:w-4 sm:h-4">
                     <path d="M22 2L11 13" />
                     <path d="M22 2l-7 20-4-9-9-4 20-7z" />
                   </svg>
