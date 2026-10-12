@@ -47,7 +47,7 @@ export default function Navbar() {
     pathname === "/profile";
 
   const atTop = scrollY < 60;
-  const transparent = isHeroPage && atTop;
+  const transparent = isHeroPage && atTop && !menuOpen;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -55,6 +55,7 @@ export default function Navbar() {
       setScrollY(current);
       if (current > lastScrollY && current > 120) {
         setHidden(true);
+        setMenuOpen(false);
       } else {
         setHidden(false);
       }
@@ -81,23 +82,31 @@ export default function Navbar() {
 
   return (
     <>
+      {menuOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/35 backdrop-blur-[1px] lg:hidden transition-opacity"
+          onClick={() => setMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+
       <header
         className={`${isNonHeroPage ? "sticky" : "fixed"} top-0 left-0 right-0 z-50 transition-all duration-300 ${isNonHeroPage ? "bg-white border-b border-[#e2e8f0]" : navBg} ${
-          hidden ? "-translate-y-full" : "translate-y-0"
+          hidden && !menuOpen ? "-translate-y-full" : "translate-y-0"
         }`}
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between gap-2 sm:gap-4">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
           {/* Logo */}
           <Link
             to="/"
             className={`items-center gap-2 sm:gap-2.5 min-w-0 shrink sm:shrink-0 ${
-              pathname === "/" ? "hidden md:flex" : "flex"
+              pathname === "/" && !menuOpen ? "hidden md:flex" : "flex"
             }`}
           >
-            <img src={logoImg} alt="Yatrivo" className={`h-9 w-9 shrink-0 object-contain ${transparent ? "drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" : ""}`} />
+            <img src={logoImg} alt="Yatrivo" className={`h-8 w-8 sm:h-9 sm:w-9 shrink-0 object-contain ${transparent ? "drop-shadow-[0_1px_4px_rgba(0,0,0,0.5)]" : ""}`} />
             <div className="block text-left leading-tight min-w-0">
               <div
-                className={`${textColor} font-bold text-base sm:text-[17px] tracking-[0.16em] transition-colors ${transparent && !hidden ? "text-contrast-title" : ""}`}
+                className={`${textColor} font-bold text-[15px] sm:text-[17px] tracking-[0.16em] transition-colors ${transparent && !hidden ? "text-contrast-title" : ""}`}
                 style={{
                   fontFamily: "var(--font-serif)",
                 }}
@@ -105,7 +114,7 @@ export default function Navbar() {
                 YATRIVO
               </div>
               <div
-                className={`transition-colors text-[9px] sm:text-[10px] md:text-[11px] font-medium tracking-[0.06em] sm:tracking-[0.09em] uppercase leading-[1.3] truncate sm:whitespace-nowrap ${
+                className={`transition-colors text-[8.5px] sm:text-[10px] md:text-[11px] font-medium tracking-[0.06em] sm:tracking-[0.09em] uppercase leading-[1.3] truncate sm:whitespace-nowrap ${
                   transparent ? "brand-tagline-light" : "brand-tagline-dark"
                 }`}
               >
@@ -152,13 +161,20 @@ export default function Navbar() {
 
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className={`lg:hidden p-2.5 -mr-1 sm:p-2 sm:mr-0 ${textColor} ${transparent ? "drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]" : ""}`}
+              className={`lg:hidden w-9 h-9 flex items-center justify-center rounded-full transition-colors cursor-pointer ${textColor} ${
+                transparent
+                  ? "drop-shadow-[0_1px_3px_rgba(0,0,0,0.6)]"
+                  : menuOpen
+                  ? "bg-[#f0f4f2] text-[#0f2922]"
+                  : "hover:bg-[#f7f8f5]"
+              }`}
               aria-label="Toggle navigation menu"
+              aria-expanded={menuOpen}
             >
               {menuOpen ? (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               ) : (
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><path d="M4 12h16M4 6.5h16M4 17.5h16"/></svg>
               )}
             </button>
           </div>
@@ -166,8 +182,8 @@ export default function Navbar() {
 
         {/* Mobile Menu */}
         {menuOpen && (
-          <div className="lg:hidden border-t border-[#e2e8f0] bg-white shadow-xl">
-            <div className="max-w-7xl mx-auto px-4 py-3 flex flex-col gap-1">
+          <div className="lg:hidden border-t border-[#e2e8f0] bg-white rounded-b-2xl shadow-[0_16px_36px_rgba(15,41,34,0.16)] max-h-[calc(100dvh-3.5rem)] overflow-y-auto">
+            <div className="max-w-7xl mx-auto px-3.5 py-2.5 flex flex-col gap-0.5">
               {navLinks.map((link) => {
                 const isMatch = link.href === "/" ? pathname === "/" : pathname.startsWith(link.href);
                 return (
@@ -175,22 +191,46 @@ export default function Navbar() {
                     key={link.href}
                     to={link.href}
                     onClick={() => setMenuOpen(false)}
-                    className={`text-left px-3 py-2.5 rounded-lg text-[15px] sm:text-sm transition-colors ${
-                      isMatch ? "bg-[#f7f8f5] text-[#0f2922] font-semibold" : "text-[#4a5568] hover:bg-[#f7f8f5]"
+                    className={`flex items-center justify-between px-3 py-2.5 rounded-xl text-[13.5px] sm:text-sm transition-colors ${
+                      isMatch
+                        ? "bg-[#f2f6f4] text-[#0f2922] font-semibold"
+                        : "text-[#4a5568] font-medium hover:bg-[#f7f8f5] hover:text-[#0f2922]"
                     }`}
                   >
-                    {link.label}
+                    <span className="flex items-center gap-2.5">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full transition-colors ${
+                          isMatch ? "bg-[#e8622a]" : "bg-transparent"
+                        }`}
+                      />
+                      {link.label}
+                    </span>
+                    <svg
+                      width="14"
+                      height="14"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      className={isMatch ? "text-[#e8622a]" : "text-[#cbd5e1]"}
+                    >
+                      <polyline points="9 18 15 12 9 6" />
+                    </svg>
                   </Link>
                 );
               })}
               {/* Profile & Saved Trips hidden for now */}
-              <div className="mt-2 pt-2 border-t border-[#e2e8f0]">
+              <div className="mt-1.5 pt-2.5 pb-1 px-1 border-t border-[#e2e8f0]">
                 <Link
                   to="/plan"
                   onClick={() => setMenuOpen(false)}
-                  className="w-full text-center bg-[#0f2922] text-white text-sm py-2.5 rounded-full block"
+                  className="w-full flex items-center justify-center gap-1.5 bg-[#0f2922] hover:bg-[#1a3d31] text-white text-xs font-semibold uppercase tracking-wider py-2.5 rounded-full shadow-xs transition"
                 >
-                  Plan My Trip
+                  <span>Plan My Trip</span>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <path d="M5 12h14" />
+                    <path d="M12 5l7 7-7 7" />
+                  </svg>
                 </Link>
               </div>
             </div>
@@ -199,7 +239,7 @@ export default function Navbar() {
       </header>
 
       {/* Spacer for fixed hero pages that aren't transparent (e.g. mid-scroll) */}
-      {!isHeroPage && !isNonHeroPage && <div className="h-16" />}
+      {!isHeroPage && !isNonHeroPage && <div className="h-14 sm:h-16" />}
     </>
   );
 }

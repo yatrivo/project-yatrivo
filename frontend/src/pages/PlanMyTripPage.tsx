@@ -281,30 +281,30 @@ export default function PlanMyTripPage() {
         keywords="custom himalayan itinerary, plan uttarakhand trip, tailor-made trek, private mountain tour, bespoke himalayan expedition"
       />
       {/* Clean Minimal Header */}
-      <div className="bg-[#0f2922] text-white pt-28 sm:pt-32 pb-10 sm:pb-12 px-4 sm:px-6 border-b border-[#1b3d32]">
+      <div className="bg-[#0f2922] text-white pt-24 sm:pt-32 pb-7 sm:pb-12 px-4 sm:px-6 border-b border-[#1b3d32]">
         <div className="max-w-4xl mx-auto">
-          <div className="text-[#e8622a] text-xs font-semibold uppercase tracking-widest mb-2 text-contrast-subtle">
+          <div className="text-[#e8622a] text-[11px] sm:text-xs font-semibold uppercase tracking-widest mb-1.5 sm:mb-2 text-contrast-subtle">
             CUSTOM TRIP ENQUIRY
           </div>
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+          <h1 className="text-[26px] sm:text-4xl font-bold leading-tight mb-1.5 sm:mb-2 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
             Plan My Trip
           </h1>
-          <p className="text-white/80 text-[15px] sm:text-sm mt-1 max-w-lg leading-relaxed text-contrast-body">
+          <p className="text-white/80 text-[13.5px] sm:text-sm mt-1 max-w-lg leading-relaxed text-contrast-body">
             A quick 4-step enquiry form. Pick destinations, choose your package, and request an official itinerary briefing.
           </p>
         </div>
       </div>
 
       {/* Main Form Container */}
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-5 sm:py-8">
         {step < 5 && (
           /* Step Indicator */
-          <div className="mb-8 bg-white rounded-xl p-5 border border-[#e2e8f0] shadow-2xs">
-            <div className="flex items-center justify-between text-xs font-semibold mb-3">
-              <span className="text-[#0f2922]">
+          <div className="mb-5 sm:mb-8 bg-white rounded-xl p-3.5 sm:p-5 border border-[#e2e8f0] shadow-2xs">
+            <div className="flex items-center justify-between gap-2 text-xs font-semibold mb-2.5 sm:mb-3">
+              <span className="text-[#0f2922] truncate">
                 Step {step} of 4: <span className="text-[#e8622a]">{stepLabels[step - 1]}</span>
               </span>
-              <span className="text-[#718096]">
+              <span className="text-[#718096] text-[11px] sm:text-xs shrink-0">
                 {step === 1 && "Choose destinations"}
                 {step === 2 && "Select package"}
                 {step === 3 && "Select departure"}
@@ -312,7 +312,7 @@ export default function PlanMyTripPage() {
               </span>
             </div>
 
-            <div className="grid grid-cols-4 gap-2">
+            <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
               {[1, 2, 3, 4].map((s) => (
                 <div key={s} className="space-y-1">
                   <div
@@ -337,10 +337,10 @@ export default function PlanMyTripPage() {
         {/* STEP 1: WHERE DO YOU WANT TO GO? (Minimal Form)          */}
         {/* ======================================================== */}
         {step === 1 && (
-          <div className="bg-white rounded-xl p-6 sm:p-7 border border-[#e2e8f0] shadow-2xs">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
+          <div className="bg-white rounded-xl p-4 sm:p-7 border border-[#e2e8f0] shadow-2xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3.5 sm:mb-4">
               <div>
-                <h2 className="text-[#0f2922] text-xl font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+                <h2 className="text-[#0f2922] text-[18px] sm:text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                   Where do you want to go?
                 </h2>
                 <p className="text-[#718096] text-xs mt-0.5">
@@ -367,18 +367,18 @@ export default function PlanMyTripPage() {
             </div>
 
             {stepErrors.destination && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-xs mb-4 flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg text-xs mb-3.5 sm:mb-4 flex items-center gap-2">
+                <svg width="14" height="14" className="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                {stepErrors.destination}
+                <span>{stepErrors.destination}</span>
               </div>
             )}
 
             {/* Minimal Destination Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 mb-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 sm:gap-2.5 mb-5 sm:mb-6">
               {activeDestinations.map((d) => {
                 const isSelected = selectedDestIds.includes(d.id) || selectedDestIds.includes(d.slug);
                 return (
@@ -386,14 +386,14 @@ export default function PlanMyTripPage() {
                     key={d.id}
                     type="button"
                     onClick={() => toggleDestination(d.id)}
-                    className={`flex items-center gap-2.5 px-3.5 py-2.5 rounded-lg border text-sm text-left transition-all cursor-pointer ${
+                    className={`flex items-center gap-2 sm:gap-2.5 px-2.5 sm:px-3.5 py-2.5 rounded-lg border text-[13px] sm:text-sm text-left transition-all cursor-pointer min-w-0 ${
                       isSelected
                         ? "border-[#0f2922] bg-[#0f2922] text-white font-medium shadow-xs"
                         : "border-[#e2e8f0] bg-white text-[#4a5568] hover:border-[#0f2922]/40 hover:bg-[#f7f8f5]"
                     }`}
                   >
                     <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
+                      className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded border flex items-center justify-center shrink-0 transition-colors ${
                         isSelected
                           ? "bg-white text-[#0f2922] border-white"
                           : "border-[#cbd5e1] bg-white"
@@ -405,15 +405,15 @@ export default function PlanMyTripPage() {
                         </svg>
                       )}
                     </div>
-                    <span className="truncate">{d.name}</span>
+                    <span className="truncate leading-tight">{d.name}</span>
                   </button>
                 );
               })}
             </div>
 
             {/* Footer / Navigation */}
-            <div className="flex items-center justify-between border-t border-[#e2e8f0] pt-4">
-              <div className="text-xs text-[#718096]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-4 border-t border-[#e2e8f0] pt-3.5 sm:pt-4">
+              <div className="text-xs text-[#718096] text-center sm:text-left">
                 {selectedDestIds.length === 0
                   ? "Select destinations to continue"
                   : `${selectedDestIds.length} ${selectedDestIds.length === 1 ? "destination" : "destinations"} selected`}
@@ -421,7 +421,7 @@ export default function PlanMyTripPage() {
               <button
                 type="button"
                 onClick={handleNext}
-                className="bg-[#0f2922] hover:bg-[#1a3d31] text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                className="w-full sm:w-auto bg-[#0f2922] hover:bg-[#1a3d31] text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
                 <span>Next: Choose Package</span>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -437,10 +437,10 @@ export default function PlanMyTripPage() {
         {/* STEP 2: CHOOSE A TRIP / PACKAGE (Minimal Form)           */}
         {/* ======================================================== */}
         {step === 2 && (
-          <div className="bg-white rounded-xl p-6 sm:p-7 border border-[#e2e8f0] shadow-2xs">
-            <div className="mb-4">
+          <div className="bg-white rounded-xl p-4 sm:p-7 border border-[#e2e8f0] shadow-2xs">
+            <div className="mb-3.5 sm:mb-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h2 className="text-[#0f2922] text-xl font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+                <h2 className="text-[#0f2922] text-[18px] sm:text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                   Choose a trip / package
                 </h2>
                 <button
@@ -451,25 +451,25 @@ export default function PlanMyTripPage() {
                   Edit Destinations
                 </button>
               </div>
-              <p className="text-[#718096] text-xs mt-0.5">
+              <p className="text-[#718096] text-xs mt-0.5 leading-relaxed">
                 Packages covering: <span className="font-semibold text-[#0f2922]">{selectedDestinationNames}</span>
               </p>
             </div>
 
             {stepErrors.trip && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-xs mb-4 flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg text-xs mb-3.5 sm:mb-4 flex items-center gap-2">
+                <svg width="14" height="14" className="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                {stepErrors.trip}
+                <span>{stepErrors.trip}</span>
               </div>
             )}
 
             {/* Minimal Packages List */}
             {relevantTrips.length === 0 ? (
-              <div className="bg-[#f7f8f5] rounded-xl p-6 text-center border border-dashed border-[#cbd5e1] mb-6">
+              <div className="bg-[#f7f8f5] rounded-xl p-5 sm:p-6 text-center border border-dashed border-[#cbd5e1] mb-5 sm:mb-6">
                 <p className="text-[#4a5568] text-xs font-medium mb-3">
                   No packages currently scheduled for this specific combination of destinations.
                 </p>
@@ -482,7 +482,7 @@ export default function PlanMyTripPage() {
                 </button>
               </div>
             ) : (
-              <div className="space-y-2 mb-6">
+              <div className="space-y-2 mb-5 sm:mb-6">
                 {relevantTrips.map((t) => {
                   const isSelected = selectedTripId === t.id;
                   const depCount = (t.departures || tripInstances.filter((ti) => ti.tripId === t.id)).filter(
@@ -497,23 +497,25 @@ export default function PlanMyTripPage() {
                         setSelectedDepartureId(""); // Reset departure when package changes
                         setStepErrors((prev) => ({ ...prev, trip: "" }));
                       }}
-                      className={`px-3.5 sm:px-4 py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
+                      className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
                         isSelected
                           ? "border-[#0f2922] bg-[#f7f9f7] shadow-xs"
                           : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1]"
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
                         <div
-                          className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                          className={`w-4 h-4 mt-0.5 sm:mt-0 rounded-full border-2 flex items-center justify-center shrink-0 ${
                             isSelected ? "border-[#0f2922] bg-[#0f2922]" : "border-[#cbd5e1] bg-white"
                           }`}
                         >
                           {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                         </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-[#0f2922] truncate">{t.name}</div>
-                          <div className="text-xs text-[#718096] flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922] leading-snug sm:truncate">
+                            {t.name}
+                          </div>
+                          <div className="text-[11px] sm:text-xs text-[#718096] flex flex-wrap items-center gap-x-1.5 gap-y-0.5 sm:gap-2 mt-0.5">
                             <span>{t.duration || "4 Days"}</span>
                             <span>•</span>
                             <span className="capitalize">{t.difficulty || "Moderate"}</span>
@@ -528,7 +530,7 @@ export default function PlanMyTripPage() {
                       </div>
 
                       <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center pl-6 sm:pl-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-gray-100 shrink-0">
-                        <div className="text-sm font-bold text-[#e8622a]">
+                        <div className="text-[13.5px] sm:text-sm font-bold text-[#e8622a]">
                           ₹{t.price ? t.price.toLocaleString("en-IN") : "9,999"}
                         </div>
                         <div className="text-[11px] text-[#718096]">
@@ -542,11 +544,11 @@ export default function PlanMyTripPage() {
             )}
 
             {/* Navigation */}
-            <div className="flex items-center justify-between border-t border-[#e2e8f0] pt-4">
+            <div className="flex items-center justify-between gap-2.5 border-t border-[#e2e8f0] pt-3.5 sm:pt-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] px-4 py-2 border border-[#e2e8f0] rounded-full hover:bg-[#f7f8f5] transition cursor-pointer"
+                className="text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] px-3.5 sm:px-4 py-2.5 sm:py-2 border border-[#e2e8f0] rounded-full hover:bg-[#f7f8f5] transition cursor-pointer shrink-0"
               >
                 ← Back
               </button>
@@ -554,10 +556,10 @@ export default function PlanMyTripPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={!selectedTripId}
-                className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white px-4 sm:px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <span>Next: Departure & Travellers</span>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <span className="truncate">Next: Departure & Travellers</span>
+                <svg width="13" height="13" className="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14" />
                   <path d="M12 5l7 7-7 7" />
                 </svg>
@@ -570,10 +572,10 @@ export default function PlanMyTripPage() {
         {/* STEP 3: DEPARTURE & TRAVELLERS (Minimal Form)            */}
         {/* ======================================================== */}
         {step === 3 && selectedTrip && (
-          <div className="bg-white rounded-xl p-6 sm:p-7 border border-[#e2e8f0] shadow-2xs">
-            <div className="mb-4">
+          <div className="bg-white rounded-xl p-4 sm:p-7 border border-[#e2e8f0] shadow-2xs">
+            <div className="mb-3.5 sm:mb-4">
               <div className="flex items-center justify-between gap-2 flex-wrap">
-                <h2 className="text-[#0f2922] text-xl font-bold" style={{ fontFamily: "var(--font-serif)" }}>
+                <h2 className="text-[#0f2922] text-[18px] sm:text-xl font-bold leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                   Departure & Travellers
                 </h2>
                 <button
@@ -584,25 +586,25 @@ export default function PlanMyTripPage() {
                   Change Package
                 </button>
               </div>
-              <p className="text-[#718096] text-xs mt-0.5">
+              <p className="text-[#718096] text-xs mt-0.5 leading-relaxed">
                 Package: <span className="font-semibold text-[#0f2922]">{selectedTrip.name}</span> · Base: ₹{selectedTrip.price ? selectedTrip.price.toLocaleString("en-IN") : "9,999"} / person
               </p>
             </div>
 
             {stepErrors.departure && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-3.5 py-2.5 rounded-lg text-xs mb-4 flex items-center gap-2">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <div className="bg-red-50 border border-red-200 text-red-700 px-3 py-2 sm:px-3.5 sm:py-2.5 rounded-lg text-xs mb-3.5 sm:mb-4 flex items-center gap-2">
+                <svg width="14" height="14" className="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                   <circle cx="12" cy="12" r="10" />
                   <line x1="12" y1="8" x2="12" y2="12" />
                   <line x1="12" y1="16" x2="12.01" y2="16" />
                 </svg>
-                {stepErrors.departure}
+                <span>{stepErrors.departure}</span>
               </div>
             )}
 
             {/* Departures Radio Selection */}
-            <div className="mb-5">
-              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-2">
+            <div className="mb-4 sm:mb-5">
+              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-2">
                 Select Departure Date <span className="text-red-500">*</span>
               </label>
 
@@ -617,22 +619,22 @@ export default function PlanMyTripPage() {
                           setSelectedDepartureId(d.id);
                           setStepErrors((prev) => ({ ...prev, departure: "" }));
                         }}
-                        className={`px-3.5 sm:px-4 py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
+                        className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
                           isSelected
                             ? "border-[#0f2922] bg-[#f7f9f7] shadow-xs"
                             : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1]"
                         }`}
                       >
-                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                        <div className="flex items-start sm:items-center gap-2.5 sm:gap-3 min-w-0">
                           <div
-                            className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                            className={`w-4 h-4 mt-0.5 sm:mt-0 rounded-full border-2 flex items-center justify-center shrink-0 ${
                               isSelected ? "border-[#0f2922] bg-[#0f2922]" : "border-[#cbd5e1] bg-white"
                             }`}
                           >
                             {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                           </div>
-                          <div className="min-w-0">
-                            <div className="text-sm font-semibold text-[#0f2922]">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922] leading-snug">
                               {d.displayDate || d.date}
                             </div>
                             <div className="text-xs text-[#718096] flex flex-wrap items-center gap-1.5 sm:gap-2 mt-0.5">
@@ -645,7 +647,7 @@ export default function PlanMyTripPage() {
                         </div>
 
                         <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center pl-6 sm:pl-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 border-gray-100 shrink-0">
-                          <div className="text-sm font-bold text-[#e8622a]">
+                          <div className="text-[13.5px] sm:text-sm font-bold text-[#e8622a]">
                             ₹{d.price.toLocaleString("en-IN")}
                           </div>
                           <span className="text-[11px] text-[#718096]">per person</span>
@@ -659,54 +661,54 @@ export default function PlanMyTripPage() {
                       setSelectedDepartureId("flexible");
                       setStepErrors((prev) => ({ ...prev, departure: "" }));
                     }}
-                    className={`px-3.5 sm:px-4 py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-2 sm:gap-3 ${
+                    className={`px-3 sm:px-4 py-2.5 sm:py-3 rounded-xl border cursor-pointer transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-3 ${
                       selectedDepartureId === "flexible"
                         ? "border-[#0f2922] bg-[#f7f9f7] shadow-xs"
                         : "border-[#e2e8f0] bg-white hover:border-[#cbd5e1]"
                     }`}
                   >
-                    <div className="flex items-center gap-2.5 sm:gap-3">
+                    <div className="flex items-start sm:items-center gap-2.5 sm:gap-3">
                       <div
-                        className={`w-4 h-4 rounded-full border-2 flex items-center justify-center shrink-0 ${
+                        className={`w-4 h-4 mt-0.5 sm:mt-0 rounded-full border-2 flex items-center justify-center shrink-0 ${
                           selectedDepartureId === "flexible" ? "border-[#0f2922] bg-[#0f2922]" : "border-[#cbd5e1] bg-white"
                         }`}
                       >
                         {selectedDepartureId === "flexible" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
                       </div>
                       <div>
-                        <div className="text-sm font-semibold text-[#0f2922]">Flexible / Next upcoming batch</div>
-                        <div className="text-xs text-[#718096]">Coordinate future dates with our mountain team</div>
+                        <div className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922] leading-snug">Flexible / Next upcoming batch</div>
+                        <div className="text-xs text-[#718096] mt-0.5">Coordinate future dates with our mountain team</div>
                       </div>
                     </div>
-                    <span className="text-xs text-[#718096] font-medium self-end sm:self-auto">Flexible</span>
+                    <span className="text-[11px] sm:text-xs text-[#718096] font-medium pl-6 sm:pl-0 self-start sm:self-auto">Flexible</span>
                   </div>
                 </div>
               ) : (
                 <div
                   onClick={() => setSelectedDepartureId("flexible")}
-                  className="px-4 py-3 rounded-xl border-2 border-[#0f2922] bg-[#f7f9f7] cursor-pointer flex items-center justify-between"
+                  className="px-3.5 sm:px-4 py-3 rounded-xl border-2 border-[#0f2922] bg-[#f7f9f7] cursor-pointer flex items-center justify-between gap-3"
                 >
-                  <div>
-                    <div className="text-sm font-semibold text-[#0f2922]">Flexible / Next Available Batch</div>
-                    <div className="text-xs text-[#718096]">Our team will coordinate the newly announced dates with you</div>
+                  <div className="min-w-0">
+                    <div className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922] leading-snug">Flexible / Next Available Batch</div>
+                    <div className="text-xs text-[#718096] mt-0.5">Our team will coordinate the newly announced dates with you</div>
                   </div>
-                  <span className="text-xs font-bold text-[#e8622a]">Selected</span>
+                  <span className="text-xs font-bold text-[#e8622a] shrink-0">Selected</span>
                 </div>
               )}
             </div>
 
             {/* Travellers Counter */}
-            <div className="mb-6 pt-3 border-t border-[#e2e8f0]">
-              <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
+            <div className="mb-5 sm:mb-6 pt-3 border-t border-[#e2e8f0]">
+              <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1.5">
                 Number of Travellers
               </label>
-              <div className="flex items-center justify-between p-3.5 rounded-xl bg-[#f7f8f5] border border-[#e2e8f0]">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 sm:p-3.5 rounded-xl bg-[#f7f8f5] border border-[#e2e8f0]">
                 <div>
-                  <div className="text-sm font-semibold text-[#0f2922]">Group Size</div>
+                  <div className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922]">Group Size</div>
                   <div className="text-xs text-[#718096]">Solo wanderers, couples, or private groups</div>
                 </div>
 
-                <div className="flex items-center gap-3">
+                <div className="flex items-center justify-between sm:justify-end gap-3 pt-2.5 sm:pt-0 border-t sm:border-t-0 border-[#e2e8f0]/80">
                   <div className="flex items-center border border-[#e2e8f0] rounded-lg overflow-hidden bg-white shadow-2xs">
                     <button
                       type="button"
@@ -715,7 +717,7 @@ export default function PlanMyTripPage() {
                     >
                       –
                     </button>
-                    <span className="px-4 py-1.5 text-sm font-bold text-[#0f2922] min-w-[3rem] text-center">
+                    <span className="px-3.5 sm:px-4 py-1.5 text-sm font-bold text-[#0f2922] min-w-[2.75rem] sm:min-w-[3rem] text-center">
                       {travellers}
                     </span>
                     <button
@@ -740,11 +742,11 @@ export default function PlanMyTripPage() {
             </div>
 
             {/* Navigation */}
-            <div className="flex items-center justify-between border-t border-[#e2e8f0] pt-4">
+            <div className="flex items-center justify-between gap-2.5 border-t border-[#e2e8f0] pt-3.5 sm:pt-4">
               <button
                 type="button"
                 onClick={handleBack}
-                className="text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] px-4 py-2 border border-[#e2e8f0] rounded-full hover:bg-[#f7f8f5] transition cursor-pointer"
+                className="text-xs font-semibold text-[#4a5568] hover:text-[#0f2922] px-3.5 sm:px-4 py-2.5 sm:py-2 border border-[#e2e8f0] rounded-full hover:bg-[#f7f8f5] transition cursor-pointer shrink-0"
               >
                 ← Back
               </button>
@@ -752,10 +754,10 @@ export default function PlanMyTripPage() {
                 type="button"
                 onClick={handleNext}
                 disabled={!selectedDepartureId}
-                className="bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                className="flex-1 sm:flex-initial bg-[#0f2922] hover:bg-[#1a3d31] disabled:opacity-40 text-white px-4 sm:px-6 py-2.5 rounded-full text-xs font-semibold transition cursor-pointer shadow-xs flex items-center justify-center gap-1.5"
               >
-                <span>Next: Contact Details</span>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <span className="truncate">Next: Contact Details</span>
+                <svg width="13" height="13" className="shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                   <path d="M5 12h14" />
                   <path d="M12 5l7 7-7 7" />
                 </svg>
@@ -768,20 +770,20 @@ export default function PlanMyTripPage() {
         {/* STEP 4: CONTACT DETAILS & REVIEW (Minimal Form)          */}
         {/* ======================================================== */}
         {step === 4 && selectedTrip && (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
             {/* Left: Contact Form */}
-            <div className="md:col-span-2 bg-white rounded-xl p-6 sm:p-7 border border-[#e2e8f0] shadow-2xs">
-              <h2 className="text-[#0f2922] text-xl font-bold mb-1" style={{ fontFamily: "var(--font-serif)" }}>
+            <div className="md:col-span-2 bg-white rounded-xl p-4 sm:p-7 border border-[#e2e8f0] shadow-2xs">
+              <h2 className="text-[#0f2922] text-[18px] sm:text-xl font-bold mb-1" style={{ fontFamily: "var(--font-serif)" }}>
                 Contact Details
               </h2>
-              <p className="text-[#718096] text-xs mb-4">
+              <p className="text-[#718096] text-xs mb-3.5 sm:mb-4">
                 Where should we send your trip briefing?
               </p>
 
-              <form onSubmit={handleSubmitEnquiry} className="space-y-3.5">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <form onSubmit={handleSubmitEnquiry} className="space-y-3 sm:space-y-3.5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-3.5">
                   <div>
-                    <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                    <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                       Full Name <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -792,7 +794,7 @@ export default function PlanMyTripPage() {
                         setStepErrors((prev) => ({ ...prev, name: "" }));
                       }}
                       placeholder="e.g. Aarav Sharma"
-                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none text-[#0f2922] ${
+                      className={`w-full border rounded-lg px-3.5 py-2.5 sm:py-2 text-sm focus:outline-none text-[#0f2922] ${
                         stepErrors.name ? "border-red-400 bg-red-50/20" : "border-[#e2e8f0] focus:border-[#0f2922]"
                       }`}
                     />
@@ -800,7 +802,7 @@ export default function PlanMyTripPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                    <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                       Phone / WhatsApp <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -811,7 +813,7 @@ export default function PlanMyTripPage() {
                         setStepErrors((prev) => ({ ...prev, phone: "" }));
                       }}
                       placeholder="+91 98765 43210"
-                      className={`w-full border rounded-lg px-3.5 py-2 text-sm focus:outline-none text-[#0f2922] ${
+                      className={`w-full border rounded-lg px-3.5 py-2.5 sm:py-2 text-sm focus:outline-none text-[#0f2922] ${
                         stepErrors.phone ? "border-red-400 bg-red-50/20" : "border-[#e2e8f0] focus:border-[#0f2922]"
                       }`}
                     />
@@ -820,7 +822,7 @@ export default function PlanMyTripPage() {
                 </div>
 
                 <div>
-                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Email Address <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                   </label>
                   <input
@@ -828,12 +830,12 @@ export default function PlanMyTripPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="aarav@example.com"
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                    className="w-full border border-[#e2e8f0] rounded-lg px-3.5 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-[13px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
+                  <label className="block text-[11px] sm:text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
                     Message / Special Requests <span className="text-[#718096] text-[10px] normal-case">(optional)</span>
                   </label>
                   <textarea
@@ -841,7 +843,7 @@ export default function PlanMyTripPage() {
                     value={message}
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="Any questions or special requests..."
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3.5 py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
+                    className="w-full border border-[#e2e8f0] rounded-lg px-3.5 py-2.5 sm:py-2 text-sm focus:outline-none focus:border-[#0f2922] text-[#0f2922] resize-none"
                   />
                 </div>
 
@@ -868,7 +870,7 @@ export default function PlanMyTripPage() {
                     )}
                   </button>
 
-                  <div className="flex items-center justify-between text-xs text-[#718096]">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-0.5 text-xs text-[#718096]">
                     <button
                       type="button"
                       onClick={handleBack}
@@ -892,32 +894,32 @@ export default function PlanMyTripPage() {
             </div>
 
             {/* Right: Summary Review Card */}
-            <div className="bg-white rounded-xl p-5 border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
+            <div className="bg-white rounded-xl p-4 sm:p-5 border border-[#e2e8f0] shadow-2xs flex flex-col justify-between">
               <div>
-                <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold mb-1.5">
+                <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold mb-1">
                   ENQUIRY SUMMARY
                 </div>
-                <h3 className="text-[#0f2922] text-base font-bold mb-3" style={{ fontFamily: "var(--font-serif)" }}>
+                <h3 className="text-[#0f2922] text-[15px] sm:text-base font-bold mb-2.5 sm:mb-3 leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
                   {selectedTrip.name}
                 </h3>
 
-                <div className="space-y-2 text-xs border-y border-[#e2e8f0] py-3 mb-3">
-                  <div className="flex justify-between">
-                    <span className="text-[#718096]">Destinations</span>
-                    <span className="font-semibold text-[#0f2922] text-right truncate max-w-[55%]">
+                <div className="space-y-2 text-xs border-y border-[#e2e8f0] py-2.5 sm:py-3 mb-2.5 sm:mb-3">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#718096] shrink-0">Destinations</span>
+                    <span className="font-semibold text-[#0f2922] text-right line-clamp-2 sm:truncate max-w-[65%] sm:max-w-[55%]">
                       {selectedDestinationNames}
                     </span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#718096]">Departure</span>
-                    <span className="font-semibold text-[#0f2922]">{departureDateLabel}</span>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#718096] shrink-0">Departure</span>
+                    <span className="font-semibold text-[#0f2922] text-right">{departureDateLabel}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-[#718096]">Travellers</span>
-                    <span className="font-semibold text-[#0f2922]">{travellers}</span>
+                  <div className="flex justify-between gap-3">
+                    <span className="text-[#718096] shrink-0">Travellers</span>
+                    <span className="font-semibold text-[#0f2922] text-right">{travellers}</span>
                   </div>
                   {departurePrice > 0 && (
-                    <div className="flex justify-between pt-1 border-t border-dashed border-[#e2e8f0]">
+                    <div className="flex justify-between gap-3 pt-1.5 border-t border-dashed border-[#e2e8f0]">
                       <span className="text-[#718096]">Est. Total</span>
                       <span className="font-bold text-[#e8622a]">
                         ₹{totalEstimatedPrice.toLocaleString("en-IN")}
@@ -926,14 +928,14 @@ export default function PlanMyTripPage() {
                   )}
                 </div>
 
-                <div className="space-y-1.5 text-[11px] text-[#718096]">
+                <div className="space-y-1 text-[11px] text-[#718096]">
                   <div>✓ Official system enquiry</div>
                   <div>✓ Contacted within 24 hours</div>
                   <div>✓ No payment required now</div>
                 </div>
               </div>
 
-              <div className="mt-4 pt-3 border-t border-[#e2e8f0] text-[11px] text-[#a0aec0]">
+              <div className="mt-3.5 sm:mt-4 pt-3 border-t border-[#e2e8f0] text-[11px] text-[#a0aec0]">
                 Questions? Call{" "}
                 <a href={`tel:${YATRIVO_CONTACT.phone.replace(/\s+/g, "")}`} className="text-[#0f2922] font-semibold underline">
                   {YATRIVO_CONTACT.phone}
@@ -947,30 +949,30 @@ export default function PlanMyTripPage() {
         {/* STEP 5: CONFIRMATION SCREEN                              */}
         {/* ======================================================== */}
         {step === 5 && submittedEnquiry && (
-          <div className="bg-white rounded-xl p-8 border border-[#e2e8f0] shadow-2xs max-w-xl mx-auto text-center">
-            <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <div className="bg-white rounded-xl p-5 sm:p-8 border border-[#e2e8f0] shadow-2xs max-w-xl mx-auto text-center">
+            <div className="w-12 h-12 sm:w-14 sm:h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-3 border border-emerald-200">
+              <svg width="24" height="24" className="sm:w-7 sm:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <polyline points="20 6 9 17 4 12" />
               </svg>
             </div>
 
-            <h2 className="text-[#0f2922] text-2xl font-bold mb-2" style={{ fontFamily: "var(--font-serif)" }}>
+            <h2 className="text-[#0f2922] text-xl sm:text-2xl font-bold mb-1.5 sm:mb-2" style={{ fontFamily: "var(--font-serif)" }}>
               Enquiry Submitted
             </h2>
-            <p className="text-[#4a5568] text-sm leading-relaxed max-w-sm mx-auto mb-5">
+            <p className="text-[#4a5568] text-[13.5px] sm:text-sm leading-relaxed max-w-sm mx-auto mb-4 sm:mb-5">
               Thank you{name ? `, ${name}` : ""}! Your enquiry has been received. We will contact you within 24 hours.
             </p>
 
-            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg p-3.5 text-left text-xs max-w-xs mx-auto mb-6 space-y-1.5">
+            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg p-3 sm:p-3.5 text-left text-xs max-w-xs mx-auto mb-5 sm:mb-6 space-y-1.5">
               {phone && (
-                <div className="flex justify-between">
-                  <span className="text-[#718096]">Contact:</span>
-                  <span className="font-semibold text-[#0f2922]">{phone}</span>
+                <div className="flex justify-between gap-2">
+                  <span className="text-[#718096] shrink-0">Contact:</span>
+                  <span className="font-semibold text-[#0f2922] text-right break-all">{phone}</span>
                 </div>
               )}
-              <div className="flex justify-between">
-                <span className="text-[#718096]">Status:</span>
-                <span className="font-medium text-emerald-700">Received</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-[#718096] shrink-0">Status:</span>
+                <span className="font-medium text-emerald-700 text-right">Received</span>
               </div>
             </div>
 
