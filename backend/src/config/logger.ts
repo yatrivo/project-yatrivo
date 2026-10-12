@@ -1,4 +1,4 @@
-﻿import pino from "pino";
+import pino from "pino";
 import { env, isProduction } from "./env";
 
 export const logger = pino({
@@ -20,7 +20,11 @@ export const logger = pino({
       "DATABASE_URL",
       "UPSTASH_REDIS_REST_TOKEN",
       "JWT_ACCESS_TOKEN_SECRET",
-      "JWT_REFRESH_TOKEN_SECRET"
+      "JWT_REFRESH_TOKEN_SECRET",
+      "WHATSAPP_ACCESS_TOKEN",
+      "WHATSAPP_API_TOKEN",
+      "WHATSAPP_VERIFY_TOKEN",
+      "WHATSAPP_APP_SECRET"
     ],
     censor: "[redacted]"
   }

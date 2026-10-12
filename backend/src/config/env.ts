@@ -39,6 +39,11 @@ const envSchema = z.object({
   WHATSAPP_PROVIDER: z.string().optional().or(z.literal("")),
   WHATSAPP_API_BASE_URL: z.string().url().optional().or(z.literal("")),
   WHATSAPP_API_TOKEN: z.string().optional().or(z.literal("")),
+  WHATSAPP_ACCESS_TOKEN: z.string().optional().or(z.literal("")),
+  WHATSAPP_PHONE_NUMBER_ID: z.string().optional().or(z.literal("")),
+  WHATSAPP_BUSINESS_ACCOUNT_ID: z.string().optional().or(z.literal("")),
+  WHATSAPP_VERIFY_TOKEN: z.string().optional().or(z.literal("")),
+  WHATSAPP_APP_SECRET: z.string().optional().or(z.literal("")),
   WHATSAPP_TEMPLATE_NEW_ENQUIRY: z.string().optional().or(z.literal("")),
   EMAIL_API_KEY: z.string().optional().or(z.literal("")),
   RESEND_API_KEY: z.string().optional().or(z.literal("")),
@@ -118,8 +123,8 @@ export const isStorageConfigured = Boolean(
   env.AWS_SECRET_ACCESS_KEY
 );
 export const isWhatsAppProviderConfigured = Boolean(
-  env.WHATSAPP_PROVIDER &&
-  env.WHATSAPP_API_BASE_URL &&
-  env.WHATSAPP_API_TOKEN
+  (env.WHATSAPP_ACCESS_TOKEN && env.WHATSAPP_PHONE_NUMBER_ID) ||
+  (env.WHATSAPP_PROVIDER && env.WHATSAPP_API_BASE_URL && env.WHATSAPP_API_TOKEN)
 );
+
 

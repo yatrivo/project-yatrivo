@@ -16,6 +16,7 @@ import { dashboardRouter } from "../modules/dashboard/dashboard.routes";
 import { usersRouter } from "../modules/users/users.routes";
 import { siteAssetsRouter } from "../modules/site-assets/site-assets.routes";
 import { galleryRouter } from "../modules/gallery/gallery.routes";
+import { whatsappRouter } from "../modules/whatsapp/whatsapp.routes";
 
 export const apiRouter = Router();
 
@@ -42,4 +43,6 @@ apiRouter.use(usersRouter);
 apiRouter.use("/media", mediaRouter);
 apiRouter.use(galleryRouter);
 apiRouter.use(siteAssetsRouter);
+apiRouter.use(whatsappRouter);
+
 
