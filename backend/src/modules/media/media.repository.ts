@@ -359,7 +359,7 @@ export const mediaRepository = {
     const isGalleryFilter =
       Boolean(filters.category && (filters.category.toLowerCase().includes("gallery")));
     const orderClause = isGalleryFilter
-      ? "pgi.sort_order ASC, m.created_at DESC"
+      ? "pgi.sort_order DESC, m.created_at DESC"
       : "m.created_at DESC";
 
     const listResult = await executor.query<MediaAssetRecord & {

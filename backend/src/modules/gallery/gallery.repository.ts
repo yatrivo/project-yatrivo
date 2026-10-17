@@ -179,7 +179,7 @@ export const galleryRepository = {
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id
-       ORDER BY pgi.sort_order ASC, pgi.created_at ASC, pgi.id ASC`
+       ORDER BY pgi.sort_order DESC, pgi.created_at DESC, pgi.id DESC`
     );
 
     return result.rows.map(toPublicGalleryDto);
@@ -207,8 +207,8 @@ export const galleryRepository = {
          FROM public_gallery_items pgi
          JOIN media_assets m ON m.id = pgi.media_id
          LEFT JOIN destinations d ON d.id = m.destination_id
-         WHERE (pgi.sort_order, date_trunc('milliseconds', pgi.created_at), pgi.id) > ($1::int, date_trunc('milliseconds', $2::timestamptz), $3::uuid)
-         ORDER BY pgi.sort_order ASC, date_trunc('milliseconds', pgi.created_at) ASC, pgi.id ASC
+         WHERE (pgi.sort_order, date_trunc('milliseconds', pgi.created_at), pgi.id) < ($1::int, date_trunc('milliseconds', $2::timestamptz), $3::uuid)
+         ORDER BY pgi.sort_order DESC, date_trunc('milliseconds', pgi.created_at) DESC, pgi.id DESC
          LIMIT $4`,
         [parsedCursor.s, parsedCursor.c, parsedCursor.id, limit + 1]
       );
@@ -219,7 +219,7 @@ export const galleryRepository = {
          FROM public_gallery_items pgi
          JOIN media_assets m ON m.id = pgi.media_id
          LEFT JOIN destinations d ON d.id = m.destination_id
-         ORDER BY pgi.sort_order ASC, date_trunc('milliseconds', pgi.created_at) ASC, pgi.id ASC
+         ORDER BY pgi.sort_order DESC, date_trunc('milliseconds', pgi.created_at) DESC, pgi.id DESC
          LIMIT $1`,
         [limit + 1]
       );
@@ -250,7 +250,7 @@ export const galleryRepository = {
        FROM public_gallery_items pgi
        JOIN media_assets m ON m.id = pgi.media_id
        LEFT JOIN destinations d ON d.id = m.destination_id
-       ORDER BY pgi.sort_order ASC, pgi.created_at ASC, pgi.id ASC`
+       ORDER BY pgi.sort_order DESC, pgi.created_at DESC, pgi.id DESC`
     );
 
     return result.rows.map(toAdminGalleryDto);

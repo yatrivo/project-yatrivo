@@ -209,6 +209,7 @@ export const mediaApi = {
       destinationSlug?: string;
       isReview?: boolean;
       label?: string;
+      labels?: string[];
       altText?: string;
       showInGallery?: boolean;
     },
@@ -225,9 +226,10 @@ export const mediaApi = {
         const index = currentIndex++;
         const file = files[index];
         try {
+          const itemLabel = options?.labels?.[index]?.trim() || (options?.label ? `${options.label} (${index + 1})` : file.name.replace(/\.[^/.]+$/, ""));
           const asset = await this.upload(file, {
             ...options,
-            label: options?.label ? `${options.label} (${index + 1})` : file.name.replace(/\.[^/.]+$/, "")
+            label: itemLabel
           });
           results[index] = asset;
         } finally {

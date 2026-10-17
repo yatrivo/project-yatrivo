@@ -43,6 +43,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
   // File upload state (Multiple files supported)
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [fileTitles, setFileTitles] = useState<string[]>([]);
   const [label, setLabel] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<{ completed: number; total: number } | null>(null);
@@ -59,14 +60,27 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
     setFiles((prev) => [...prev, ...valid]);
     const newPreviews = valid.map((f) => URL.createObjectURL(f));
     setPreviews((prev) => [...prev, ...newPreviews]);
-    if (!label && valid[0]) {
-      setLabel(valid[0].name.replace(/\.[^/.]+$/, ""));
-    }
+    const newTitles = valid.map((f) => f.name.replace(/\.[^/.]+$/, ""));
+    setFileTitles((prev) => [...prev, ...newTitles]);
   };
 
   const removeFileAtIndex = (idx: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => prev.filter((_, i) => i !== idx));
+    setFileTitles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateFileTitle = (idx: number, newTitle: string) => {
+    setFileTitles((prev) => {
+      const next = [...prev];
+      next[idx] = newTitle;
+      return next;
+    });
+  };
+
+  const handleApplyLabelToAll = () => {
+    if (!label.trim() || files.length === 0) return;
+    setFileTitles(files.map((_, i) => (files.length > 1 ? `${label.trim()} (${i + 1})` : label.trim())));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -95,6 +109,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
           category,
           destinationId: destObj?.id,
           destinationSlug: destObj?.slug,
+          labels: fileTitles,
           label: label.trim() || undefined,
           showInGallery
         },
@@ -220,6 +235,9 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
                 </option>
               ))}
             </select>
+            <p className="text-[11px] text-[#718096] mt-1">
+              Selected destination will be assigned to all photos in this upload batch.
+            </p>
           </div>
 
           {tab === "file" ? (
@@ -236,36 +254,49 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
                 className="hidden"
               />
 
-              {/* Multi-preview Grid */}
+              {/* Multi-preview Grid with Individual Title Editing */}
               {previews.length > 0 && (
                 <div className="space-y-2">
                   <div className="flex items-center justify-between text-xs text-[#718096]">
-                    <span>{files.length} file{files.length > 1 ? "s" : ""} selected</span>
+                    <span>
+                      {files.length} file{files.length > 1 ? "s" : ""} selected (you can customize each title below)
+                    </span>
                     <button
                       type="button"
                       onClick={() => {
                         setFiles([]);
                         setPreviews([]);
+                        setFileTitles([]);
                       }}
                       className="text-rose-600 hover:underline font-semibold cursor-pointer"
                     >
                       Clear all
                     </button>
                   </div>
-                  <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-2 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
                     {previews.map((p, idx) => (
-                      <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-[#cbd5e1] group">
-                        <img src={p} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
-                        <button
-                          type="button"
-                          onClick={() => removeFileAtIndex(idx)}
-                          className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
-                          title="Remove file"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
+                      <div key={idx} className="relative rounded-lg overflow-hidden border border-[#cbd5e1] bg-white p-1.5 flex flex-col justify-between group shadow-2xs">
+                        <div className="relative aspect-video rounded overflow-hidden bg-gray-100">
+                          <img src={p} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeFileAtIndex(idx)}
+                            className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
+                            title="Remove file"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          value={fileTitles[idx] || ""}
+                          onChange={(e) => updateFileTitle(idx, e.target.value)}
+                          placeholder="Image title..."
+                          className="mt-1.5 w-full text-[10px] px-1.5 py-0.5 border border-[#e2e8f0] rounded focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                          title="Custom title for this specific image"
+                        />
                       </div>
                     ))}
                   </div>
@@ -316,18 +347,34 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
             </div>
           )}
 
-          {/* Optional Label */}
+          {/* Optional Common Title */}
           <div>
-            <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-              Asset Name / Label (optional)
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922]">
+                {files.length > 1 ? "Common Title / Base Prefix (optional)" : "Asset Name / Label (optional)"}
+              </label>
+              {files.length > 1 && label.trim() && (
+                <button
+                  type="button"
+                  onClick={handleApplyLabelToAll}
+                  className="text-[11px] text-[#e8622a] hover:underline font-semibold cursor-pointer"
+                >
+                  Apply to all files
+                </button>
+              )}
+            </div>
             <input
               type="text"
               value={label}
               onChange={(e) => setLabel(e.target.value)}
-              placeholder="e.g. Kedarnath Temple Valley Sunrise"
+              placeholder={files.length > 1 ? "e.g. Kedarnath Valley View (auto-numbers 1, 2, ...)" : "e.g. Kedarnath Temple Valley Sunrise"}
               className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
             />
+            <p className="text-[11px] text-[#718096] mt-1">
+              {files.length > 1
+                ? "Applies this base title to all photos, or edit individual titles in the list above. Leave blank to keep original filenames."
+                : "Leave blank to automatically use the file name."}
+            </p>
           </div>
 
           {/* Public Gallery toggle checkbox */}
@@ -405,6 +452,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
   // Upload Tab State (Multiple file uploads enabled)
   const [uploadType, setUploadType] = useState<"file" | "url">("file");
   const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [uploadFileTitles, setUploadFileTitles] = useState<string[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
   const [externalUrl, setExternalUrl] = useState("");
   const [titleInput, setTitleInput] = useState("");
@@ -492,11 +540,27 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
     setUploadFiles((prev) => [...prev, ...valid]);
     const newPreviews = valid.map((f) => URL.createObjectURL(f));
     setPreviews((prev) => [...prev, ...newPreviews]);
+    const newTitles = valid.map((f) => f.name.replace(/\.[^/.]+$/, ""));
+    setUploadFileTitles((prev) => [...prev, ...newTitles]);
   };
 
   const removeUploadFileAtIndex = (idx: number) => {
     setUploadFiles((prev) => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => prev.filter((_, i) => i !== idx));
+    setUploadFileTitles((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const updateUploadFileTitle = (idx: number, newTitle: string) => {
+    setUploadFileTitles((prev) => {
+      const next = [...prev];
+      next[idx] = newTitle;
+      return next;
+    });
+  };
+
+  const handleApplyTitleToAll = () => {
+    if (!titleInput.trim() || uploadFiles.length === 0) return;
+    setUploadFileTitles(uploadFiles.map((_, i) => (uploadFiles.length > 1 ? `${titleInput.trim()} (${i + 1})` : titleInput.trim())));
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -518,6 +582,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
             category: destObj ? "destinations" : "general",
             destinationId: destObj?.id,
             destinationSlug: destObj?.slug,
+            labels: uploadFileTitles,
             label: titleInput.trim() || undefined,
             showInGallery: true
           },
@@ -817,36 +882,49 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                   className="hidden"
                 />
 
-                {/* Previews Grid */}
+                {/* Previews Grid with Individual Title Editing */}
                 {previews.length > 0 && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between text-xs text-[#718096]">
-                      <span>{uploadFiles.length} file{uploadFiles.length > 1 ? "s" : ""} selected for public gallery</span>
+                      <span>
+                        {uploadFiles.length} file{uploadFiles.length > 1 ? "s" : ""} selected for public gallery (customize individual titles below)
+                      </span>
                       <button
                         type="button"
                         onClick={() => {
                           setUploadFiles([]);
                           setPreviews([]);
+                          setUploadFileTitles([]);
                         }}
                         className="text-rose-600 hover:underline font-semibold cursor-pointer"
                       >
                         Clear all
                       </button>
                     </div>
-                    <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-h-52 overflow-y-auto p-2 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
                       {previews.map((p, idx) => (
-                        <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-[#cbd5e1] group">
-                          <img src={p} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
-                          <button
-                            type="button"
-                            onClick={() => removeUploadFileAtIndex(idx)}
-                            className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
-                            title="Remove file"
-                          >
-                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                            </svg>
-                          </button>
+                        <div key={idx} className="relative rounded-lg overflow-hidden border border-[#cbd5e1] bg-white p-1.5 flex flex-col justify-between group shadow-2xs">
+                          <div className="relative aspect-video rounded overflow-hidden bg-gray-100">
+                            <img src={p} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => removeUploadFileAtIndex(idx)}
+                              className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
+                              title="Remove file"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
+                            </button>
+                          </div>
+                          <input
+                            type="text"
+                            value={uploadFileTitles[idx] || ""}
+                            onChange={(e) => updateUploadFileTitle(idx, e.target.value)}
+                            placeholder="Public title..."
+                            className="mt-1.5 w-full text-[10px] px-1.5 py-0.5 border border-[#e2e8f0] rounded focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+                            title="Public title for this specific image"
+                          />
                         </div>
                       ))}
                     </div>
@@ -898,16 +976,32 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
             )}
 
             <div>
-              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                Public Title (Optional)
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922]">
+                  {uploadFiles.length > 1 ? "Common Title / Base Prefix (Optional)" : "Public Title (Optional)"}
+                </label>
+                {uploadFiles.length > 1 && titleInput.trim() && (
+                  <button
+                    type="button"
+                    onClick={handleApplyTitleToAll}
+                    className="text-[11px] text-[#e8622a] hover:underline font-semibold cursor-pointer"
+                  >
+                    Apply to all files
+                  </button>
+                )}
+              </div>
               <input
                 type="text"
                 value={titleInput}
                 onChange={(e) => setTitleInput(e.target.value)}
-                placeholder="e.g. Kedarnath Valley View"
+                placeholder={uploadFiles.length > 1 ? "e.g. Kedarnath Valley View (auto-numbers 1, 2, ...)" : "e.g. Kedarnath Valley View"}
                 className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
               />
+              <p className="text-[11px] text-[#718096] mt-1">
+                {uploadFiles.length > 1
+                  ? "Applies this base title to all photos, or edit individual titles in the list above. Leave blank to keep original filenames."
+                  : "Displayed as the title in the public gallery. Leave blank to keep filename."}
+              </p>
             </div>
 
             <div>
@@ -926,6 +1020,9 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                   </option>
                 ))}
               </select>
+              <p className="text-[11px] text-[#718096] mt-1">
+                Selected destination will be associated with all images in this upload batch.
+              </p>
             </div>
 
             <div className="bg-[#f0f9f4] border border-[#bbf7d0] rounded-lg p-2.5 text-[11px] text-[#0f2922] flex items-center gap-2">
@@ -1075,9 +1172,10 @@ export default function AdminMedia() {
         const refs = await mediaApi.getReferences(updated.id);
         setAssetRefs(refs);
       } else {
+        const maxOrder = mediaList.reduce((max, m) => Math.max(max, m.gallerySortOrder || 0), 0);
         const added = await galleryApi.add({
           mediaId: selectedAsset.id,
-          sortOrder: galleryItemsCount + 1,
+          sortOrder: maxOrder + 1,
           customTitle: galleryTitleInput.trim() || undefined
         });
         showToast("Added to Public Gallery.", "success");
@@ -1511,9 +1609,12 @@ export default function AdminMedia() {
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] uppercase font-bold text-[#718096]">Display Position</span>
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#0f2922] text-[#38d39f]">
-                              #{selectedAsset.gallerySortOrder ?? 1}
-                            </span>
+                            <div className="flex items-center gap-1.5">
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-bold bg-[#0f2922] text-[#38d39f]">
+                                #{selectedAsset.gallerySortOrder ?? 1}
+                              </span>
+                              <span className="text-[10px] text-[#718096]">(Higher = Top)</span>
+                            </div>
                           </div>
                         </div>
 
@@ -1582,7 +1683,7 @@ export default function AdminMedia() {
                               className="w-24 bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0f2922] focus:outline-none focus:border-[#0f2922] shadow-2xs"
                             />
                             <span className="text-[10px] text-[#718096]">
-                              Allowed: 1 to {galleryItemsCount} (max #{galleryItemsCount})
+                              1 to {galleryItemsCount} (Higher number = displays above / on top)
                             </span>
                           </div>
                         </div>
