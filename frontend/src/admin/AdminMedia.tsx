@@ -1303,6 +1303,141 @@ function ConflictResolutionModal({
   );
 }
 
+interface SafeBatchDeleteModalProps {
+  items: MediaAsset[];
+  onConfirm: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}
+
+function SafeBatchDeleteModal({
+  items,
+  onConfirm,
+  onCancel,
+  isDeleting
+}: SafeBatchDeleteModalProps) {
+  if (items.length === 0) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-xs" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 flex flex-col overflow-hidden border border-[#e2e8f0]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="p-5 border-b border-[#f0f4f1] flex items-center justify-between bg-red-50/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-red-100 text-rose-600 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="font-bold text-[#0f2922] text-base">
+                Confirm Permanent Deletion
+              </h3>
+              <p className="text-xs text-[#718096]">
+                You are about to permanently delete {items.length} image{items.length > 1 ? "s" : ""}
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="text-[#718096] hover:text-[#0f2922] p-1.5 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-5 space-y-4">
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-start gap-2.5 text-xs text-amber-900">
+            <svg className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div>
+              <span className="font-semibold block">Warning: This action cannot be undone!</span>
+              <span>
+                These {items.length} file{items.length > 1 ? "s" : ""} will be permanently removed from cloud storage and the database.
+              </span>
+            </div>
+          </div>
+
+          {/* Thumbnail preview list of selected images */}
+          <div>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#718096] mb-2 block">
+              Images to be deleted ({items.length}):
+            </span>
+            <div className="max-h-48 overflow-y-auto space-y-2 border border-[#e2e8f0] rounded-xl p-2 bg-[#f8faf9]">
+              {items.map((item) => (
+                <div key={item.id} className="flex items-center gap-2.5 bg-white p-2 rounded-lg border border-[#e2e8f0]">
+                  <img
+                    src={item.thumbnailUrl || item.url}
+                    alt={item.label || ""}
+                    className="w-10 h-10 object-cover rounded-md bg-[#f7f8f5] shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[#0f2922] truncate">
+                      {item.label || "Untitled Image"}
+                    </p>
+                    <p className="text-[10px] text-[#718096] capitalize">
+                      {item.category} {item.inGallery ? "• In Public Gallery" : ""}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-slate-50 border-t border-[#f0f4f1] flex items-center justify-end gap-2.5">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="px-4 py-2 border border-[#cbd5e1] hover:bg-slate-100 text-[#0f2922] rounded-lg text-xs font-semibold transition cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isDeleting}
+            className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+          >
+            {isDeleting ? (
+              <>
+                <svg className="animate-spin h-3.5 w-3.5 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>Deleting...</span>
+              </>
+            ) : (
+              <>
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                <span>Permanently Delete ({items.length})</span>
+              </>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminMedia() {
   const { showToast, destinations } = useApp();
   const [mediaList, setMediaList] = useState<MediaAsset[]>([]);
@@ -1318,6 +1453,10 @@ export default function AdminMedia() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCheckingReferences, setIsCheckingReferences] = useState(false);
   const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
+  // Safe Batch Delete Modal State (Always confirms before deleting)
+  const [safeBatchModalOpen, setSafeBatchModalOpen] = useState(false);
+  const [safeBatchCandidateItems, setSafeBatchCandidateItems] = useState<MediaAsset[]>([]);
 
   // Conflict Resolution Modal State (Windows-style)
   const [conflictModalOpen, setConflictModalOpen] = useState(false);
@@ -1337,6 +1476,7 @@ export default function AdminMedia() {
   const [galleryTitleInput, setGalleryTitleInput] = useState<string>("");
   const [galleryCaptionInput, setGalleryCaptionInput] = useState<string>("");
   const [isTogglingGallery, setIsTogglingGallery] = useState(false);
+  const [togglingGalleryAssetId, setTogglingGalleryAssetId] = useState<string | null>(null);
   const [isSavingGallerySettings, setIsSavingGallerySettings] = useState(false);
   const [isEditingGalleryDetails, setIsEditingGalleryDetails] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
@@ -1395,59 +1535,75 @@ export default function AdminMedia() {
     }
   };
 
-  const handleToggleGalleryMembership = async () => {
-    if (!selectedAsset) return;
+  const handleToggleGalleryMembership = async (targetAsset?: MediaAsset) => {
+    const target = targetAsset || selectedAsset;
+    if (!target) return;
+    setTogglingGalleryAssetId(target.id);
     setIsTogglingGallery(true);
     try {
-      if (selectedAsset.inGallery) {
-        await galleryApi.remove(selectedAsset.galleryItemId || selectedAsset.id);
+      if (target.inGallery) {
+        await galleryApi.remove(target.galleryItemId || target.id);
         showToast("Removed from Public Gallery.", "success");
         const updated: MediaAsset = {
-          ...selectedAsset,
+          ...target,
           inGallery: false,
           galleryItemId: null,
           gallerySortOrder: null,
           galleryCustomTitle: null,
           galleryCaption: null
         };
-        setSelectedAsset(updated);
-        setIsEditingGalleryDetails(false);
+        if (selectedAsset?.id === target.id) {
+          setSelectedAsset(updated);
+          setIsEditingGalleryDetails(false);
+        }
         if (catFilter === "gallery") {
           setMediaList((prev) => prev.filter((m) => m.id !== updated.id));
         } else {
           setMediaList((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
         }
         void loadMedia(true);
-        const refs = await mediaApi.getReferences(updated.id);
-        setAssetRefs(refs);
+        if (selectedAsset?.id === target.id) {
+          const refs = await mediaApi.getReferences(updated.id);
+          setAssetRefs(refs);
+        }
       } else {
         const maxOrder = mediaList.reduce((max, m) => Math.max(max, m.gallerySortOrder || 0), 0);
+        const customTitleToUse =
+          selectedAsset?.id === target.id && galleryTitleInput.trim()
+            ? galleryTitleInput.trim()
+            : target.galleryCustomTitle || undefined;
+
         const added = await galleryApi.add({
-          mediaId: selectedAsset.id,
+          mediaId: target.id,
           sortOrder: maxOrder + 1,
-          customTitle: galleryTitleInput.trim() || undefined
+          customTitle: customTitleToUse
         });
         showToast("Added to Public Gallery.", "success");
         const updated: MediaAsset = {
-          ...selectedAsset,
+          ...target,
           inGallery: true,
           galleryItemId: added.id,
           gallerySortOrder: added.sortOrder,
           galleryCustomTitle: added.customTitle,
           galleryCaption: added.caption
         };
-        setSelectedAsset(updated);
-        setIsEditingGalleryDetails(false);
+        if (selectedAsset?.id === target.id) {
+          setSelectedAsset(updated);
+          setIsEditingGalleryDetails(false);
+        }
         setMediaList((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
         void loadMedia(true);
-        const refs = await mediaApi.getReferences(updated.id);
-        setAssetRefs(refs);
+        if (selectedAsset?.id === target.id) {
+          const refs = await mediaApi.getReferences(updated.id);
+          setAssetRefs(refs);
+        }
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to toggle gallery membership";
       showToast(msg, "error");
     } finally {
       setIsTogglingGallery(false);
+      setTogglingGalleryAssetId(null);
     }
   };
 
@@ -1548,23 +1704,11 @@ export default function AdminMedia() {
       }
 
       // Case 1: No problematic conflicts (all are unused or only in public gallery)
-      // Per user: "if the image is only used in gallery, you can delete it permanently without showing any warning"
+      // ALWAYS require explicit confirmation before deleting any images!
       if (conflicts.length === 0) {
-        setIsDeletingBatch(true);
-        try {
-          await Promise.all(safe.map((id) => mediaApi.delete(id)));
-          showToast(`Deleted ${safe.length} image${safe.length > 1 ? "s" : ""} permanently.`, "success");
-          setMediaList((prev) => prev.filter((m) => !selectedIds.has(m.id)));
-          if (selectedAsset && selectedIds.has(selectedAsset.id)) {
-            setSelectedAsset(null);
-          }
-          exitSelectionMode();
-        } catch (err: unknown) {
-          const msg = err instanceof Error ? err.message : "Failed to delete images";
-          showToast(msg, "error");
-        } finally {
-          setIsDeletingBatch(false);
-        }
+        const safeItems = mediaList.filter((m) => safe.includes(m.id));
+        setSafeBatchCandidateItems(safeItems);
+        setSafeBatchModalOpen(true);
         return;
       }
 
@@ -1580,6 +1724,31 @@ export default function AdminMedia() {
       showToast(msg, "error");
     } finally {
       setIsCheckingReferences(false);
+    }
+  };
+
+  const handleConfirmSafeBatchDelete = async () => {
+    setIsDeletingBatch(true);
+    try {
+      const ids = safeBatchCandidateItems.map((m) => m.id);
+      await Promise.all(ids.map((id) => mediaApi.delete(id)));
+      showToast(
+        `Deleted ${ids.length} image${ids.length > 1 ? "s" : ""} permanently.`,
+        "success"
+      );
+      const deletedSet = new Set(ids);
+      setMediaList((prev) => prev.filter((m) => !deletedSet.has(m.id)));
+      if (selectedAsset && deletedSet.has(selectedAsset.id)) {
+        setSelectedAsset(null);
+      }
+      exitSelectionMode();
+      setSafeBatchModalOpen(false);
+      setSafeBatchCandidateItems([]);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to delete images";
+      showToast(msg, "error");
+    } finally {
+      setIsDeletingBatch(false);
     }
   };
 
@@ -1694,6 +1863,19 @@ export default function AdminMedia() {
         />
       )}
 
+      {/* Safe Batch Delete Confirmation Modal (Protects against accidental deletion) */}
+      {safeBatchModalOpen && (
+        <SafeBatchDeleteModal
+          items={safeBatchCandidateItems}
+          onConfirm={handleConfirmSafeBatchDelete}
+          onCancel={() => {
+            setSafeBatchModalOpen(false);
+            setSafeBatchCandidateItems([]);
+          }}
+          isDeleting={isDeletingBatch}
+        />
+      )}
+
       {/* Public Gallery Lightbox Preview Modal */}
       {previewModalOpen && selectedAsset && createPortal(
         <div
@@ -1738,7 +1920,7 @@ export default function AdminMedia() {
       )}
 
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <div className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
             CENTRAL ASSET REPOSITORY
@@ -1779,8 +1961,8 @@ export default function AdminMedia() {
       </div>
 
       {/* Filter and Search Bar */}
-      <div className="bg-white rounded-xl border border-[#e2e8f0] p-4 shadow-2xs space-y-3">
-        <div className="flex flex-col md:flex-row gap-3">
+      <div className="bg-white rounded-xl border border-[#e2e8f0] p-3.5 shadow-2xs space-y-3">
+        <div className="flex flex-col sm:flex-row gap-2.5 items-stretch sm:items-center">
           {/* Search */}
           <div className="relative flex-1">
             <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[#a0aec0]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1797,8 +1979,18 @@ export default function AdminMedia() {
                 setSearch(e.target.value);
               }}
               placeholder="Search images by title, filename, or destination..."
-              className="w-full pl-9 pr-3 py-2 border border-[#e2e8f0] rounded-lg text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
+              className="w-full pl-9 pr-8 py-2 border border-[#e2e8f0] rounded-lg text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922] bg-[#fcfdfd]"
             />
+            {search && (
+              <button
+                type="button"
+                onClick={() => setSearch("")}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#a0aec0] hover:text-[#0f2922] text-xs p-0.5 rounded cursor-pointer"
+                title="Clear search"
+              >
+                ✕
+              </button>
+            )}
           </div>
 
           {/* Destination Filter */}
@@ -1809,7 +2001,7 @@ export default function AdminMedia() {
               setSelectedIds(new Set());
               setDestFilter(e.target.value);
             }}
-            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer"
+            className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-[#fcfdfd] text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer min-w-[170px]"
           >
             <option value="all">All Destinations</option>
             {destinations.map((d) => (
@@ -1820,33 +2012,41 @@ export default function AdminMedia() {
           </select>
         </div>
 
-        {/* Category / Type Pills & Multi-Select Bar below All Destinations */}
-        <div className="flex items-center justify-between gap-3 pt-1 border-t border-[#f0f4f1] flex-wrap sm:flex-nowrap">
-          <div className="flex gap-1.5 flex-wrap">
-            {CATEGORY_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => {
-                  setIsSelectionMode(false);
-                  setSelectedIds(new Set());
-                  setCatFilter(tab.id);
-                }}
-                className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                  catFilter === tab.id
-                    ? "bg-[#0f2922] text-white shadow-2xs"
-                    : "bg-[#f7f8f5] text-[#4a5568] hover:bg-[#edf2f7]"
-                }`}
-              >
-                {tab.id === "gallery" && (
-                  <span className={`w-1.5 h-1.5 rounded-full ${catFilter === tab.id ? "bg-[#38d39f]" : "bg-[#e8622a]"}`} />
-                )}
-                <span>{tab.label}</span>
-              </button>
-            ))}
+        {/* Category Pills & Selection Action Bar */}
+        <div className="flex items-center justify-between gap-3 pt-2.5 border-t border-[#f0f4f1] flex-wrap sm:flex-nowrap">
+          <div className="flex gap-1.5 flex-wrap items-center">
+            {CATEGORY_TABS.map((tab) => {
+              const isActive = catFilter === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => {
+                    setIsSelectionMode(false);
+                    setSelectedIds(new Set());
+                    setCatFilter(tab.id);
+                  }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                    isActive
+                      ? "bg-[#0f2922] text-white shadow-xs"
+                      : "bg-[#f8faf9] text-[#4a5568] hover:bg-[#edf2f0] hover:text-[#0f2922] border border-[#e2e8f0]/60"
+                  }`}
+                >
+                  {tab.id === "gallery" && (
+                    <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-[#38d39f]" : "bg-[#e8622a]"}`} />
+                  )}
+                  <span>{tab.label}</span>
+                  {isActive && (
+                    <span className="text-[10px] py-0.2 px-1 rounded bg-white/20 text-white font-normal ml-0.5">
+                      {mediaList.length}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          {/* Right-aligned empty space below All Destinations: Select Button & Actions */}
+          {/* Selection controls right-aligned below Destination Filter */}
           <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
             {!isSelectionMode ? (
               <button
@@ -1861,7 +2061,7 @@ export default function AdminMedia() {
                 <span>Select</span>
               </button>
             ) : (
-              <div className="inline-flex items-center gap-2 bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg px-2.5 py-1 text-xs shadow-2xs">
+              <div className="inline-flex items-center gap-2 bg-[#f8faf9] border border-[#cbd5e1] rounded-lg px-2.5 py-1 text-xs shadow-2xs">
                 <span className="font-semibold text-[#0f2922] text-[11px] whitespace-nowrap">
                   {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select images"}
                 </span>
@@ -1938,10 +2138,11 @@ export default function AdminMedia() {
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3.5">
               {mediaList.map((img) => {
                 const isInspecting = selectedAsset?.id === img.id;
                 const isSelected = selectedIds.has(img.id);
+                const isTogglingThis = togglingGalleryAssetId === img.id;
                 const formattedDate = img.createdAt
                   ? new Date(img.createdAt).toLocaleDateString("en-IN", {
                       day: "numeric",
@@ -1959,15 +2160,15 @@ export default function AdminMedia() {
                         void handleInspectAsset(img);
                       }
                     }}
-                    className={`group bg-white rounded-xl border-2 overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col ${
+                    className={`group bg-white rounded-xl border overflow-hidden shadow-2xs hover:shadow-md transition-all duration-200 cursor-pointer flex flex-col relative ${
                       isSelectionMode && isSelected
                         ? "border-rose-500 ring-2 ring-rose-500/25 bg-rose-50/10"
                         : isInspecting
-                        ? "border-[#e8622a] ring-2 ring-[#e8622a]/20"
-                        : "border-[#e2e8f0] hover:border-[#0f2922]"
+                        ? "border-[#0f2922] ring-2 ring-[#0f2922]/20"
+                        : "border-[#e2e8f0] hover:border-[#a0aec0]"
                     }`}
                   >
-                    {/* Thumbnail with status tags */}
+                    {/* Thumbnail with overlay badges */}
                     <div
                       className="aspect-[4/3] bg-[#f7f8f5] overflow-hidden relative bg-cover bg-center"
                       style={
@@ -1983,13 +2184,13 @@ export default function AdminMedia() {
                         decoding="async"
                         width={img.width || 400}
                         height={img.height || 300}
-                        className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         onError={(e) => {
                           (e.target as HTMLImageElement).style.opacity = "0.3";
                         }}
                       />
 
-                      {/* Selection Checkbox Badge */}
+                      {/* Top-Right: Selection Checkbox (in selection mode) OR Category Badge (in normal mode) */}
                       {isSelectionMode ? (
                         <div
                           onClick={(e) => {
@@ -1999,52 +2200,86 @@ export default function AdminMedia() {
                           className="absolute top-2 right-2 z-20 cursor-pointer"
                         >
                           {isSelected ? (
-                            <div className="w-6 h-6 rounded-md bg-rose-600 text-white flex items-center justify-center shadow-md">
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <div className="w-5 h-5 rounded-md bg-rose-600 text-white flex items-center justify-center shadow-md">
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
                               </svg>
                             </div>
                           ) : (
-                            <div className="w-6 h-6 rounded-md border-2 border-white/90 bg-black/40 hover:bg-black/60 shadow flex items-center justify-center transition" />
+                            <div className="w-5 h-5 rounded-md border-2 border-white/90 bg-black/40 hover:bg-black/60 shadow-xs flex items-center justify-center transition" />
                           )}
                         </div>
                       ) : (
-                        /* Original Category Tag */
-                        <span className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
+                        <span className="absolute top-2 right-2 bg-black/55 text-white/95 text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs shadow-2xs">
                           {img.category}
                         </span>
                       )}
 
-                      {/* Public Gallery Status Pill */}
-                      {img.inGallery ? (
-                        <span className="absolute top-2 left-2 bg-[#0f2922]/90 text-[#38d39f] border border-[#38d39f]/40 text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[#38d39f] animate-pulse" />
-                          Public Gallery
-                        </span>
-                      ) : (
-                        <span className="absolute top-2 left-2 bg-black/45 text-white/70 text-[9px] font-medium tracking-wide uppercase px-1.5 py-0.5 rounded backdrop-blur-xs">
-                          Not in Gallery
-                        </span>
-                      )}
+                      {/* Top-Left: Public Gallery Status & Quick Toggle Shortcut */}
+                      <div className="absolute top-2 left-2 z-10 flex items-center">
+                        {img.inGallery ? (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleToggleGalleryMembership(img);
+                            }}
+                            disabled={isTogglingThis}
+                            title="In Public Gallery. Click to remove."
+                            className="group/gal inline-flex items-center gap-1 bg-[#0f2922]/90 hover:bg-rose-900/90 text-[#38d39f] hover:text-white border border-[#38d39f]/40 hover:border-rose-400/50 text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full backdrop-blur-xs shadow-xs transition-all cursor-pointer"
+                          >
+                            {isTogglingThis ? (
+                              <svg className="animate-spin h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#38d39f] group-hover/gal:bg-rose-400" />
+                                <span className="group-hover/gal:hidden">Gallery</span>
+                                <span className="hidden group-hover/gal:inline">Remove</span>
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleToggleGalleryMembership(img);
+                            }}
+                            disabled={isTogglingThis}
+                            title="Click to add directly to Public Gallery"
+                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 transition-opacity duration-150 inline-flex items-center gap-1 bg-black/60 hover:bg-[#0f2922] text-white hover:text-[#38d39f] border border-white/20 hover:border-[#38d39f]/40 text-[9px] font-semibold px-1.5 py-0.5 rounded-full backdrop-blur-xs shadow-xs cursor-pointer"
+                          >
+                            {isTogglingThis ? (
+                              <svg className="animate-spin h-2.5 w-2.5 text-white" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                              </svg>
+                            ) : (
+                              <>
+                                <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
+                                </svg>
+                                <span>Gallery</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
 
-                      {/* Category Tag when in selection mode (rendered bottom right) */}
-                      {isSelectionMode && (
-                        <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
-                          {img.category}
-                        </span>
-                      )}
-
-                      {/* Gallery Display Order Badge */}
+                      {/* Bottom-Left: Gallery Display Order Position */}
                       {img.inGallery && (
-                        <span className="absolute bottom-2 left-2 bg-[#0f2922]/90 text-white text-[10px] font-bold px-2 py-0.5 rounded-full border border-[#38d39f]/40 backdrop-blur-xs flex items-center gap-1 shadow-xs">
-                          <span className="text-[#38d39f]">Order #</span>
+                        <span className="absolute bottom-2 left-2 bg-[#0f2922]/85 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md border border-[#38d39f]/30 backdrop-blur-xs flex items-center gap-0.5 shadow-2xs">
+                          <span className="text-[#38d39f]">#</span>
                           {img.gallerySortOrder ?? 1}
                         </span>
                       )}
                     </div>
 
                     {/* Card Body */}
-                    <div className="p-3 text-xs flex-1 flex flex-col justify-between">
+                    <div className="p-2.5 text-xs flex-1 flex flex-col justify-between">
                       <div>
                         <p className="font-semibold text-[#0f2922] truncate text-[11px]" title={img.label || img.url}>
                           {img.label || "Untitled Image"}
@@ -2056,9 +2291,14 @@ export default function AdminMedia() {
                         )}
                       </div>
 
-                      <div className="flex items-center justify-between text-[10px] text-[#718096] mt-1.5 pt-1.5 border-t border-[#f0f4f1]">
+                      <div className="flex items-center justify-between text-[10px] text-[#718096] mt-2 pt-1.5 border-t border-[#f0f4f1]">
                         <span>{formattedDate}</span>
-                        <span className="text-[#e8622a] font-medium group-hover:underline">Inspect →</span>
+                        <span className="text-[#0f2922] font-semibold group-hover:text-[#e8622a] transition flex items-center gap-0.5">
+                          Inspect
+                          <svg className="w-2.5 h-2.5 group-hover:translate-x-0.5 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                          </svg>
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -2071,15 +2311,22 @@ export default function AdminMedia() {
         {/* Sidebar Inspector / Asset Details Drawer */}
         <div className="space-y-4">
           {selectedAsset ? (
-            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-5 space-y-4 sticky top-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
-              <div className="flex items-center justify-between">
-                <span className="text-[#e8622a] text-[10px] uppercase tracking-widest font-bold">
-                  ASSET INSPECTOR
-                </span>
+            <div className="bg-white rounded-xl border border-[#e2e8f0] shadow-2xs p-4 sm:p-5 space-y-4 sticky top-6 max-h-[calc(100vh-6rem)] overflow-y-auto">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-[#f0f4f1]">
+                <div>
+                  <div className="text-[#e8622a] text-[10px] uppercase tracking-wider font-bold">
+                    ASSET INSPECTOR
+                  </div>
+                  <h3 className="text-xs font-semibold text-[#0f2922] truncate max-w-[200px]" title={selectedAsset.label || "Untitled"}>
+                    {selectedAsset.label || "Untitled Asset"}
+                  </h3>
+                </div>
                 <button
                   type="button"
                   onClick={() => setSelectedAsset(null)}
-                  className="text-[#718096] hover:text-[#0f2922] p-1 cursor-pointer"
+                  className="text-[#718096] hover:text-[#0f2922] p-1.5 rounded-lg hover:bg-[#f7f8f5] transition cursor-pointer"
+                  title="Close inspector"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -2087,30 +2334,38 @@ export default function AdminMedia() {
                 </button>
               </div>
 
-              {/* Full Preview */}
-              <div className="rounded-lg overflow-hidden border border-[#e2e8f0] bg-[#f7f8f5] aspect-video relative group">
-                <img
-                  src={selectedAsset.viewerUrl || selectedAsset.mediumUrl || selectedAsset.url}
-                  alt={selectedAsset.label ?? ""}
-                  decoding="async"
-                  className="w-full h-full object-cover"
-                />
-                {isSafeHttpUrl(selectedAsset.url) && (
-                  <a
-                    href={selectedAsset.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="absolute bottom-2 right-2 bg-black/70 hover:bg-black text-white text-[10px] font-medium px-2 py-1 rounded transition flex items-center gap-1 shadow-xs"
-                  >
-                    <span>Open Full</span>
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                  </a>
+              {/* Section A: Full Preview */}
+              <div className="space-y-2">
+                <div className="rounded-lg overflow-hidden border border-[#e2e8f0] bg-[#f8faf9] aspect-video relative group">
+                  <img
+                    src={selectedAsset.viewerUrl || selectedAsset.mediumUrl || selectedAsset.url}
+                    alt={selectedAsset.label ?? ""}
+                    decoding="async"
+                    className="w-full h-full object-cover"
+                  />
+                  {isSafeHttpUrl(selectedAsset.url) && (
+                    <a
+                      href={selectedAsset.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute bottom-2 right-2 bg-black/70 hover:bg-black text-white text-[10px] font-medium px-2 py-1 rounded transition flex items-center gap-1 shadow-xs backdrop-blur-xs"
+                    >
+                      <span>Open Full</span>
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  )}
+                </div>
+                {(selectedAsset.width || selectedAsset.height) && (
+                  <div className="flex items-center justify-between text-[10px] text-[#718096] px-1">
+                    <span>Resolution: {selectedAsset.width} × {selectedAsset.height} px</span>
+                    <span className="capitalize">{selectedAsset.category} asset</span>
+                  </div>
                 )}
               </div>
 
-              {/* Public Gallery Membership & Customization Controls */}
+              {/* Section B: Public Gallery Visibility & Settings */}
               <div className="bg-[#f0f9f4] p-3.5 rounded-xl border border-[#bbf7d0] space-y-3">
                 <div className="flex items-center justify-between gap-3">
                   <div>
@@ -2128,7 +2383,7 @@ export default function AdminMedia() {
                   <button
                     type="button"
                     disabled={isTogglingGallery}
-                    onClick={handleToggleGalleryMembership}
+                    onClick={() => void handleToggleGalleryMembership(selectedAsset)}
                     className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${
                       selectedAsset.inGallery ? "bg-[#e8622a]" : "bg-[#cbd5e1]"
                     }`}
@@ -2146,11 +2401,11 @@ export default function AdminMedia() {
 
                 {/* Gallery Customization Details when active */}
                 {selectedAsset.inGallery && (
-                  <div className="pt-2 border-t border-[#bbf7d0]/70 space-y-2 text-xs">
+                  <div className="pt-2.5 border-t border-[#bbf7d0]/70 space-y-2.5 text-xs">
                     {!isEditingGalleryDetails ? (
-                      /* Default View Mode: Clean summary without inputs or save buttons */
+                      /* Default View Mode: Clean summary */
                       <div className="space-y-2">
-                        <div className="bg-white/90 rounded-lg p-2.5 border border-[#bbf7d0] space-y-1.5">
+                        <div className="bg-white/95 rounded-lg p-2.5 border border-[#bbf7d0] space-y-1.5 shadow-2xs">
                           <div className="flex items-center justify-between">
                             <span className="text-[10px] uppercase font-bold text-[#718096]">Public Title</span>
                             <span className="font-semibold text-xs text-[#0f2922] truncate max-w-[150px]" title={selectedAsset.galleryCustomTitle || selectedAsset.label || "Default Title"}>
@@ -2186,7 +2441,7 @@ export default function AdminMedia() {
                           <button
                             type="button"
                             onClick={() => setPreviewModalOpen(true)}
-                            className="bg-white hover:bg-[#f7f8f5] border border-[#cbd5e1] text-[#0f2922] text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer"
+                            className="bg-white hover:bg-[#f7f8f5] border border-[#cbd5e1] text-[#0f2922] text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer shadow-2xs"
                           >
                             Preview
                           </button>
@@ -2230,10 +2485,10 @@ export default function AdminMedia() {
                                 const maxAllowed = Math.max(1, galleryItemsCount);
                                 setGalleryOrderInput((prev) => Math.max(1, Math.min(prev || 1, maxAllowed)));
                               }}
-                              className="w-24 bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1.5 text-xs font-semibold text-[#0f2922] focus:outline-none focus:border-[#0f2922] shadow-2xs"
+                              className="w-20 bg-white border border-[#cbd5e1] rounded-lg px-2.5 py-1 text-xs font-semibold text-[#0f2922] focus:outline-none focus:border-[#0f2922] shadow-2xs"
                             />
                             <span className="text-[10px] text-[#718096]">
-                              1 to {galleryItemsCount} (Higher number = displays above / on top)
+                              1 to {galleryItemsCount} (Higher = displays on top)
                             </span>
                           </div>
                         </div>
@@ -2243,7 +2498,7 @@ export default function AdminMedia() {
                             type="button"
                             onClick={handleSaveGallerySettings}
                             disabled={isSavingGallerySettings}
-                            className="flex-1 bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer disabled:opacity-50"
+                            className="flex-1 bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs font-semibold py-1.5 px-3 rounded-lg transition cursor-pointer disabled:opacity-50 shadow-2xs"
                           >
                             {isSavingGallerySettings ? "Saving..." : "Save Changes"}
                           </button>
@@ -2261,15 +2516,12 @@ export default function AdminMedia() {
                 )}
               </div>
 
-              {/* Metadata Details */}
-              <div className="space-y-2.5 text-xs">
-                <div>
-                  <h4 className="font-bold text-[#0f2922] text-sm break-all">
-                    {selectedAsset.label || "Untitled Asset"}
-                  </h4>
-                </div>
-
-                <div className="bg-[#f7f8f5] p-3 rounded-lg border border-[#e2e8f0] space-y-1.5 text-[11px]">
+              {/* Section C: Asset Metadata & Original Category */}
+              <div className="space-y-2">
+                <span className="text-[10px] uppercase font-bold tracking-wider text-[#718096]">
+                  METADATA & DETAILS
+                </span>
+                <div className="bg-[#f8faf9] p-3 rounded-lg border border-[#e2e8f0] space-y-2 text-[11px]">
                   <div className="flex justify-between items-start">
                     <span className="text-[#718096] shrink-0">Destinations:</span>
                     <div className="flex gap-1 flex-wrap justify-end">
@@ -2293,7 +2545,7 @@ export default function AdminMedia() {
                   </div>
                   <div className="flex justify-between items-center">
                     <span className="text-[#718096]">Original Category:</span>
-                    <span className="capitalize font-semibold text-[10px] px-1.5 py-0.5 rounded bg-white border border-[#e2e8f0] text-[#0f2922]">
+                    <span className="capitalize font-semibold text-[10px] px-2 py-0.5 rounded bg-white border border-[#e2e8f0] text-[#0f2922]">
                       {selectedAsset.category}
                     </span>
                   </div>
@@ -2310,28 +2562,30 @@ export default function AdminMedia() {
                     </div>
                   )}
                 </div>
-
-                {/* Direct URL Copy Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    navigator.clipboard.writeText(selectedAsset.url);
-                    showToast("Image URL copied to clipboard.", "success");
-                  }}
-                  className="w-full bg-[#f7f8f5] hover:bg-[#edf2f7] border border-[#e2e8f0] text-[#0f2922] text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 text-[#718096]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
-                  </svg>
-                  <span>Copy Image URL</span>
-                </button>
               </div>
 
-              {/* Active Entity References */}
+              {/* Section D: Direct URL Copy Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  navigator.clipboard.writeText(selectedAsset.url);
+                  showToast("Image URL copied to clipboard.", "success");
+                }}
+                className="w-full bg-[#f8faf9] hover:bg-[#edf2f0] border border-[#e2e8f0] hover:border-[#0f2922] text-[#0f2922] text-xs font-semibold py-2 px-3 rounded-lg transition flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs"
+              >
+                <svg className="w-3.5 h-3.5 text-[#718096]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                </svg>
+                <span>Copy Image URL</span>
+              </button>
+
+              {/* Section E: Active Entity References */}
               <div className="pt-2 border-t border-[#e2e8f0] space-y-2">
                 <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-[#0f2922]">Active References</span>
-                  <span className="bg-[#f7f8f5] px-2 py-0.5 rounded-full text-[10px] font-bold text-[#718096]">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-[#718096]">
+                    ACTIVE REFERENCES
+                  </span>
+                  <span className="bg-[#f8faf9] border border-[#e2e8f0] px-2 py-0.5 rounded-full text-[10px] font-bold text-[#0f2922]">
                     {loadingRefs ? "..." : `${assetRefs?.totalReferences || 0} items`}
                   </span>
                 </div>
@@ -2339,15 +2593,18 @@ export default function AdminMedia() {
                 {loadingRefs ? (
                   <p className="text-[11px] text-[#718096]">Checking where asset is used...</p>
                 ) : !assetRefs || assetRefs.totalReferences === 0 ? (
-                  <p className="text-[11px] text-[#a0aec0]">
-                    Not currently linked as cover, gallery, or slide.
-                  </p>
+                  <div className="bg-[#f8faf9] border border-[#e2e8f0] rounded-lg p-2.5 text-[11px] text-[#718096] flex items-center gap-2">
+                    <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Not in active use. Safe to delete or modify.</span>
+                  </div>
                 ) : (
-                  <div className="space-y-1.5">
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto">
                     {assetRefs.references.map((r, i) => (
                       <div
                         key={i}
-                        className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg p-2 text-[11px] flex items-center justify-between"
+                        className="bg-[#f8faf9] border border-[#e2e8f0] rounded-lg p-2 text-[11px] flex items-center justify-between"
                       >
                         <div>
                           <span className="font-semibold text-[#0f2922]">{r.entityName || r.entityId}</span>
@@ -2361,17 +2618,26 @@ export default function AdminMedia() {
                 )}
               </div>
 
-              {/* Delete Action (Protected if referenced) */}
+              {/* Section F: Delete Action (Protected if referenced) */}
               <div className="pt-3 border-t border-[#e2e8f0]">
                 {confirmDeleteOpen ? (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 space-y-2 text-xs">
-                    <p className="font-semibold text-red-800">Permanently delete this image?</p>
-                    <p className="text-red-700 text-[11px]">This will delete the file from storage and the database.</p>
-                    <div className="flex gap-2">
+                  <div className="bg-red-50/95 border-2 border-red-200 rounded-xl p-3.5 space-y-2.5 text-xs shadow-xs">
+                    <div className="flex items-start gap-2.5 text-rose-800">
+                      <svg className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <div>
+                        <p className="font-bold text-rose-950 text-xs">Permanently delete this image?</p>
+                        <p className="text-rose-700 text-[11px] mt-0.5">
+                          Warning: This will permanently remove the file from cloud storage and the database. This action cannot be undone.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 pt-1">
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteOpen(false)}
-                        className="flex-1 bg-white border border-red-300 text-red-800 py-1.5 rounded text-xs font-semibold cursor-pointer"
+                        className="flex-1 bg-white hover:bg-slate-50 border border-slate-300 text-[#0f2922] py-1.5 rounded-lg text-xs font-semibold cursor-pointer shadow-2xs transition"
                       >
                         Cancel
                       </button>
@@ -2379,7 +2645,7 @@ export default function AdminMedia() {
                         type="button"
                         onClick={handleDeleteAsset}
                         disabled={isDeleting}
-                        className="flex-1 bg-red-600 hover:bg-red-700 text-white py-1.5 rounded text-xs font-semibold cursor-pointer disabled:opacity-50"
+                        className="flex-1 bg-rose-600 hover:bg-rose-700 text-white py-1.5 rounded-lg text-xs font-semibold cursor-pointer disabled:opacity-50 shadow-2xs transition flex items-center justify-center gap-1.5"
                       >
                         {isDeleting ? "Deleting..." : "Confirm Delete"}
                       </button>
@@ -2410,7 +2676,7 @@ export default function AdminMedia() {
               </div>
             </div>
           ) : (
-            <div className="bg-[#f7f8f5] rounded-xl border border-dashed border-[#cbd5e1] p-10 text-center text-[#718096] text-xs space-y-2">
+            <div className="bg-[#f8faf9] rounded-xl border border-dashed border-[#cbd5e1] p-10 text-center text-[#718096] text-xs space-y-2">
               <div className="w-10 h-10 rounded-full bg-white border border-[#e2e8f0] flex items-center justify-center mx-auto text-[#0f2922]">
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
