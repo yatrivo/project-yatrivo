@@ -9,6 +9,7 @@ import type { Destination } from "@/data/destinations";
 import type { CategoryValue } from "@/data/categories";
 import type { AdminPage } from "./AdminLayout";
 import MediaPicker from "@/components/MediaPicker";
+import MultiMediaPicker from "@/components/MultiMediaPicker";
 
 type Section = "basic" | "highlights" | "itinerary" | "inclusions" | "faqs" | "pricing" | "gallery" | "seo";
 
@@ -1065,38 +1066,18 @@ export default function AdminTripEditor({ setAdminPage }: Props = {}) {
                 </p>
               </div>
 
-              <div className="space-y-3">
-                {galleryUrls.map((url, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <MediaPicker
-                      value={url}
-                      onChange={(newUrl) => updateGallerySlot(i, newUrl)}
-                      label={`Gallery Image ${i + 1}`}
-                      className="flex-1"
-                      context={{
-                        destinationId: primaryDest?.id,
-                        destinationSlug: primaryDest?.slug,
-                        destinationName: primaryDest?.name,
-                        category: "trips"
-                      }}
-                    />
-                    <button
-                      type="button"
-                      onClick={() => removeGallerySlot(i)}
-                      className="text-red-500 hover:text-red-700 text-xs px-2 shrink-0 mt-5"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={addGallerySlot}
-                  className="w-full border-2 border-dashed border-[#e2e8f0] rounded-xl py-3 text-[#718096] hover:border-[#0f2922] hover:text-[#0f2922] text-sm transition"
-                >
-                  + Add Gallery Image
-                </button>
-              </div>
+              <MultiMediaPicker
+                label="Trip Gallery Photos"
+                description="Upload multiple photos from your device or select multiple images from the media library at once."
+                values={galleryUrls}
+                onChange={(urls) => setGalleryUrls(urls)}
+                context={{
+                  destinationId: primaryDest?.id,
+                  destinationSlug: primaryDest?.slug,
+                  destinationName: primaryDest?.name,
+                  category: "trips"
+                }}
+              />
             </div>
           )}
 

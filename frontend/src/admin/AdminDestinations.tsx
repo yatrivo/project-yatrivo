@@ -5,6 +5,7 @@ import { useApp } from "@/context/AppContext";
 import { Destination, UTTARAKHAND_EXPERIENCE_TAGS } from "@/data/destinations";
 import { destinationsApi } from "@/api/destinations";
 import MediaPicker from "@/components/MediaPicker";
+import MultiMediaPicker from "@/components/MultiMediaPicker";
 import { clientCache } from "@/utils/clientCache";
 
 export interface DestFormData {
@@ -238,73 +239,26 @@ export function DestinationModal({
             }}
           />
 
-          {/* Gallery */}
-          <div>
-            <label className="block text-sm font-medium text-[#4a5568] mb-2">Gallery Images (max 4)</label>
-            <div className="space-y-2">
-              {form.gallery.map((url, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <MediaPicker
-                    value={url}
-                    mediaId={form.galleryMediaIds?.[i]}
-                    onChange={(newUrl, newId) => {
-                      const g = [...form.gallery];
-                      g[i] = newUrl;
-                      set("gallery", g);
-                      if (newId) {
-                        const gm = [...(form.galleryMediaIds || [])];
-                        gm[i] = newId;
-                        set("galleryMediaIds", gm);
-                      }
-                    }}
-                    className="flex-1"
-                    context={{
-                      destinationId: form.id,
-                      destinationSlug: form.slug,
-                      destinationName: form.name,
-                      category: "destinations"
-                    }}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      set("gallery", form.gallery.filter((_, j) => j !== i));
-                      if (form.galleryMediaIds) {
-                        set("galleryMediaIds", form.galleryMediaIds.filter((_, j) => j !== i));
-                      }
-                    }}
-                    className="text-red-500 hover:text-red-700 text-xs px-2 shrink-0"
-                    title="Remove image from destination (retained in media library)"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {form.gallery.length < 4 && (
-                <div>
-                  <MediaPicker
-                    value={newGallery}
-                    onChange={(url, newId) => {
-                      if (url) {
-                        set("gallery", [...form.gallery, url]);
-                        if (newId) {
-                          set("galleryMediaIds", [...(form.galleryMediaIds || []), newId]);
-                        }
-                        setNewGallery("");
-                      }
-                    }}
-                    label="Add gallery image"
-                    context={{
-                      destinationId: form.id,
-                      destinationSlug: form.slug,
-                      destinationName: form.name,
-                      category: "destinations"
-                    }}
-                  />
-                </div>
-              )}
-            </div>
-          </div>
+          {/* Gallery Images (max 4) */}
+          <MultiMediaPicker
+            label="Gallery Images"
+            description="Featured gallery photos for this destination (up to 4 images max)."
+            values={form.gallery}
+            mediaIds={form.galleryMediaIds}
+            maxImages={4}
+            onChange={(urls, ids) => {
+              set("gallery", urls);
+              if (ids) {
+                set("galleryMediaIds", ids as string[]);
+              }
+            }}
+            context={{
+              destinationId: form.id,
+              destinationSlug: form.slug,
+              destinationName: form.name,
+              category: "destinations"
+            }}
+          />
 
           {/* Highlights */}
           <div>

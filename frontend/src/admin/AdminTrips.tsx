@@ -4,6 +4,7 @@ import { useApp } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
 import type { TripInstance, Trip } from "@/data/trips";
 import MediaPicker from "@/components/MediaPicker";
+import MultiMediaPicker from "@/components/MultiMediaPicker";
 import type { AdminPage } from "./AdminLayout";
 
 // ── helpers ────────────────────────────────────────────────────────────────
@@ -237,81 +238,21 @@ function CompleteModal({ instance, tripName, onSave, onClose }: CompleteModalPro
             />
           </div>
 
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <label className="block text-xs font-semibold text-[#0f2922]">
-                  Completed Trip Photos <span className="text-[#a0aec0] font-normal">({photos.length}/12)</span>
-                </label>
-                <p className="text-[11px] text-[#718096]">
-                  Upload new photos or choose from your Media Library (up to 12 photos).
-                </p>
-              </div>
-              {photos.length > 0 && (
-                <button
-                  type="button"
-                  onClick={() => setPhotos([])}
-                  className="text-[11px] text-rose-600 hover:text-rose-700 font-semibold cursor-pointer"
-                >
-                  Clear all
-                </button>
-              )}
-            </div>
-
-            {photos.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 bg-[#f7f8f5] p-3 rounded-xl border border-[#e2e8f0]">
-                {photos.map((url, i) => (
-                  <div
-                    key={`${url}-${i}`}
-                    className="group relative aspect-square rounded-lg overflow-hidden border border-[#e2e8f0] bg-white shadow-2xs"
-                  >
-                    <img
-                      src={url}
-                      alt={`Selected trip photo ${i + 1}`}
-                      className="w-full h-full object-cover"
-                      loading="lazy"
-                    />
-                    <span className="absolute top-1.5 left-1.5 bg-black/65 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-md">
-                      #{i + 1}
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => removePhotoSlot(i)}
-                      className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-rose-600 hover:bg-rose-700 text-white flex items-center justify-center shadow-sm transition cursor-pointer"
-                      title="Remove photo"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {photos.length < 12 ? (
-              <div className="bg-[#f7f8f5]/70 p-3.5 rounded-xl border border-dashed border-[#cbd5e1]">
-                <div className="text-[11px] font-semibold text-[#4a5568] mb-2">
-                  {photos.length === 0 ? "Add your first trip photo:" : "Add another photo:"}
-                </div>
-                <MediaPicker
-                  value=""
-                  onChange={handleAddPhoto}
-                  compact
-                  context={{
-                    destinationId: dest?.id,
-                    destinationSlug: dest?.slug,
-                    destinationName: dest?.name,
-                    category: "completed_trips"
-                  }}
-                />
-              </div>
-            ) : (
-              <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2 text-center">
-                Maximum of 12 photos reached. Remove a photo above to add a different one.
-              </div>
-            )}
-          </div>
+          {/* Multi-Photo Manager */}
+          <MultiMediaPicker
+            label="Completed Trip Photos"
+            description="Select multiple photos from library or upload multiple files from device (up to 12 photos max)."
+            values={photos}
+            onChange={(urls) => setPhotos(urls)}
+            maxImages={12}
+            compact
+            context={{
+              destinationId: dest?.id,
+              destinationSlug: dest?.slug,
+              destinationName: dest?.name,
+              category: "completed_trips"
+            }}
+          />
           <div className="bg-amber-50 border border-amber-200 rounded-xl px-3.5 py-2.5 text-xs text-amber-800">
             {isAlreadyCompleted
               ? "Update notes and photos for this completed departure."

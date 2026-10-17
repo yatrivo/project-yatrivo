@@ -26,7 +26,7 @@ function isSafeHttpUrl(url?: string | null): boolean {
 
 interface UploadModalProps {
   onClose: () => void;
-  onUploaded: (asset: MediaAsset) => void;
+  onUploaded: (asset?: MediaAsset | MediaAsset[]) => void;
   initialDestinationId?: string;
   defaultInGallery?: boolean;
 }
@@ -40,11 +40,12 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
     initialDestinationId && initialDestinationId !== "all" ? initialDestinationId : ""
   );
 
-  // File upload state
-  const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  // File upload state (Multiple files supported)
+  const [files, setFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [label, setLabel] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ completed: number; total: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [showInGallery, setShowInGallery] = useState(defaultInGallery);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -52,15 +53,26 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
   // URL state
   const [url, setUrl] = useState("");
 
-  const processFile = (f: File) => {
-    setFile(f);
-    setPreview(URL.createObjectURL(f));
-    if (!label) setLabel(f.name.replace(/\.[^/.]+$/, ""));
+  const addFiles = (newFiles: FileList | File[]) => {
+    const valid = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
+    if (valid.length === 0) return;
+    setFiles((prev) => [...prev, ...valid]);
+    const newPreviews = valid.map((f) => URL.createObjectURL(f));
+    setPreviews((prev) => [...prev, ...newPreviews]);
+    if (!label && valid[0]) {
+      setLabel(valid[0].name.replace(/\.[^/.]+$/, ""));
+    }
+  };
+
+  const removeFileAtIndex = (idx: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== idx));
+    setPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) processFile(f);
+    if (e.target.files && e.target.files.length > 0) {
+      addFiles(e.target.files);
+    }
     e.target.value = "";
   };
 
@@ -69,29 +81,37 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
       e.preventDefault();
       e.stopPropagation();
     }
-    if (!file) return;
+    if (files.length === 0) return;
     setIsUploading(true);
+    setUploadProgress({ completed: 0, total: files.length });
 
     try {
       const destObj = destinations.find((d) => d.id === selectedDestId);
       const category = destObj ? "destinations" : "general";
 
-      const asset = await mediaApi.upload(file, {
-        category,
-        destinationId: destObj?.id,
-        destinationSlug: destObj?.slug,
-        label: label.trim() || file.name,
-        showInGallery
-      });
+      const uploadedAssets = await mediaApi.uploadBatch(
+        files,
+        {
+          category,
+          destinationId: destObj?.id,
+          destinationSlug: destObj?.slug,
+          label: label.trim() || undefined,
+          showInGallery
+        },
+        (completed, total) => {
+          setUploadProgress({ completed, total });
+        }
+      );
 
-      showToast("Image uploaded to storage successfully.", "success");
-      onUploaded(asset);
+      showToast(`Uploaded ${uploadedAssets.length} image${uploadedAssets.length > 1 ? "s" : ""} to storage successfully.`, "success");
+      onUploaded(uploadedAssets);
       onClose();
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to upload file";
       showToast(msg, "error");
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -132,7 +152,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md z-10 flex flex-col overflow-hidden max-h-[90vh] border border-[#e2e8f0]"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-lg z-10 flex flex-col overflow-hidden max-h-[90vh] border border-[#e2e8f0]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -142,7 +162,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
               MEDIA STORAGE
             </div>
             <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-serif, serif)" }}>
-              Upload Image to Library
+              Upload Images to Library
             </h3>
           </div>
           <button
@@ -169,7 +189,7 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
               tab === "file" ? "border-[#e8622a] text-[#0f2922] bg-white" : "border-transparent text-[#718096]"
             }`}
           >
-            Upload File from Device
+            Upload Files from Device
           </button>
           <button
             type="button"
@@ -203,18 +223,56 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
           </div>
 
           {tab === "file" ? (
-            <div>
-              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                Image File <span className="text-red-500">*</span>
+            <div className="space-y-3">
+              <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922]">
+                Image Files <span className="text-red-500">*</span>
               </label>
               <input
                 ref={fileInputRef}
                 type="file"
+                multiple
                 accept="image/png,image/jpeg,image/webp,image/gif"
                 onChange={handleFileChange}
                 className="hidden"
               />
-              <label
+
+              {/* Multi-preview Grid */}
+              {previews.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-[#718096]">
+                    <span>{files.length} file{files.length > 1 ? "s" : ""} selected</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setFiles([]);
+                        setPreviews([]);
+                      }}
+                      className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                    >
+                      Clear all
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
+                    {previews.map((p, idx) => (
+                      <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-[#cbd5e1] group">
+                        <img src={p} alt={`Preview ${idx + 1}`} className="w-full h-full object-cover" />
+                        <button
+                          type="button"
+                          onClick={() => removeFileAtIndex(idx)}
+                          className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
+                          title="Remove file"
+                        >
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div
                 onDragOver={(e) => {
                   e.preventDefault();
                   setIsDragging(true);
@@ -223,8 +281,9 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
                 onDrop={(e) => {
                   e.preventDefault();
                   setIsDragging(false);
-                  const f = e.dataTransfer.files?.[0];
-                  if (f) processFile(f);
+                  if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    addFiles(e.dataTransfer.files);
+                  }
                 }}
                 onClick={() => fileInputRef.current?.click()}
                 className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition ${
@@ -233,25 +292,14 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
                     : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#f7f8f5]"
                 }`}
               >
-                {preview ? (
-                  <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#e2e8f0]">
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
-                      Change File
-                    </div>
-                  </div>
-                ) : (
-                  <>
-                    <div className="w-12 h-12 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-2">
-                      <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                    </div>
-                    <p className="text-sm font-semibold text-[#0f2922]">Click or drop image file here</p>
-                    <p className="text-xs text-[#718096] mt-0.5">PNG, JPG, or WEBP up to 10MB</p>
-                  </>
-                )}
-              </label>
+                <div className="w-10 h-10 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-1.5">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                </div>
+                <p className="text-xs font-semibold text-[#0f2922]">Click or drop multiple images here</p>
+                <p className="text-[10px] text-[#718096] mt-0.5">Select multiple PNG, JPG, or WEBP up to 10MB each</p>
+              </div>
             </div>
           ) : (
             <div>
@@ -296,6 +344,17 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
             </label>
           </div>
 
+          {/* Upload Progress */}
+          {isUploading && uploadProgress && (
+            <div className="p-3 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl flex items-center gap-2.5 text-xs text-[#0f2922]">
+              <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+              </svg>
+              <span>Uploading {uploadProgress.completed} of {uploadProgress.total} images...</span>
+            </div>
+          )}
+
           <div className="flex gap-2 pt-2">
             <button
               type="button"
@@ -308,10 +367,14 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
             <button
               type="button"
               onClick={tab === "file" ? handleFileUpload : handleUrlUpload}
-              disabled={tab === "file" ? !file || isUploading : !url.trim() || isUploading}
+              disabled={tab === "file" ? files.length === 0 || isUploading : !url.trim() || isUploading}
               className="flex-1 bg-[#e8622a] hover:bg-[#d4541f] disabled:opacity-50 text-white text-xs font-semibold py-2.5 rounded-lg transition cursor-pointer flex items-center justify-center gap-1.5 shadow-xs"
             >
-              {isUploading ? "Uploading..." : "Save Image"}
+              {isUploading
+                ? "Uploading..."
+                : tab === "file" && files.length > 1
+                ? `Save ${files.length} Images`
+                : "Save Image"}
             </button>
           </div>
         </div>
@@ -330,21 +393,24 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
   const { showToast, destinations } = useApp();
   const [modalTab, setModalTab] = useState<"library" | "upload">("library");
 
-  // Library Tab State
+  // Library Tab State (Multiple selection enabled)
   const [items, setItems] = useState<MediaAsset[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [destSelect, setDestSelect] = useState("all");
-  const [addingId, setAddingId] = useState<string | null>(null);
+  const [selectedMediaIds, setSelectedMediaIds] = useState<Set<string>>(new Set());
+  const [isAddingBatch, setIsAddingBatch] = useState(false);
+  const [addProgress, setAddProgress] = useState<{ completed: number; total: number } | null>(null);
 
-  // Upload Tab State
+  // Upload Tab State (Multiple file uploads enabled)
   const [uploadType, setUploadType] = useState<"file" | "url">("file");
-  const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [uploadFiles, setUploadFiles] = useState<File[]>([]);
+  const [previews, setPreviews] = useState<string[]>([]);
   const [externalUrl, setExternalUrl] = useState("");
   const [titleInput, setTitleInput] = useState("");
   const [selectedDestId, setSelectedDestId] = useState("");
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<{ completed: number; total: number } | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -375,30 +441,62 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
     };
   }, [modalTab, searchQuery, destSelect]);
 
-  const handleSelectFromLibrary = async (asset: MediaAsset) => {
-    setAddingId(asset.id);
+  const toggleSelectAsset = (id: string) => {
+    setSelectedMediaIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedMediaIds(new Set(items.map((m) => m.id)));
+  };
+
+  const deselectAll = () => {
+    setSelectedMediaIds(new Set());
+  };
+
+  const handleAddSelectedFromLibrary = async () => {
+    if (selectedMediaIds.size === 0) return;
+    setIsAddingBatch(true);
+    setAddProgress({ completed: 0, total: selectedMediaIds.size });
+
     try {
-      await galleryApi.add({ mediaId: asset.id });
-      showToast(`Added "${asset.label || 'image'}" to Public Gallery.`, "success");
+      const idsArray = Array.from(selectedMediaIds);
+      await galleryApi.addBatch(idsArray, (completed, total) => {
+        setAddProgress({ completed, total });
+      });
+      showToast(`Added ${idsArray.length} image${idsArray.length > 1 ? "s" : ""} to Public Gallery!`, "success");
       onAdded();
       onClose();
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : "Failed to add to gallery";
+      const msg = err instanceof Error ? err.message : "Failed to add items to gallery";
       showToast(msg, "error");
     } finally {
-      setAddingId(null);
+      setIsAddingBatch(false);
+      setAddProgress(null);
     }
   };
 
-  const processFile = (f: File) => {
-    if (!f.type.startsWith("image/")) {
-      showToast("Please select an image file (PNG, JPG, WebP)", "error");
+  const addUploadFiles = (newFiles: FileList | File[]) => {
+    const valid = Array.from(newFiles).filter((f) => f.type.startsWith("image/"));
+    if (valid.length === 0) {
+      showToast("Please select valid image files (PNG, JPG, WebP)", "error");
       return;
     }
-    setUploadFile(f);
-    const reader = new FileReader();
-    reader.onload = (e) => setPreview(e.target?.result as string);
-    reader.readAsDataURL(f);
+    setUploadFiles((prev) => [...prev, ...valid]);
+    const newPreviews = valid.map((f) => URL.createObjectURL(f));
+    setPreviews((prev) => [...prev, ...newPreviews]);
+  };
+
+  const removeUploadFileAtIndex = (idx: number) => {
+    setUploadFiles((prev) => prev.filter((_, i) => i !== idx));
+    setPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleUploadSubmit = async (e: React.FormEvent) => {
@@ -407,18 +505,27 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
     try {
       const destObj = destinations.find((d) => d.id === selectedDestId);
       if (uploadType === "file") {
-        if (!uploadFile) {
-          showToast("Please choose an image file to upload", "error");
+        if (uploadFiles.length === 0) {
+          showToast("Please choose image files to upload", "error");
           setIsUploading(false);
           return;
         }
-        await mediaApi.upload(uploadFile, {
-          category: destObj ? "destinations" : "general",
-          destinationId: destObj?.id,
-          destinationSlug: destObj?.slug,
-          label: titleInput.trim() || uploadFile.name,
-          showInGallery: true
-        });
+
+        setUploadProgress({ completed: 0, total: uploadFiles.length });
+        await mediaApi.uploadBatch(
+          uploadFiles,
+          {
+            category: destObj ? "destinations" : "general",
+            destinationId: destObj?.id,
+            destinationSlug: destObj?.slug,
+            label: titleInput.trim() || undefined,
+            showInGallery: true
+          },
+          (completed, total) => {
+            setUploadProgress({ completed, total });
+          }
+        );
+        showToast(`Uploaded ${uploadFiles.length} image${uploadFiles.length > 1 ? "s" : ""} directly to Public Gallery!`, "success");
       } else {
         if (!externalUrl.trim()) {
           showToast("Please enter an image URL", "error");
@@ -432,8 +539,8 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
           label: titleInput.trim() || undefined,
           showInGallery: true
         });
+        showToast("New image registered and added to Public Gallery!", "success");
       }
-      showToast("New image uploaded and added to Public Gallery!", "success");
       onAdded();
       onClose();
     } catch (err: unknown) {
@@ -441,6 +548,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
       showToast(msg, "error");
     } finally {
       setIsUploading(false);
+      setUploadProgress(null);
     }
   };
 
@@ -451,7 +559,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
     >
       <div className="absolute inset-0 bg-black/60 backdrop-blur-xs" />
       <div
-        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl z-10 flex flex-col overflow-hidden max-h-[88vh] border border-[#e2e8f0]"
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl z-10 flex flex-col overflow-hidden max-h-[88vh] border border-[#e2e8f0]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
@@ -461,8 +569,11 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
               PUBLIC GALLERY
             </div>
             <h3 className="text-lg font-bold text-white" style={{ fontFamily: "var(--font-serif, serif)" }}>
-              Add to Public Gallery
+              Add Images to Public Gallery
             </h3>
+            <p className="text-white/70 text-xs mt-0.5">
+              Select multiple photos from library or upload multiple files directly from your device.
+            </p>
           </div>
           <button
             type="button"
@@ -489,7 +600,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
             </svg>
-            <span>Choose from Library</span>
+            <span>Choose Multiple from Library</span>
           </button>
           <button
             type="button"
@@ -503,36 +614,76 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            <span>Upload New Media</span>
+            <span>Upload Multiple from Device</span>
           </button>
         </div>
 
         {modalTab === "library" ? (
           <>
-            {/* Search & Destination filter */}
-            <div className="p-3 border-b border-[#e2e8f0] bg-[#f7f8f5] flex gap-2 shrink-0">
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search library images..."
-                className="flex-1 bg-white border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
-              />
-              <select
-                value={destSelect}
-                onChange={(e) => setDestSelect(e.target.value)}
-                className="bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
-              >
-                <option value="all">All Destinations</option>
-                {destinations.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name}
-                  </option>
-                ))}
-              </select>
+            {/* Search & Destination filter with Select All controls */}
+            <div className="p-3.5 border-b border-[#e2e8f0] bg-[#f7f8f5] space-y-2.5 shrink-0">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="Search library images..."
+                  className="flex-1 bg-white border border-[#e2e8f0] rounded-lg px-3 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                />
+                <select
+                  value={destSelect}
+                  onChange={(e) => setDestSelect(e.target.value)}
+                  className="bg-white border border-[#e2e8f0] rounded-lg px-2.5 py-1.5 text-xs text-[#0f2922] focus:outline-none focus:border-[#0f2922]"
+                >
+                  <option value="all">All Destinations</option>
+                  {destinations.map((d) => (
+                    <option key={d.id} value={d.id}>
+                      {d.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-[#0f2922]">
+                    Selected: {selectedMediaIds.size} of {items.length} available
+                  </span>
+                  {items.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={selectAllVisible}
+                        className="text-[#0f2922] hover:underline font-semibold cursor-pointer"
+                      >
+                        Select All
+                      </button>
+                      <span>•</span>
+                      <button
+                        type="button"
+                        onClick={deselectAll}
+                        className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Clear
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {isAddingBatch && addProgress && (
+                  <div className="text-[#e8622a] font-semibold flex items-center gap-1.5">
+                    <svg className="animate-spin h-3.5 w-3.5 text-[#e8622a]" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Adding {addProgress.completed} of {addProgress.total}...</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Image Grid */}
+            {/* Image Grid with Checkboxes */}
             <div className="p-4 overflow-y-auto flex-1">
               {loading ? (
                 <div className="py-12 text-center text-xs text-[#718096]">Loading available images...</div>
@@ -542,38 +693,89 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                 </div>
               ) : (
                 <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {items.map((m) => (
-                    <div
-                      key={m.id}
-                      onClick={() => handleSelectFromLibrary(m)}
-                      className="group relative bg-[#f7f8f5] rounded-lg border border-[#e2e8f0] overflow-hidden hover:border-[#e8622a] hover:shadow-md transition cursor-pointer flex flex-col"
-                    >
-                      <div className="aspect-square bg-gray-100 overflow-hidden relative">
-                        <img
-                          src={m.thumbnailUrl || m.url}
-                          alt={m.label || ""}
-                          loading="lazy"
-                          decoding="async"
-                          className="w-full h-full object-cover group-hover:scale-105 transition"
-                        />
-                        <span className="absolute top-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded capitalize">
-                          {m.category}
-                        </span>
+                  {items.map((m) => {
+                    const isSelected = selectedMediaIds.has(m.id);
+                    return (
+                      <div
+                        key={m.id}
+                        onClick={() => toggleSelectAsset(m.id)}
+                        className={`group relative rounded-xl border-2 overflow-hidden transition cursor-pointer flex flex-col select-none ${
+                          isSelected
+                            ? "border-[#e8622a] ring-2 ring-[#e8622a]/30 bg-[#fffaf8] shadow-md"
+                            : "border-[#e2e8f0] hover:border-[#0f2922] bg-[#f7f8f5]"
+                        }`}
+                      >
+                        <div className="aspect-square bg-gray-100 overflow-hidden relative">
+                          <img
+                            src={m.thumbnailUrl || m.url}
+                            alt={m.label || ""}
+                            loading="lazy"
+                            decoding="async"
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-200"
+                          />
+                          <span className="absolute bottom-1 right-1 bg-black/60 text-white text-[9px] px-1 rounded capitalize">
+                            {m.category}
+                          </span>
+
+                          {/* Checkbox badge */}
+                          <div className="absolute top-1.5 right-1.5">
+                            {isSelected ? (
+                              <div className="bg-[#e8622a] text-white p-1 rounded-full shadow-md">
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <div className="w-5 h-5 rounded-full border-2 border-white/90 bg-black/30 shadow-xs flex items-center justify-center group-hover:border-white" />
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="p-2 text-[11px] truncate font-medium text-[#0f2922] bg-white flex items-center justify-between">
+                          <span className="truncate">{m.label || "Untitled"}</span>
+                          {isSelected && <span className="text-[#e8622a] font-bold text-[10px] ml-1">✓</span>}
+                        </div>
                       </div>
-                      <div className="p-1.5 text-[10px] truncate font-medium text-[#0f2922]">
-                        {m.label || "Untitled"}
-                      </div>
-                      <div className="absolute inset-0 bg-[#0f2922]/80 opacity-0 group-hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold text-center p-2">
-                        {addingId === m.id ? "Adding..." : "+ Add to Gallery"}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
+
+            {/* Footer with Bulk Add Button */}
+            <div className="p-3.5 bg-[#f7f8f5] border-t border-[#e2e8f0] flex items-center justify-between text-xs text-[#718096] shrink-0">
+              <span>{selectedMediaIds.size} images selected</span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  disabled={isAddingBatch}
+                  className="px-4 py-2 border border-[#e2e8f0] text-[#718096] hover:bg-white rounded-lg text-xs font-semibold cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddSelectedFromLibrary}
+                  disabled={selectedMediaIds.size === 0 || isAddingBatch}
+                  className="bg-[#0f2922] hover:bg-[#1a4a39] disabled:opacity-50 text-white px-5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer shadow-xs flex items-center gap-1.5"
+                >
+                  <svg className="w-3.5 h-3.5 text-[#38d39f]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  <span>
+                    {isAddingBatch
+                      ? "Adding to Gallery..."
+                      : selectedMediaIds.size > 0
+                      ? `Add ${selectedMediaIds.size} Selected to Gallery`
+                      : "Add to Gallery"}
+                  </span>
+                </button>
+              </div>
+            </div>
           </>
         ) : (
-          /* Upload New Media Tab */
+          /* Upload Multiple New Media Tab */
           <form onSubmit={handleUploadSubmit} className="p-6 space-y-4 overflow-y-auto flex-1">
             <div className="flex border-b border-[#e2e8f0] bg-[#f7f8f5] rounded-lg overflow-hidden p-1 gap-1">
               <button
@@ -583,7 +785,7 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                   uploadType === "file" ? "bg-white text-[#0f2922] shadow-2xs" : "text-[#718096]"
                 }`}
               >
-                Upload File
+                Upload Files from Device
               </button>
               <button
                 type="button"
@@ -597,20 +799,60 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
             </div>
 
             {uploadType === "file" ? (
-              <div>
-                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922] mb-1">
-                  Image File <span className="text-red-500">*</span>
+              <div className="space-y-3">
+                <label className="block text-xs uppercase tracking-wider font-semibold text-[#0f2922]">
+                  Image Files <span className="text-red-500">*</span>
                 </label>
                 <input
                   ref={fileInputRef}
                   type="file"
+                  multiple
                   accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) processFile(f);
+                    if (e.target.files && e.target.files.length > 0) {
+                      addUploadFiles(e.target.files);
+                    }
+                    e.target.value = "";
                   }}
                   className="hidden"
                 />
+
+                {/* Previews Grid */}
+                {previews.length > 0 && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between text-xs text-[#718096]">
+                      <span>{uploadFiles.length} file{uploadFiles.length > 1 ? "s" : ""} selected for public gallery</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUploadFiles([]);
+                          setPreviews([]);
+                        }}
+                        className="text-rose-600 hover:underline font-semibold cursor-pointer"
+                      >
+                        Clear all
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 border border-[#e2e8f0] rounded-xl bg-[#fafbfa]">
+                      {previews.map((p, idx) => (
+                        <div key={idx} className="relative aspect-video rounded-lg overflow-hidden border border-[#cbd5e1] group">
+                          <img src={p} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => removeUploadFileAtIndex(idx)}
+                            className="absolute top-1 right-1 bg-black/70 hover:bg-rose-600 text-white rounded-full p-0.5 shadow transition cursor-pointer"
+                            title="Remove file"
+                          >
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -620,8 +862,9 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                   onDrop={(e) => {
                     e.preventDefault();
                     setIsDragging(false);
-                    const f = e.dataTransfer.files?.[0];
-                    if (f) processFile(f);
+                    if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                      addUploadFiles(e.dataTransfer.files);
+                    }
                   }}
                   onClick={() => fileInputRef.current?.click()}
                   className={`border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition ${
@@ -630,24 +873,13 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
                       : "border-[#cbd5e1] hover:border-[#0f2922] bg-[#f7f8f5]"
                   }`}
                 >
-                  {preview ? (
-                    <div className="relative w-full aspect-video rounded-lg overflow-hidden border border-[#e2e8f0]">
-                      <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 hover:opacity-100 transition flex items-center justify-center text-white text-xs font-semibold">
-                        Change File
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="w-10 h-10 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-1.5">
-                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                        </svg>
-                      </div>
-                      <p className="text-xs font-semibold text-[#0f2922]">Click or drop image file here</p>
-                      <p className="text-[10px] text-[#718096] mt-0.5">PNG, JPG, WebP up to 10MB</p>
-                    </>
-                  )}
+                  <div className="w-10 h-10 rounded-full bg-[#f0f9f4] text-[#0f2922] flex items-center justify-center mb-1.5">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs font-semibold text-[#0f2922]">Click or drop multiple images here</p>
+                  <p className="text-[10px] text-[#718096] mt-0.5">Select multiple PNG, JPG, WebP up to 10MB each</p>
                 </div>
               </div>
             ) : (
@@ -698,23 +930,39 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
 
             <div className="bg-[#f0f9f4] border border-[#bbf7d0] rounded-lg p-2.5 text-[11px] text-[#0f2922] flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-[#38d39f] shrink-0" />
-              <span>This media asset will belong to <strong>Gallery</strong> and display immediately on the public website.</span>
+              <span>These media assets will belong to <strong>Public Gallery</strong> and display immediately on the public website.</span>
             </div>
+
+            {/* Upload progress */}
+            {isUploading && uploadProgress && (
+              <div className="p-3 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl flex items-center gap-2.5 text-xs text-[#0f2922]">
+                <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>Uploading and adding {uploadProgress.completed} of {uploadProgress.total} images to Gallery...</span>
+              </div>
+            )}
 
             <div className="flex justify-end gap-2 pt-2 border-t border-[#e2e8f0]">
               <button
                 type="button"
                 onClick={onClose}
+                disabled={isUploading}
                 className="px-4 py-2 border border-[#e2e8f0] text-[#718096] hover:bg-[#f7f8f5] rounded-lg text-xs font-semibold cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
-                disabled={isUploading}
-                className="bg-[#0f2922] hover:bg-[#1a4a39] text-white px-5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50"
+                disabled={uploadType === "file" ? uploadFiles.length === 0 || isUploading : !externalUrl.trim() || isUploading}
+                className="bg-[#0f2922] hover:bg-[#1a4a39] text-white px-5 py-2 rounded-lg text-xs font-semibold transition cursor-pointer disabled:opacity-50 shadow-xs"
               >
-                {isUploading ? "Uploading..." : "Upload & Add to Gallery"}
+                {isUploading
+                  ? "Uploading..."
+                  : uploadType === "file" && uploadFiles.length > 1
+                  ? `Upload & Add ${uploadFiles.length} Images`
+                  : "Upload & Add to Gallery"}
               </button>
             </div>
           </form>

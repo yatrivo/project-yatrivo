@@ -179,6 +179,39 @@ export const galleryApi = {
     return body.data as AdminGalleryItem;
   },
 
+  async addBatch(
+    mediaIds: string[],
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<AdminGalleryItem[]> {
+    if (!mediaIds.length) return [];
+    const results: AdminGalleryItem[] = [];
+    let completed = 0;
+    const concurrency = Math.min(3, mediaIds.length);
+    let currentIndex = 0;
+
+    const worker = async () => {
+      while (currentIndex < mediaIds.length) {
+        const index = currentIndex++;
+        const id = mediaIds[index];
+        try {
+          const item = await this.add({ mediaId: id });
+          results.push(item);
+        } catch (err) {
+          console.warn(`Failed to add mediaId ${id} to gallery:`, err);
+        } finally {
+          completed++;
+          onProgress?.(completed, mediaIds.length);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(workers);
+
+    clientCache.invalidate("gallery:public");
+    return results;
+  },
+
   async update(idOrMediaId: string, input: UpdateGalleryItemInput): Promise<AdminGalleryItem> {
     const url = `${API_BASE}/api/v1/gallery/${encodeURIComponent(idOrMediaId)}`;
     const res = await authFetch(url, {

@@ -201,6 +201,48 @@ export const mediaApi = {
     return body.data as MediaAsset;
   },
 
+  async uploadBatch(
+    files: File[],
+    options?: {
+      category?: string;
+      destinationId?: string;
+      destinationSlug?: string;
+      isReview?: boolean;
+      label?: string;
+      altText?: string;
+      showInGallery?: boolean;
+    },
+    onProgress?: (completed: number, total: number) => void
+  ): Promise<MediaAsset[]> {
+    if (!files.length) return [];
+    const results: MediaAsset[] = new Array(files.length);
+    let completed = 0;
+    const concurrency = Math.min(3, files.length);
+    let currentIndex = 0;
+
+    const worker = async () => {
+      while (currentIndex < files.length) {
+        const index = currentIndex++;
+        const file = files[index];
+        try {
+          const asset = await this.upload(file, {
+            ...options,
+            label: options?.label ? `${options.label} (${index + 1})` : file.name.replace(/\.[^/.]+$/, "")
+          });
+          results[index] = asset;
+        } finally {
+          completed++;
+          onProgress?.(completed, files.length);
+        }
+      }
+    };
+
+    const workers = Array.from({ length: concurrency }, () => worker());
+    await Promise.all(workers);
+
+    return results.filter(Boolean);
+  },
+
   async createExternal(params: {
     url: string;
     destinationId?: string;
