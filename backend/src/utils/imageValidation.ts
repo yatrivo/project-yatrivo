@@ -62,95 +62,93 @@ export async function generateImageVariants(buffer: Buffer): Promise<GeneratedIm
   try {
     const basePipeline = sharp(buffer, { limitInputPixels: MAX_INPUT_PIXELS }).rotate();
 
-    // 1. Thumbnail variant (~400w)
-    try {
-      const { data, info } = await basePipeline
-        .clone()
-        .resize({
-          width: 400,
-          height: 600,
-          fit: "inside",
-          withoutEnlargement: true
-        })
-        .webp({ quality: 80, effort: 4 })
-        .toBuffer({ resolveWithObject: true });
+    const thumbTask = basePipeline
+      .clone()
+      .resize({
+        width: 400,
+        height: 600,
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .webp({ quality: 80, effort: 4 })
+      .toBuffer({ resolveWithObject: true })
+      .then(({ data, info }) => {
+        result.thumbnail = {
+          buffer: data,
+          mimeType: "image/webp",
+          width: info.width,
+          height: info.height,
+          fileSizeBytes: data.length
+        };
+      })
+      .catch((err) => {
+        logger.warn({ err }, "Failed to generate thumbnail image variant");
+      });
 
-      result.thumbnail = {
-        buffer: data,
-        mimeType: "image/webp",
-        width: info.width,
-        height: info.height,
-        fileSizeBytes: data.length
-      };
-    } catch (err) {
-      logger.warn({ err }, "Failed to generate thumbnail image variant");
-    }
+    const mediumTask = basePipeline
+      .clone()
+      .resize({
+        width: 800,
+        height: 1200,
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .webp({ quality: 82, effort: 4 })
+      .toBuffer({ resolveWithObject: true })
+      .then(({ data, info }) => {
+        result.medium = {
+          buffer: data,
+          mimeType: "image/webp",
+          width: info.width,
+          height: info.height,
+          fileSizeBytes: data.length
+        };
+      })
+      .catch((err) => {
+        logger.warn({ err }, "Failed to generate medium image variant");
+      });
 
-    // 2. Medium / Desktop card variant (~800w)
-    try {
-      const { data, info } = await basePipeline
-        .clone()
-        .resize({
-          width: 800,
-          height: 1200,
-          fit: "inside",
-          withoutEnlargement: true
-        })
-        .webp({ quality: 82, effort: 4 })
-        .toBuffer({ resolveWithObject: true });
+    const viewerTask = basePipeline
+      .clone()
+      .resize({
+        width: 1600,
+        height: 1600,
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .webp({ quality: 85, effort: 4 })
+      .toBuffer({ resolveWithObject: true })
+      .then(({ data, info }) => {
+        result.viewer = {
+          buffer: data,
+          mimeType: "image/webp",
+          width: info.width,
+          height: info.height,
+          fileSizeBytes: data.length
+        };
+      })
+      .catch((err) => {
+        logger.warn({ err }, "Failed to generate viewer image variant");
+      });
 
-      result.medium = {
-        buffer: data,
-        mimeType: "image/webp",
-        width: info.width,
-        height: info.height,
-        fileSizeBytes: data.length
-      };
-    } catch (err) {
-      logger.warn({ err }, "Failed to generate medium image variant");
-    }
+    const placeholderTask = basePipeline
+      .clone()
+      .resize({
+        width: 28,
+        height: 28,
+        fit: "inside",
+        withoutEnlargement: true
+      })
+      .webp({ quality: 45, effort: 3 })
+      .toBuffer()
+      .then((placeholderBuf) => {
+        result.placeholderBase64 = `data:image/webp;base64,${placeholderBuf.toString("base64")}`;
+      })
+      .catch((err) => {
+        logger.warn({ err }, "Failed to generate tiny placeholder variant");
+      });
 
-    // 3. Viewer variant (~1600w)
-    try {
-      const { data, info } = await basePipeline
-        .clone()
-        .resize({
-          width: 1600,
-          height: 1600,
-          fit: "inside",
-          withoutEnlargement: true
-        })
-        .webp({ quality: 85, effort: 4 })
-        .toBuffer({ resolveWithObject: true });
-
-      result.viewer = {
-        buffer: data,
-        mimeType: "image/webp",
-        width: info.width,
-        height: info.height,
-        fileSizeBytes: data.length
-      };
-    } catch (err) {
-      logger.warn({ err }, "Failed to generate viewer image variant");
-    }
-
-    // 4. Tiny Base64 placeholder (~28w)
-    try {
-      const placeholderBuf = await basePipeline
-        .clone()
-        .resize({
-          width: 28,
-          height: 28,
-          fit: "inside",
-          withoutEnlargement: true
-        })
-        .webp({ quality: 45, effort: 3 })
-        .toBuffer();
-
-      result.placeholderBase64 = `data:image/webp;base64,${placeholderBuf.toString("base64")}`;
-    } catch (err) {
-      logger.warn({ err }, "Failed to generate tiny placeholder variant");
-    }
+    await Promise.all([thumbTask, mediumTask, viewerTask, placeholderTask]);
   } catch (err) {
     logger.warn({ err }, "Failed to initialize Sharp pipeline for image variants");
   }

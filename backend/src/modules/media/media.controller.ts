@@ -98,7 +98,8 @@ export const mediaController = {
 
   async delete(req: Request, res: Response): Promise<void> {
     const id = String(res.locals.validated?.params?.id || req.params.id);
-    const result = await mediaService.deleteMedia(id);
+    const force = req.query.force === "true" || req.body?.force === true;
+    const result = await mediaService.deleteMedia(id, { force });
 
     res.status(200).json({
       status: "success",
@@ -108,10 +109,10 @@ export const mediaController = {
 
     await recordAuditLog({
       req,
-      action: "Deleted Media",
+      action: force ? "Force Deleted Media" : "Deleted Media",
       entityType: "media",
       entityId: id,
-      details: `Deleted media asset #${id.slice(0, 8)}`
+      details: `${force ? "Force deleted" : "Deleted"} media asset #${id.slice(0, 8)}`
     });
   }
 };

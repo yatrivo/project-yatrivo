@@ -114,92 +114,106 @@ export const mediaService = {
 
     const uploadedKeys: string[] = [];
 
-    // 1. Upload sanitized original image buffer to S3/R2
-    const uploadResult = await uploadBufferToStorage({
-      buffer: processed.buffer,
-      key,
-      contentType: processed.mimeType
-    });
-    uploadedKeys.push(uploadResult.key);
-
-    // 2. Upload generated WebP variants (recoverable if an individual variant upload fails)
+    // 1 & 2. Upload sanitized original image buffer and generated WebP variants to S3/R2 in parallel
     const variantsRecord: MediaVariantsRecord = {};
     let thumbnailUrl: string | null = null;
     let mediumUrl: string | null = null;
     let viewerUrl: string | null = null;
     const placeholderBase64 = processed.variants?.placeholderBase64 || null;
 
+    const originalUploadPromise = uploadBufferToStorage({
+      buffer: processed.buffer,
+      key,
+      contentType: processed.mimeType
+    }).then((res) => {
+      uploadedKeys.push(res.key);
+      return res;
+    });
+
+    const variantUploadTasks: Promise<void>[] = [];
+
     if (processed.variants?.thumbnail) {
-      try {
-        const thumbKey = buildVariantStorageKey(key, "thumb");
-        const thumbUpload = await uploadBufferToStorage({
+      const thumbKey = buildVariantStorageKey(key, "thumb");
+      variantUploadTasks.push(
+        uploadBufferToStorage({
           buffer: processed.variants.thumbnail.buffer,
           key: thumbKey,
-          contentType: processed.variants.thumbnail.mimeType,
-          bucket: uploadResult.bucket
-        });
-        uploadedKeys.push(thumbUpload.key);
-        thumbnailUrl = thumbUpload.publicUrl;
-        variantsRecord.thumbnail = {
-          key: thumbUpload.key,
-          url: thumbUpload.publicUrl,
-          width: processed.variants.thumbnail.width,
-          height: processed.variants.thumbnail.height,
-          fileSizeBytes: processed.variants.thumbnail.fileSizeBytes,
-          mimeType: processed.variants.thumbnail.mimeType
-        };
-      } catch (err) {
-        logger.warn({ err, key }, "Failed to upload thumbnail variant to storage; falling back");
-      }
+          contentType: processed.variants.thumbnail.mimeType
+        })
+          .then((thumbUpload) => {
+            uploadedKeys.push(thumbUpload.key);
+            thumbnailUrl = thumbUpload.publicUrl;
+            variantsRecord.thumbnail = {
+              key: thumbUpload.key,
+              url: thumbUpload.publicUrl,
+              width: processed.variants!.thumbnail!.width,
+              height: processed.variants!.thumbnail!.height,
+              fileSizeBytes: processed.variants!.thumbnail!.fileSizeBytes,
+              mimeType: processed.variants!.thumbnail!.mimeType
+            };
+          })
+          .catch((err) => {
+            logger.warn({ err, key }, "Failed to upload thumbnail variant to storage; falling back");
+          })
+      );
     }
 
     if (processed.variants?.medium) {
-      try {
-        const medKey = buildVariantStorageKey(key, "medium");
-        const medUpload = await uploadBufferToStorage({
+      const medKey = buildVariantStorageKey(key, "medium");
+      variantUploadTasks.push(
+        uploadBufferToStorage({
           buffer: processed.variants.medium.buffer,
           key: medKey,
-          contentType: processed.variants.medium.mimeType,
-          bucket: uploadResult.bucket
-        });
-        uploadedKeys.push(medUpload.key);
-        mediumUrl = medUpload.publicUrl;
-        variantsRecord.medium = {
-          key: medUpload.key,
-          url: medUpload.publicUrl,
-          width: processed.variants.medium.width,
-          height: processed.variants.medium.height,
-          fileSizeBytes: processed.variants.medium.fileSizeBytes,
-          mimeType: processed.variants.medium.mimeType
-        };
-      } catch (err) {
-        logger.warn({ err, key }, "Failed to upload medium variant to storage; falling back");
-      }
+          contentType: processed.variants.medium.mimeType
+        })
+          .then((medUpload) => {
+            uploadedKeys.push(medUpload.key);
+            mediumUrl = medUpload.publicUrl;
+            variantsRecord.medium = {
+              key: medUpload.key,
+              url: medUpload.publicUrl,
+              width: processed.variants!.medium!.width,
+              height: processed.variants!.medium!.height,
+              fileSizeBytes: processed.variants!.medium!.fileSizeBytes,
+              mimeType: processed.variants!.medium!.mimeType
+            };
+          })
+          .catch((err) => {
+            logger.warn({ err, key }, "Failed to upload medium variant to storage; falling back");
+          })
+      );
     }
 
     if (processed.variants?.viewer) {
-      try {
-        const viewKey = buildVariantStorageKey(key, "viewer");
-        const viewUpload = await uploadBufferToStorage({
+      const viewKey = buildVariantStorageKey(key, "viewer");
+      variantUploadTasks.push(
+        uploadBufferToStorage({
           buffer: processed.variants.viewer.buffer,
           key: viewKey,
-          contentType: processed.variants.viewer.mimeType,
-          bucket: uploadResult.bucket
-        });
-        uploadedKeys.push(viewUpload.key);
-        viewerUrl = viewUpload.publicUrl;
-        variantsRecord.viewer = {
-          key: viewUpload.key,
-          url: viewUpload.publicUrl,
-          width: processed.variants.viewer.width,
-          height: processed.variants.viewer.height,
-          fileSizeBytes: processed.variants.viewer.fileSizeBytes,
-          mimeType: processed.variants.viewer.mimeType
-        };
-      } catch (err) {
-        logger.warn({ err, key }, "Failed to upload viewer variant to storage; falling back");
-      }
+          contentType: processed.variants.viewer.mimeType
+        })
+          .then((viewUpload) => {
+            uploadedKeys.push(viewUpload.key);
+            viewerUrl = viewUpload.publicUrl;
+            variantsRecord.viewer = {
+              key: viewUpload.key,
+              url: viewUpload.publicUrl,
+              width: processed.variants!.viewer!.width,
+              height: processed.variants!.viewer!.height,
+              fileSizeBytes: processed.variants!.viewer!.fileSizeBytes,
+              mimeType: processed.variants!.viewer!.mimeType
+            };
+          })
+          .catch((err) => {
+            logger.warn({ err, key }, "Failed to upload viewer variant to storage; falling back");
+          })
+      );
     }
+
+    const [uploadResult] = await Promise.all([
+      originalUploadPromise,
+      ...variantUploadTasks
+    ]);
 
     // 3. Persist in database (with compensating S3 rollback on failure)
     try {
@@ -432,21 +446,31 @@ export const mediaService = {
     };
   },
 
-  async deleteMedia(id: string): Promise<{ success: boolean; id: string }> {
+  async deleteMedia(id: string, options?: { force?: boolean }): Promise<{ success: boolean; id: string }> {
     const asset = await this.getMedia(id);
 
-    // Safety check: verify no active references exist in any entity
+    // Safety check: verify no active external references exist in any live entity
     const refInfo = await mediaRepository.findReferences(asset.id);
-    if (refInfo.totalReferences > 0) {
-      const names = refInfo.references
+    const nonGalleryRefs = refInfo.references.filter((r) => r.entityType !== "gallery");
+
+    if (nonGalleryRefs.length > 0 && !options?.force) {
+      const names = nonGalleryRefs
         .map((r) => `${r.entityName || r.entityId} (${r.relationship})`)
         .join(", ");
 
       throw new AppError(
         409,
         "MEDIA_IN_USE",
-        `Cannot delete media asset because it is in use by ${refInfo.totalReferences} item(s): ${names}. Remove it from those items first.`
+        `Cannot delete media asset because it is in use by ${nonGalleryRefs.length} item(s): ${names}. Remove it from those items first or force delete.`
       );
+    }
+
+    // If force is requested, clean up all relations and array references first
+    if (options?.force) {
+      await mediaRepository.cleanupReferencesForForceDelete(asset.id, asset.url);
+    } else {
+      // If only in gallery (or unreferenced), safely clear from public_gallery_items first
+      await query(`DELETE FROM public_gallery_items WHERE media_id = $1`, [asset.id]);
     }
 
     // Retrieve original storage key + any generated variant keys before deleting DB row
@@ -467,7 +491,9 @@ export const mediaService = {
     // Delete record from database
     await mediaRepository.delete(asset.id);
 
-    logger.info({ mediaId: id, storageKey: asset.storageKey }, "Media asset and variants deleted permanently");
+    await invalidateGalleryCache();
+
+    logger.info({ mediaId: id, storageKey: asset.storageKey, force: options?.force }, "Media asset and variants deleted permanently");
     return { success: true, id };
   }
 };

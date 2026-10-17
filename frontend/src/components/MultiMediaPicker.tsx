@@ -351,17 +351,34 @@ export default function MultiMediaPicker({
 
         {/* Uploading Progress Overlay/Banner */}
         {isUploading && (
-          <div className="p-4 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl flex items-center gap-3">
-            <svg className="animate-spin h-5 w-5 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <div className="flex-1 text-xs text-[#0f2922]">
-              <div className="font-semibold">
-                Uploading {uploadProgress ? `${uploadProgress.completed} of ${uploadProgress.total}` : ""} images to storage...
+          <div className="p-3.5 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl space-y-2 text-xs text-[#0f2922]">
+            <div className="flex items-center justify-between font-semibold">
+              <div className="flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                </svg>
+                <span>
+                  Uploading & processing {uploadProgress ? `${uploadProgress.completed} of ${uploadProgress.total}` : ""} images...
+                </span>
               </div>
-              <p className="text-[11px] text-[#718096]">Processing and generating optimized variants.</p>
+              {uploadProgress && uploadProgress.total > 0 && (
+                <span className="text-[#e8622a] font-bold">
+                  {Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%
+                </span>
+              )}
             </div>
+            {uploadProgress && uploadProgress.total > 0 && (
+              <div className="w-full bg-[#dcfce7] h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-[#38d39f] h-full transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%` }}
+                />
+              </div>
+            )}
+            <p className="text-[10px] text-[#718096]">
+              Generating 4 multi-resolution WebP variants and saving to cloud storage.
+            </p>
           </div>
         )}
 

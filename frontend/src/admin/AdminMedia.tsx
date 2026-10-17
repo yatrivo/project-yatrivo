@@ -392,13 +392,30 @@ function SimpleUploadModal({ onClose, onUploaded, initialDestinationId, defaultI
           </div>
 
           {/* Upload Progress */}
+          {/* Upload progress */}
           {isUploading && uploadProgress && (
-            <div className="p-3 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl flex items-center gap-2.5 text-xs text-[#0f2922]">
-              <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-              </svg>
-              <span>Uploading {uploadProgress.completed} of {uploadProgress.total} images...</span>
+            <div className="p-3.5 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl space-y-2 text-xs text-[#0f2922]">
+              <div className="flex items-center justify-between font-semibold">
+                <div className="flex items-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                  <span>Uploading & processing {uploadProgress.completed} of {uploadProgress.total} images...</span>
+                </div>
+                <span className="text-[#e8622a] font-bold">
+                  {Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%
+                </span>
+              </div>
+              <div className="w-full bg-[#dcfce7] h-2 rounded-full overflow-hidden">
+                <div
+                  className="bg-[#38d39f] h-full transition-all duration-300 ease-out rounded-full"
+                  style={{ width: `${Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%` }}
+                />
+              </div>
+              <p className="text-[10px] text-[#718096]">
+                Generating 4 multi-resolution WebP variants and saving to cloud storage.
+              </p>
             </div>
           )}
 
@@ -1032,12 +1049,28 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
 
             {/* Upload progress */}
             {isUploading && uploadProgress && (
-              <div className="p-3 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl flex items-center gap-2.5 text-xs text-[#0f2922]">
-                <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                </svg>
-                <span>Uploading and adding {uploadProgress.completed} of {uploadProgress.total} images to Gallery...</span>
+              <div className="p-3.5 bg-[#f0f9f4] border border-[#bbf7d0] rounded-xl space-y-2 text-xs text-[#0f2922]">
+                <div className="flex items-center justify-between font-semibold">
+                  <div className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-[#e8622a] shrink-0" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    <span>Uploading & processing {uploadProgress.completed} of {uploadProgress.total} images...</span>
+                  </div>
+                  <span className="text-[#e8622a] font-bold">
+                    {Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%
+                  </span>
+                </div>
+                <div className="w-full bg-[#dcfce7] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#38d39f] h-full transition-all duration-300 ease-out rounded-full"
+                    style={{ width: `${Math.round((uploadProgress.completed / uploadProgress.total) * 100)}%` }}
+                  />
+                </div>
+                <p className="text-[10px] text-[#718096]">
+                  Generating 4 multi-resolution WebP variants and saving to cloud storage. Large camera photos take a few seconds per image.
+                </p>
               </div>
             )}
 
@@ -1070,6 +1103,206 @@ function AddToGalleryModal({ onClose, onAdded }: AddToGalleryModalProps) {
   );
 }
 
+interface MediaConflict {
+  item: MediaAsset;
+  externalRefs: MediaReferenceInfo["references"];
+}
+
+interface ConflictResolutionModalProps {
+  conflicts: MediaConflict[];
+  safeCount: number;
+  currentIndex: number;
+  applyToAll: boolean;
+  onApplyToAllChange: (val: boolean) => void;
+  onSkipCurrent: () => void;
+  onDeleteAnywayCurrent: () => void;
+  onDeleteAllAnyway: () => void;
+  onDeleteSafeOnly: () => void;
+  onCancel: () => void;
+  isDeleting: boolean;
+}
+
+function ConflictResolutionModal({
+  conflicts,
+  safeCount,
+  currentIndex,
+  applyToAll,
+  onApplyToAllChange,
+  onSkipCurrent,
+  onDeleteAnywayCurrent,
+  onDeleteAllAnyway,
+  onDeleteSafeOnly,
+  onCancel,
+  isDeleting
+}: ConflictResolutionModalProps) {
+  const current = conflicts[currentIndex];
+  if (!current) return null;
+
+  return createPortal(
+    <div
+      className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+      onClick={onCancel}
+    >
+      <div className="absolute inset-0 bg-black/65 backdrop-blur-xs" />
+      <div
+        className="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl z-10 flex flex-col overflow-hidden border border-[#e2e8f0]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="bg-[#1f160e] text-white px-5 py-4 flex items-center justify-between border-b border-amber-900/40">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-white">Media Asset In-Use Conflict</h3>
+              <p className="text-[11px] text-amber-200/80">
+                Conflict {currentIndex + 1} of {conflicts.length} in-use items
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="text-white/60 hover:text-white p-1 text-sm font-bold cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Modal Body */}
+        <div className="p-5 space-y-4 text-xs">
+          {/* Overall Warning Banner */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 text-amber-950 flex items-start gap-2.5">
+            <span className="text-base leading-none shrink-0">⚠️</span>
+            <div>
+              <p className="font-semibold text-xs">
+                {conflicts.length} of your selected images {conflicts.length > 1 ? "are" : "is"} actively referenced on the website.
+              </p>
+              <p className="text-[11px] text-amber-900 mt-0.5">
+                Deleting an in-use image permanently removes it from storage and will cause empty spots or missing images on those live pages.
+              </p>
+            </div>
+          </div>
+
+          {/* Current Problematic Image Preview Card */}
+          <div className="border border-[#e2e8f0] rounded-xl p-3.5 bg-[#fafbfa] space-y-3">
+            <div className="flex gap-3 items-center">
+              <div className="w-20 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0 border border-[#cbd5e1] relative">
+                <img
+                  src={current.item.thumbnailUrl || current.item.url}
+                  alt={current.item.label || ""}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-bold text-[#0f2922] text-xs truncate">
+                  {current.item.label || "Untitled Asset"}
+                </h4>
+                <p className="text-[10px] text-[#718096] truncate mt-0.5">
+                  Category: <span className="capitalize font-semibold text-[#0f2922]">{current.item.category}</span>
+                </p>
+                <p className="text-[10px] text-rose-600 font-semibold mt-1">
+                  Active references ({current.externalRefs.length}):
+                </p>
+              </div>
+            </div>
+
+            {/* List of locations where it is used */}
+            <div className="max-h-28 overflow-y-auto space-y-1 p-2 bg-white rounded-lg border border-[#e2e8f0] text-[11px]">
+              {current.externalRefs.map((ref, idx) => (
+                <div key={idx} className="flex items-center justify-between text-[#0f2922] py-1 border-b border-[#f0f4f1] last:border-0">
+                  <span className="font-medium truncate mr-2">
+                    {ref.entityName || ref.entityId}
+                  </span>
+                  <span className="text-[10px] uppercase font-bold text-amber-800 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
+                    {ref.entityType} ({ref.relationship})
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Windows-style "Do this for all remaining" checkbox */}
+          <label className="flex items-center gap-2.5 p-2.5 bg-[#f7f8f5] hover:bg-[#edf2f7] rounded-lg cursor-pointer transition select-none border border-[#e2e8f0]">
+            <input
+              type="checkbox"
+              checked={applyToAll}
+              onChange={(e) => onApplyToAllChange(e.target.checked)}
+              className="w-4 h-4 rounded text-rose-600 focus:ring-rose-500 border-gray-300 cursor-pointer"
+            />
+            <span className="text-xs font-semibold text-[#0f2922]">
+              Do this for all remaining {conflicts.length - currentIndex} conflict{conflicts.length - currentIndex > 1 ? "s" : ""}
+            </span>
+          </label>
+        </div>
+
+        {/* Footer Actions */}
+        <div className="p-4 bg-[#f7f8f5] border-t border-[#e2e8f0] flex flex-wrap items-center justify-between gap-2 text-xs">
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isDeleting}
+            className="px-3.5 py-2 border border-[#cbd5e1] text-[#4a5568] hover:bg-white rounded-lg font-semibold transition cursor-pointer"
+          >
+            Cancel
+          </button>
+
+          <div className="flex items-center gap-2 ml-auto">
+            {/* Option: Delete only safe ones (preserves in-use images) */}
+            <button
+              type="button"
+              onClick={onDeleteSafeOnly}
+              disabled={isDeleting}
+              className="px-3.5 py-2 border border-amber-400 bg-amber-50 hover:bg-amber-100 text-amber-900 rounded-lg font-semibold transition cursor-pointer"
+              title="Skip all in-use images and delete safe/gallery images only"
+            >
+              {safeCount > 0 ? `Delete Safe Only (${safeCount})` : "Don't Delete In-Use"}
+            </button>
+
+            {!applyToAll ? (
+              <>
+                {/* Step by step: Skip this one */}
+                <button
+                  type="button"
+                  onClick={onSkipCurrent}
+                  disabled={isDeleting}
+                  className="px-3.5 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 rounded-lg font-semibold transition cursor-pointer"
+                >
+                  Skip This Image
+                </button>
+                {/* Step by step: Delete this one anyway */}
+                <button
+                  type="button"
+                  onClick={onDeleteAnywayCurrent}
+                  disabled={isDeleting}
+                  className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition cursor-pointer shadow-xs"
+                >
+                  Delete Anyway
+                </button>
+              </>
+            ) : (
+              /* Bulk: Force delete all */
+              <button
+                type="button"
+                onClick={onDeleteAllAnyway}
+                disabled={isDeleting}
+                className="px-4 py-2 bg-rose-600 hover:bg-rose-700 text-white rounded-lg font-semibold transition cursor-pointer shadow-xs"
+              >
+                Delete All Anyway
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 export default function AdminMedia() {
   const { showToast, destinations } = useApp();
   const [mediaList, setMediaList] = useState<MediaAsset[]>([]);
@@ -1079,6 +1312,20 @@ export default function AdminMedia() {
   const [search, setSearch] = useState("");
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [addExistingModalOpen, setAddExistingModalOpen] = useState(false);
+
+  // Selection mode & Batch Delete State
+  const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [isCheckingReferences, setIsCheckingReferences] = useState(false);
+  const [isDeletingBatch, setIsDeletingBatch] = useState(false);
+
+  // Conflict Resolution Modal State (Windows-style)
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [problematicConflicts, setProblematicConflicts] = useState<MediaConflict[]>([]);
+  const [safeCandidateIds, setSafeCandidateIds] = useState<string[]>([]);
+  const [conflictIndex, setConflictIndex] = useState(0);
+  const [applyToAllConflicts, setApplyToAllConflicts] = useState(false);
+  const [approvedForceDeleteIds, setApprovedForceDeleteIds] = useState<Set<string>>(new Set());
 
   // Inspector & detail drawer state
   const [selectedAsset, setSelectedAsset] = useState<MediaAsset | null>(null);
@@ -1125,6 +1372,8 @@ export default function AdminMedia() {
   };
 
   useEffect(() => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
     void loadMedia(false);
   }, [catFilter, destFilter, search]);
 
@@ -1228,7 +1477,8 @@ export default function AdminMedia() {
     setIsDeleting(true);
     try {
       const deletedId = selectedAsset.id;
-      await mediaApi.delete(deletedId);
+      const hasNonGalleryRefs = assetRefs && assetRefs.references.some((r) => r.entityType !== "gallery");
+      await mediaApi.delete(deletedId, { force: hasNonGalleryRefs });
       showToast("Media asset deleted permanently from storage.", "success");
       setMediaList((prev) => prev.filter((m) => m.id !== deletedId));
       setSelectedAsset(null);
@@ -1238,6 +1488,145 @@ export default function AdminMedia() {
       showToast(msg, "error");
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  // Multi-selection helper functions
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelectedIds(new Set(mediaList.map((m) => m.id)));
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const exitSelectionMode = () => {
+    setIsSelectionMode(false);
+    setSelectedIds(new Set());
+  };
+
+  // Windows-style smart batch deletion
+  const handleInitiateBatchDelete = async () => {
+    if (selectedIds.size === 0) return;
+    setIsCheckingReferences(true);
+
+    try {
+      const selectedItems = mediaList.filter((m) => selectedIds.has(m.id));
+
+      // Analyze references for all selected items in parallel
+      const analyzed = await Promise.all(
+        selectedItems.map(async (item) => {
+          try {
+            const refInfo = await mediaApi.getReferences(item.id);
+            // Public gallery membership does NOT block deletion
+            const externalRefs = refInfo.references.filter((r) => r.entityType !== "gallery");
+            return { item, externalRefs };
+          } catch {
+            return { item, externalRefs: [] };
+          }
+        })
+      );
+
+      const safe: string[] = [];
+      const conflicts: MediaConflict[] = [];
+
+      for (const a of analyzed) {
+        if (a.externalRefs.length > 0) {
+          conflicts.push(a);
+        } else {
+          safe.push(a.item.id);
+        }
+      }
+
+      // Case 1: No problematic conflicts (all are unused or only in public gallery)
+      // Per user: "if the image is only used in gallery, you can delete it permanently without showing any warning"
+      if (conflicts.length === 0) {
+        setIsDeletingBatch(true);
+        try {
+          await Promise.all(safe.map((id) => mediaApi.delete(id)));
+          showToast(`Deleted ${safe.length} image${safe.length > 1 ? "s" : ""} permanently.`, "success");
+          setMediaList((prev) => prev.filter((m) => !selectedIds.has(m.id)));
+          if (selectedAsset && selectedIds.has(selectedAsset.id)) {
+            setSelectedAsset(null);
+          }
+          exitSelectionMode();
+        } catch (err: unknown) {
+          const msg = err instanceof Error ? err.message : "Failed to delete images";
+          showToast(msg, "error");
+        } finally {
+          setIsDeletingBatch(false);
+        }
+        return;
+      }
+
+      // Case 2: There are in-use conflicts! Open the Windows-style conflict resolution modal
+      setProblematicConflicts(conflicts);
+      setSafeCandidateIds(safe);
+      setConflictIndex(0);
+      setApplyToAllConflicts(false);
+      setApprovedForceDeleteIds(new Set());
+      setConflictModalOpen(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to verify image usage";
+      showToast(msg, "error");
+    } finally {
+      setIsCheckingReferences(false);
+    }
+  };
+
+  const executeDeletion = async (safeIds: string[], forceIds: Set<string>) => {
+    setIsDeletingBatch(true);
+    try {
+      const deleteTasks: Promise<unknown>[] = [];
+
+      // Safe deletes (normal delete, safe because either unused or only in public gallery)
+      for (const id of safeIds) {
+        deleteTasks.push(mediaApi.delete(id));
+      }
+
+      // Force deletes (for in-use items that user confirmed to delete anyway)
+      for (const id of Array.from(forceIds)) {
+        deleteTasks.push(mediaApi.delete(id, { force: true }));
+      }
+
+      await Promise.all(deleteTasks);
+
+      const totalDeleted = safeIds.length + forceIds.size;
+      const totalSkipped = problematicConflicts.length - forceIds.size;
+
+      if (totalSkipped > 0) {
+        showToast(
+          `Deleted ${totalDeleted} image${totalDeleted > 1 ? "s" : ""}; preserved ${totalSkipped} in-use image${totalSkipped > 1 ? "s" : ""}.`,
+          "success"
+        );
+      } else {
+        showToast(`Deleted ${totalDeleted} image${totalDeleted > 1 ? "s" : ""} permanently.`, "success");
+      }
+
+      const allDeletedSet = new Set([...safeIds, ...Array.from(forceIds)]);
+      setMediaList((prev) => prev.filter((m) => !allDeletedSet.has(m.id)));
+      if (selectedAsset && allDeletedSet.has(selectedAsset.id)) {
+        setSelectedAsset(null);
+      }
+      exitSelectionMode();
+      setConflictModalOpen(false);
+      setProblematicConflicts([]);
+      setSafeCandidateIds([]);
+      setApprovedForceDeleteIds(new Set());
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to execute batch deletion";
+      showToast(msg, "error");
+    } finally {
+      setIsDeletingBatch(false);
     }
   };
 
@@ -1260,6 +1649,48 @@ export default function AdminMedia() {
           onAdded={() => {
             void loadMedia(true);
           }}
+        />
+      )}
+
+      {/* Windows-style Conflict Resolution Modal for In-Use Media Assets */}
+      {conflictModalOpen && problematicConflicts.length > 0 && (
+        <ConflictResolutionModal
+          conflicts={problematicConflicts}
+          safeCount={safeCandidateIds.length}
+          currentIndex={conflictIndex}
+          applyToAll={applyToAllConflicts}
+          onApplyToAllChange={setApplyToAllConflicts}
+          onSkipCurrent={() => {
+            if (conflictIndex + 1 < problematicConflicts.length) {
+              setConflictIndex((prev) => prev + 1);
+            } else {
+              void executeDeletion(safeCandidateIds, approvedForceDeleteIds);
+            }
+          }}
+          onDeleteAnywayCurrent={() => {
+            const nextApproved = new Set(approvedForceDeleteIds);
+            nextApproved.add(problematicConflicts[conflictIndex].item.id);
+            setApprovedForceDeleteIds(nextApproved);
+            if (conflictIndex + 1 < problematicConflicts.length) {
+              setConflictIndex((prev) => prev + 1);
+            } else {
+              void executeDeletion(safeCandidateIds, nextApproved);
+            }
+          }}
+          onDeleteAllAnyway={() => {
+            const allProblematicIds = new Set(problematicConflicts.map((c) => c.item.id));
+            void executeDeletion(safeCandidateIds, allProblematicIds);
+          }}
+          onDeleteSafeOnly={() => {
+            void executeDeletion(safeCandidateIds, approvedForceDeleteIds);
+          }}
+          onCancel={() => {
+            setConflictModalOpen(false);
+            setProblematicConflicts([]);
+            setSafeCandidateIds([]);
+            setApprovedForceDeleteIds(new Set());
+          }}
+          isDeleting={isDeletingBatch}
         />
       )}
 
@@ -1358,7 +1789,13 @@ export default function AdminMedia() {
             <input
               type="text"
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                if (isSelectionMode) {
+                  setIsSelectionMode(false);
+                  setSelectedIds(new Set());
+                }
+                setSearch(e.target.value);
+              }}
               placeholder="Search images by title, filename, or destination..."
               className="w-full pl-9 pr-3 py-2 border border-[#e2e8f0] rounded-lg text-xs focus:outline-none focus:border-[#0f2922] text-[#0f2922]"
             />
@@ -1367,7 +1804,11 @@ export default function AdminMedia() {
           {/* Destination Filter */}
           <select
             value={destFilter}
-            onChange={(e) => setDestFilter(e.target.value)}
+            onChange={(e) => {
+              setIsSelectionMode(false);
+              setSelectedIds(new Set());
+              setDestFilter(e.target.value);
+            }}
             className="border border-[#e2e8f0] rounded-lg px-3 py-2 text-xs bg-white text-[#0f2922] focus:outline-none focus:border-[#0f2922] cursor-pointer"
           >
             <option value="all">All Destinations</option>
@@ -1379,25 +1820,97 @@ export default function AdminMedia() {
           </select>
         </div>
 
-        {/* Category / Type Pills */}
-        <div className="flex gap-1.5 flex-wrap pt-1 border-t border-[#f0f4f1]">
-          {CATEGORY_TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setCatFilter(tab.id)}
-              className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
-                catFilter === tab.id
-                  ? "bg-[#0f2922] text-white shadow-2xs"
-                  : "bg-[#f7f8f5] text-[#4a5568] hover:bg-[#edf2f7]"
-              }`}
-            >
-              {tab.id === "gallery" && (
-                <span className={`w-1.5 h-1.5 rounded-full ${catFilter === tab.id ? "bg-[#38d39f]" : "bg-[#e8622a]"}`} />
-              )}
-              <span>{tab.label}</span>
-            </button>
-          ))}
+        {/* Category / Type Pills & Multi-Select Bar below All Destinations */}
+        <div className="flex items-center justify-between gap-3 pt-1 border-t border-[#f0f4f1] flex-wrap sm:flex-nowrap">
+          <div className="flex gap-1.5 flex-wrap">
+            {CATEGORY_TABS.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => {
+                  setIsSelectionMode(false);
+                  setSelectedIds(new Set());
+                  setCatFilter(tab.id);
+                }}
+                className={`px-3 py-1 rounded-full text-xs font-semibold transition cursor-pointer flex items-center gap-1.5 ${
+                  catFilter === tab.id
+                    ? "bg-[#0f2922] text-white shadow-2xs"
+                    : "bg-[#f7f8f5] text-[#4a5568] hover:bg-[#edf2f7]"
+                }`}
+              >
+                {tab.id === "gallery" && (
+                  <span className={`w-1.5 h-1.5 rounded-full ${catFilter === tab.id ? "bg-[#38d39f]" : "bg-[#e8622a]"}`} />
+                )}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Right-aligned empty space below All Destinations: Select Button & Actions */}
+          <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+            {!isSelectionMode ? (
+              <button
+                type="button"
+                onClick={() => setIsSelectionMode(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-[#0f2922] bg-white hover:bg-[#f7f8f5] border border-[#e2e8f0] hover:border-[#0f2922] transition cursor-pointer shadow-2xs"
+                title="Select multiple images"
+              >
+                <svg className="w-3.5 h-3.5 text-[#0f2922]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.75} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                </svg>
+                <span>Select</span>
+              </button>
+            ) : (
+              <div className="inline-flex items-center gap-2 bg-[#f7f8f5] border border-[#e2e8f0] rounded-lg px-2.5 py-1 text-xs shadow-2xs">
+                <span className="font-semibold text-[#0f2922] text-[11px] whitespace-nowrap">
+                  {selectedIds.size > 0 ? `${selectedIds.size} selected` : "Select images"}
+                </span>
+
+                <span className="text-[#cbd5e1] text-[10px]">|</span>
+
+                <button
+                  type="button"
+                  onClick={selectedIds.size === mediaList.length && mediaList.length > 0 ? clearSelection : selectAllVisible}
+                  disabled={mediaList.length === 0}
+                  className="text-[11px] font-semibold text-[#0f2922] hover:underline disabled:opacity-40 cursor-pointer"
+                >
+                  {selectedIds.size === mediaList.length && mediaList.length > 0 ? "Deselect All" : "Select All"}
+                </button>
+
+                {selectedIds.size > 0 && (
+                  <>
+                    <span className="text-[#cbd5e1] text-[10px]">|</span>
+                    <button
+                      type="button"
+                      onClick={handleInitiateBatchDelete}
+                      disabled={isCheckingReferences || isDeletingBatch}
+                      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold text-white bg-rose-600 hover:bg-rose-700 transition cursor-pointer shadow-xs disabled:opacity-50"
+                    >
+                      {isCheckingReferences ? (
+                        <svg className="animate-spin h-3 w-3 text-white" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                        </svg>
+                      ) : (
+                        <svg className="w-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      )}
+                      <span>Delete ({selectedIds.size})</span>
+                    </button>
+                  </>
+                )}
+
+                <button
+                  type="button"
+                  onClick={exitSelectionMode}
+                  className="text-[11px] font-medium text-[#718096] hover:text-[#0f2922] ml-0.5 px-1 py-0.5 rounded hover:bg-white transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -1428,6 +1941,7 @@ export default function AdminMedia() {
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
               {mediaList.map((img) => {
                 const isInspecting = selectedAsset?.id === img.id;
+                const isSelected = selectedIds.has(img.id);
                 const formattedDate = img.createdAt
                   ? new Date(img.createdAt).toLocaleDateString("en-IN", {
                       day: "numeric",
@@ -1438,9 +1952,17 @@ export default function AdminMedia() {
                 return (
                   <div
                     key={img.id}
-                    onClick={() => void handleInspectAsset(img)}
+                    onClick={() => {
+                      if (isSelectionMode) {
+                        toggleSelect(img.id);
+                      } else {
+                        void handleInspectAsset(img);
+                      }
+                    }}
                     className={`group bg-white rounded-xl border-2 overflow-hidden shadow-2xs hover:shadow-md transition cursor-pointer flex flex-col ${
-                      isInspecting
+                      isSelectionMode && isSelected
+                        ? "border-rose-500 ring-2 ring-rose-500/25 bg-rose-50/10"
+                        : isInspecting
                         ? "border-[#e8622a] ring-2 ring-[#e8622a]/20"
                         : "border-[#e2e8f0] hover:border-[#0f2922]"
                     }`}
@@ -1467,6 +1989,32 @@ export default function AdminMedia() {
                         }}
                       />
 
+                      {/* Selection Checkbox Badge */}
+                      {isSelectionMode ? (
+                        <div
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSelect(img.id);
+                          }}
+                          className="absolute top-2 right-2 z-20 cursor-pointer"
+                        >
+                          {isSelected ? (
+                            <div className="w-6 h-6 rounded-md bg-rose-600 text-white flex items-center justify-center shadow-md">
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                              </svg>
+                            </div>
+                          ) : (
+                            <div className="w-6 h-6 rounded-md border-2 border-white/90 bg-black/40 hover:bg-black/60 shadow flex items-center justify-center transition" />
+                          )}
+                        </div>
+                      ) : (
+                        /* Original Category Tag */
+                        <span className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
+                          {img.category}
+                        </span>
+                      )}
+
                       {/* Public Gallery Status Pill */}
                       {img.inGallery ? (
                         <span className="absolute top-2 left-2 bg-[#0f2922]/90 text-[#38d39f] border border-[#38d39f]/40 text-[9px] font-bold tracking-wide uppercase px-2 py-0.5 rounded-full shadow-xs flex items-center gap-1 backdrop-blur-xs">
@@ -1479,10 +2027,12 @@ export default function AdminMedia() {
                         </span>
                       )}
 
-                      {/* Original Category Tag */}
-                      <span className="absolute top-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
-                        {img.category}
-                      </span>
+                      {/* Category Tag when in selection mode (rendered bottom right) */}
+                      {isSelectionMode && (
+                        <span className="absolute bottom-2 right-2 bg-black/60 text-white text-[9px] font-medium capitalize px-1.5 py-0.5 rounded backdrop-blur-xs">
+                          {img.category}
+                        </span>
+                      )}
 
                       {/* Gallery Display Order Badge */}
                       {img.inGallery && (

@@ -272,8 +272,8 @@ export const mediaApi = {
     return body.data as MediaAsset;
   },
 
-  async delete(id: string): Promise<{ success: boolean; id: string }> {
-    const url = `${API_BASE}/api/v1/media/${encodeURIComponent(id)}`;
+  async delete(id: string, options?: { force?: boolean }): Promise<{ success: boolean; id: string }> {
+    const url = `${API_BASE}/api/v1/media/${encodeURIComponent(id)}${options?.force ? "?force=true" : ""}`;
     const res = await authFetch(url, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" }

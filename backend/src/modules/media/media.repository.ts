@@ -771,6 +771,65 @@ export const mediaRepository = {
     };
   },
 
+  async cleanupReferencesForForceDelete(
+    mediaId: string,
+    assetUrl?: string | null,
+    client?: PoolClient
+  ): Promise<void> {
+    const executor = getExecutor(client);
+    const cleanUrl = assetUrl ? assetUrl.split("?")[0] : null;
+
+    // 1. Delete direct foreign key relations
+    await executor.query(`DELETE FROM public_gallery_items WHERE media_id = $1`, [mediaId]);
+    await executor.query(`DELETE FROM destination_media WHERE media_id = $1`, [mediaId]);
+    await executor.query(`DELETE FROM trip_media WHERE media_id = $1`, [mediaId]);
+    await executor.query(`DELETE FROM trip_instance_media WHERE media_id = $1`, [mediaId]);
+    await executor.query(`DELETE FROM review_media WHERE media_id = $1`, [mediaId]);
+    await executor.query(`DELETE FROM homepage_slides WHERE media_id = $1`, [mediaId]);
+
+    // 2. Clean up destination cover and gallery arrays
+    await executor.query(
+      `UPDATE destinations
+       SET cover_media_id = CASE WHEN cover_media_id = $1 THEN NULL ELSE cover_media_id END,
+           cover_image_url = CASE WHEN ($2::text IS NOT NULL AND split_part(cover_image_url, '?', 1) = $2) THEN NULL ELSE cover_image_url END
+       WHERE cover_media_id = $1 OR ($2::text IS NOT NULL AND split_part(cover_image_url, '?', 1) = $2)`,
+      [mediaId, cleanUrl]
+    );
+
+    if (cleanUrl) {
+      await executor.query(
+        `UPDATE destinations
+         SET gallery_image_urls = array_remove(gallery_image_urls, $1)
+         WHERE $1 = ANY(gallery_image_urls)`,
+        [cleanUrl]
+      );
+    }
+
+    // 3. Clean up trip cover and gallery arrays
+    await executor.query(
+      `UPDATE trips
+       SET cover_media_id = CASE WHEN cover_media_id = $1 THEN NULL ELSE cover_media_id END,
+           cover_image_url = CASE WHEN ($2::text IS NOT NULL AND split_part(cover_image_url, '?', 1) = $2) THEN NULL ELSE cover_image_url END
+       WHERE cover_media_id = $1 OR ($2::text IS NOT NULL AND split_part(cover_image_url, '?', 1) = $2)`,
+      [mediaId, cleanUrl]
+    );
+
+    if (cleanUrl) {
+      await executor.query(
+        `UPDATE trips
+         SET gallery_image_urls = array_remove(gallery_image_urls, $1)
+         WHERE $1 = ANY(gallery_image_urls)`,
+        [cleanUrl]
+      );
+      await executor.query(
+        `UPDATE reviews
+         SET photo_urls = array_remove(photo_urls, $1)
+         WHERE $1 = ANY(photo_urls)`,
+        [cleanUrl]
+      );
+    }
+  },
+
   async delete(id: string, client?: PoolClient): Promise<boolean> {
     const executor = getExecutor(client);
     const result = await executor.query(
