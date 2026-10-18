@@ -201,9 +201,39 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   const tripId = activeTrip?.id ?? currentSlug;
   const [copiedLink, setCopiedLink] = useState(false);
 
-  const handleCopyLink = async () => {
+  const handleShareTrip = async () => {
+    const shareData = {
+      title: activeTrip?.name ? `${activeTrip.name} — Yatrivo` : "Yatrivo Himalayan Expedition",
+      text: activeTrip?.tagline || `Discover ${activeTrip?.name || "this trip"} on Yatrivo!`,
+      url: window.location.href,
+    };
+
+    if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+      try {
+        await navigator.share(shareData);
+        return;
+      } catch (err: unknown) {
+        // User cancelled/closed the native share sheet
+        if (err instanceof Error && err.name === "AbortError") {
+          return;
+        }
+      }
+    }
+
+    // Fallback for desktop or browsers without navigator.share
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(window.location.href);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = window.location.href;
+        textArea.style.position = "fixed";
+        textArea.style.opacity = "0";
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
       setCopiedLink(true);
       showToast("Trip link copied to clipboard!", "success");
       setTimeout(() => setCopiedLink(false), 2000);
@@ -211,6 +241,8 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
       showToast("Failed to copy link", "error");
     }
   };
+
+  const handleCopyLink = handleShareTrip;
 
   const handleChatWhatsApp = () => {
     const text = `Hi Yatrivo! I'm interested in the ${activeTrip?.name || "Himalayan"} trip (${activeTrip?.duration || ""}). Could you please share more details?`;
@@ -1373,10 +1405,9 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   ) : (
                     <>
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
                       </svg>
-                      <span>Copy Link</span>
+                      <span>Share</span>
                     </>
                   )}
                 </button>
