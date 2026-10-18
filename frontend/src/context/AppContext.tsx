@@ -152,7 +152,7 @@ const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
   featuredDestIds: ["chopta", "auli", "kedarnath"],
   whyUsTitle: "The Mindful Adventure Movement",
   whyUsDesc:
-    "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection.",
+    "We bring together the thrill of adventure and the comfort of thoughtful planning, helping you discover Uttarakhand beyond the usual tourist trails.",
   whyUsPoints: [
     { icon: "🗺️", title: "Handpicked Paths", desc: "Carefully charted trails away from tourist crowds." },
     { icon: "👥", title: "Youthful Vibe", desc: "Small groups, like-minded active adventurers." },

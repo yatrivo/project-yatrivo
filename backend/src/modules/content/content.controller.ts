@@ -24,7 +24,7 @@ export const getPublicHomepage = async (_req: Request, res: Response): Promise<v
       status: "success",
       data: {
         whyUsTitle: "The Mindful Adventure Movement",
-        whyUsDescription: "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions.",
+        whyUsDescription: "We bring together the thrill of adventure and the comfort of thoughtful planning, helping you discover Uttarakhand beyond the usual tourist trails.",
         slides: [],
         featuredDestinations: [],
         featuredDestinationIds: [],

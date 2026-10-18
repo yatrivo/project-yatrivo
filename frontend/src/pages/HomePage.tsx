@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useApp, type CarouselSlide } from "@/context/AppContext";
-import type { TripInstance } from "@/data/trips";
+import { type TripInstance, INITIAL_TRIPS, INITIAL_TRIP_INSTANCES } from "@/data/trips";
 import Footer from "@/components/Footer";
 import SiteImage from "@/components/SiteImage";
 import ProgressiveImage from "@/components/ProgressiveImage";
@@ -129,8 +129,12 @@ export default function HomePage() {
 
   // 2. Determine eligible upcoming departures from existing data
   const upcomingDepartures = useMemo(() => {
-    const allInstances: TripInstance[] = [...tripInstances];
-    trips.forEach((t) => {
+    const activeTrips = trips && trips.length > 0 ? trips : INITIAL_TRIPS;
+    const baseInstances =
+      tripInstances && tripInstances.length > 0 ? tripInstances : INITIAL_TRIP_INSTANCES;
+    const allInstances: TripInstance[] = [...baseInstances];
+
+    activeTrips.forEach((t) => {
       (t.departures || []).forEach((d) => {
         if (!allInstances.some((inst) => inst.id === d.id)) {
           allInstances.push({ ...d, tripId: d.tripId || t.id });
@@ -138,14 +142,21 @@ export default function HomePage() {
       });
     });
 
-    const upcoming = allInstances.filter((inst) => inst.status === "upcoming");
+    const upcoming = allInstances.filter((inst) => {
+      const statusLower = (inst.status || "upcoming").toLowerCase();
+      return statusLower === "upcoming";
+    });
     upcoming.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
 
     return upcoming
       .map((inst, index) => {
-        const trip = trips.find(
-          (t) => t.id === inst.tripId || (t.slug && t.slug === inst.tripId)
-        );
+        const trip =
+          activeTrips.find(
+            (t) =>
+              t.id === inst.tripId ||
+              (t.slug && t.slug === inst.tripId) ||
+              (t.departures && t.departures.some((d) => d.id === inst.id))
+          ) || activeTrips[0];
         if (!trip) return null;
         return {
           id: inst.id,
@@ -157,9 +168,9 @@ export default function HomePage() {
           category: trip.category,
           date: inst.date,
           displayDate: inst.displayDate || inst.date,
-          price: inst.price > 0 ? inst.price : trip.price,
-          spotsLeft: inst.spotsLeft,
-          spotsTotal: inst.spotsTotal,
+          price: inst.price && inst.price > 0 ? inst.price : trip.price,
+          spotsLeft: inst.spotsLeft ?? 10,
+          spotsTotal: inst.spotsTotal ?? 15,
           isNextDeparture: index === 0,
         };
       })
@@ -183,24 +194,50 @@ export default function HomePage() {
   // 3. Compact Departure Carousel state & continuous seamless circular transitions
   // We clone last item at beginning and first item at end to achieve true infinite loop in the same direction
   const totalSlides = upcomingDepartures.length;
-  // currentTrackIdx: 1 represents the first real slide (index 0 in upcomingDepartures)
-  // 0 is clone of last, totalSlides + 1 is clone of first
-  const [currentTrackIdx, setCurrentTrackIdx] = useState(1);
+  // currentTrackIdx: when totalSlides > 1, index 1 represents the first real slide.
+  // 0 is clone of last, totalSlides + 1 is clone of first.
+  // When totalSlides <= 1, index 0 is the single slide.
+  const [currentTrackIdx, setCurrentTrackIdx] = useState(totalSlides > 1 ? 1 : 0);
   const [enableTransition, setEnableTransition] = useState(true);
   const depTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isNavigatingRef = useRef(false);
   const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Active departure index (0 to totalSlides - 1)
-  const activeDepIdx = totalSlides > 0 ? (currentTrackIdx - 1 + totalSlides) % totalSlides : 0;
+  // Sync index whenever totalSlides changes
+  useEffect(() => {
+    if (totalSlides <= 1) {
+      setCurrentTrackIdx(0);
+    } else {
+      setCurrentTrackIdx((prev) => {
+        if (prev < 1 || prev > totalSlides) return 1;
+        return prev;
+      });
+    }
+  }, [totalSlides]);
 
-  const markNavigating = () => {
+  // Safe track index guaranteed never to translate outside rendered slides
+  const safeTrackIdx = totalSlides > 1 ? Math.max(0, Math.min(currentTrackIdx, totalSlides + 1)) : 0;
+
+  // Active departure index (0 to totalSlides - 1)
+  const activeDepIdx = totalSlides > 0 ? (safeTrackIdx - 1 + totalSlides) % totalSlides : 0;
+
+  const markNavigating = useCallback(() => {
     isNavigatingRef.current = true;
     if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
     unlockTimerRef.current = setTimeout(() => {
       isNavigatingRef.current = false;
+      // Resilient watchdog: If transitionend was dropped or delayed by the browser
+      if (totalSlides > 1) {
+        setCurrentTrackIdx((curr) => {
+          if (curr <= 0) return totalSlides;
+          if (curr >= totalSlides + 1) return 1;
+          return curr;
+        });
+      } else {
+        setCurrentTrackIdx(0);
+      }
     }, 650);
-  };
+  }, [totalSlides]);
 
   // Handle seamless infinite jump on transition end without visual jump
   const handleTransitionEnd = () => {
@@ -210,10 +247,10 @@ export default function HomePage() {
       unlockTimerRef.current = null;
     }
     if (totalSlides <= 1) return;
-    if (currentTrackIdx === 0) {
+    if (currentTrackIdx <= 0) {
       setEnableTransition(false);
       setCurrentTrackIdx(totalSlides);
-    } else if (currentTrackIdx === totalSlides + 1) {
+    } else if (currentTrackIdx >= totalSlides + 1) {
       setEnableTransition(false);
       setCurrentTrackIdx(1);
     }
@@ -239,6 +276,7 @@ export default function HomePage() {
     }
     if (totalSlides > 1) {
       depTimerRef.current = setInterval(() => {
+        if (typeof document !== "undefined" && document.hidden) return;
         if (!isNavigatingRef.current) {
           markNavigating();
           setEnableTransition(true);
@@ -246,7 +284,31 @@ export default function HomePage() {
         }
       }, 5000);
     }
-  }, [totalSlides]);
+  }, [totalSlides, markNavigating]);
+
+  // Tab visibility listener: pauses when hidden, restores and cleans up index when tab becomes visible again
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        if (depTimerRef.current) {
+          clearInterval(depTimerRef.current);
+          depTimerRef.current = null;
+        }
+      } else {
+        setCurrentTrackIdx((curr) => {
+          if (totalSlides <= 1) return 0;
+          if (curr <= 0) return totalSlides;
+          if (curr >= totalSlides + 1) return 1;
+          return curr;
+        });
+        startAutoplay();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [totalSlides, startAutoplay]);
 
   const nextDep = () => {
     if (totalSlides <= 1 || isNavigatingRef.current) return;
@@ -414,10 +476,11 @@ export default function HomePage() {
                   <div
                     className="flex will-change-transform"
                     style={{
-                      transform: `translate3d(-${currentTrackIdx * 100}%, 0, 0)`,
-                      transition: enableTransition
-                        ? "transform 600ms cubic-bezier(0.25, 1, 0.5, 1)"
-                        : "none",
+                      transform: `translate3d(-${safeTrackIdx * 100}%, 0, 0)`,
+                      transition:
+                        enableTransition && totalSlides > 1
+                          ? "transform 600ms cubic-bezier(0.25, 1, 0.5, 1)"
+                          : "none",
                     }}
                     onTransitionEnd={handleTransitionEnd}
                   >
@@ -606,7 +669,13 @@ export default function HomePage() {
                 {whyUsTitle || "The Mindful Adventure Movement"}
               </h2>
               <p className="text-[#4a5568] text-sm sm:text-[15px] leading-relaxed mb-6 sm:mb-7 max-w-xl">
-                {whyUsDesc || "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection."}
+                {whyUsDesc &&
+                whyUsDesc !==
+                  "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions. Our groups are small, food is sourced from local farms, and trails are chosen for deep natural connection." &&
+                whyUsDesc !==
+                  "We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions."
+                  ? whyUsDesc
+                  : "We bring together the thrill of adventure and the comfort of thoughtful planning, helping you discover Uttarakhand beyond the usual tourist trails."}
               </p>
               <Link
                 to="/travel-with-us"
