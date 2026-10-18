@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { useParams, Link, useLocation } from "react-router-dom";
+import { useParams, Link, useLocation, useNavigate } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import { tripsApi } from "@/api/trips";
 import type { PublicGalleryItem } from "@/api/gallery";
@@ -138,8 +138,17 @@ function DepartureModal({ title, initial, onSave, onClose, isSaving }: Departure
 export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
   const { slug } = useParams<{ slug: string }>();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdmin = Boolean(adminMode || location.pathname.startsWith("/admin/"));
   const { pageParams, openEnquiryModal, trips, destinations, tripInstances, showToast, refreshTrips, siteSettings } = useApp();
+
+  const handleMobileBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate(isAdmin ? "/admin/trips" : "/trips", { replace: true });
+    }
+  };
 
   const currentSlug = slug || pageParams.tripId || "chopta-trek";
   const initialTrip = trips.find(
@@ -530,22 +539,66 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
         </>
       )}
 
-      {/* Hero with Single Cover Image (No Gallery Thumbs Carousel Overlay) */}
-      <section className="relative h-[82vh] md:h-[84vh] min-h-[500px] md:min-h-[580px] max-h-[840px] overflow-hidden">
+      {/* Responsive Hero Section: Proportional on Mobile, Expansive on Desktop */}
+      <section className="relative h-[36vh] sm:h-[44vh] md:h-[76vh] lg:h-[80vh] min-h-[250px] sm:min-h-[300px] md:min-h-[520px] max-h-[820px] overflow-hidden bg-[#0a1f18]">
         {activeTrip?.image ? (
           <img
             src={activeTrip.image}
             alt={activeTrip.name ?? "Trip"}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-center"
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-[#0a1f18] via-[#143a2d] to-[#0a1f18]" />
         )}
-        <div className="absolute inset-0 hero-overlay-directional" />
-        <div className="relative h-full flex items-end pb-6 sm:pb-8 md:pb-12 max-w-7xl mx-auto px-4 sm:px-6">
+
+        {/* Gradient overlay for contrast */}
+        <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
+
+        {/* Mobile floating controls over hero image: Back button on the left, Share button on the right */}
+        <div className="md:hidden absolute top-3.5 left-4 z-20">
+          <button
+            onClick={handleMobileBack}
+            className="w-9 h-9 rounded-full bg-black/45 hover:bg-black/65 text-white flex items-center justify-center backdrop-blur-sm transition-colors shadow-sm cursor-pointer"
+            aria-label="Back to previous page"
+            title="Back to previous page"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="md:hidden absolute top-3.5 right-4 z-20 flex items-center gap-2">
+          <button
+            onClick={handleCopyLink}
+            className="w-9 h-9 rounded-full bg-black/45 hover:bg-black/65 text-white backdrop-blur-sm flex items-center justify-center transition-colors shadow-sm cursor-pointer"
+            aria-label="Share trip"
+            title="Share trip"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+            </svg>
+          </button>
+        </div>
+
+        {/* Mobile photo gallery trigger badge */}
+        {galleryLightboxItems.length > 0 && (
+          <button
+            onClick={() => setLightboxIndex(0)}
+            className="md:hidden absolute bottom-3 right-4 z-20 px-2.5 py-1 rounded-full bg-black/60 hover:bg-black/80 backdrop-blur-sm text-white text-[11px] font-medium flex items-center gap-1.5 transition-colors shadow-xs cursor-pointer"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            </svg>
+            <span>1/{galleryLightboxItems.length}</span>
+          </button>
+        )}
+
+        {/* Desktop Overlay Content - Preserved Established Desktop Composition */}
+        <div className="hidden md:flex relative h-full items-end pb-8 md:pb-12 max-w-7xl mx-auto px-6 w-full">
           <div className="flex items-end justify-between w-full gap-4 flex-wrap">
             <div>
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3 text-[11px] sm:text-xs text-contrast-subtle">
+              <div className="flex flex-wrap items-center gap-2 mb-2.5 text-xs text-contrast-subtle">
                 <BackLink to={isAdmin ? "/admin/trips" : "/trips"} className="text-[#e8622a] hover:underline uppercase tracking-wide font-semibold">
                   {activeTrip?.category ?? "EXPERIENCE"}
                 </BackLink>
@@ -563,10 +616,10 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                   </span>
                 ))}
               </div>
-              <h1 className="text-white text-[28px] sm:text-5xl leading-tight sm:leading-none mb-2.5 sm:mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
+              <h1 className="text-white text-4xl lg:text-5xl leading-none mb-3 text-contrast-title" style={{ fontFamily: "var(--font-serif)" }}>
                 {activeTrip?.name ?? "Himalayan Adventure"}
               </h1>
-              <div className="flex flex-wrap gap-x-4 gap-y-1 sm:gap-5 text-white/90 text-xs sm:text-sm text-contrast-body">
+              <div className="flex flex-wrap gap-x-5 gap-y-1 text-white/90 text-sm text-contrast-body">
                 <span>{activeTrip?.duration ?? "4 Days / 3 Nights"}</span>
                 <span>Difficulty: {activeTrip?.difficulty ?? "Moderate"}</span>
                 {activeTrip?.startingPoint && <span>Starts from: {activeTrip.startingPoint}</span>}
@@ -575,8 +628,83 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
           </div>
         </div>
       </section>
+
+      {/* Mobile Package Information Sheet & Navigation - Clean Transition from Image */}
+      <div className="md:hidden bg-white border-b border-[#e2e8f0] px-4 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-[#0f2922] text-[22px] sm:text-2xl font-bold leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
+              {activeTrip?.name ?? "Himalayan Adventure"}
+            </h1>
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#718096] mt-1 font-medium">
+              <span>{activeTrip?.duration ?? "4 Days / 3 Nights"}</span>
+              <span>•</span>
+              <span className="text-[#e8622a] uppercase font-semibold">{activeTrip?.category}</span>
+              <span>•</span>
+              <span>{activeTrip?.difficulty ?? "Moderate"}</span>
+            </div>
+          </div>
+          <div className="text-right shrink-0">
+            <div className="text-[#0f2922] font-bold text-xl sm:text-2xl leading-none" style={{ fontFamily: "var(--font-serif)" }}>
+              ₹{activeTrip?.price ? activeTrip.price.toLocaleString("en-IN") : "9,999"}
+            </div>
+            <div className="text-[10px] sm:text-[11px] text-[#718096] mt-0.5">per person</div>
+          </div>
+        </div>
+
+        {/* Next Scheduled Departure Box on Mobile */}
+        {upcomingDepartures.length > 0 && (
+          <div
+            onClick={() => openEnquiryModal(tripId, upcomingDepartures[0].id)}
+            className="mt-3.5 p-3 rounded-xl bg-[#f7f8f5] border border-[#e2e8f0] flex items-center justify-between gap-2.5 cursor-pointer hover:border-[#0f2922]/40 transition-colors shadow-2xs"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-white border border-[#e2e8f0] flex items-center justify-center text-sm shrink-0 shadow-xs">
+                🗓️
+              </div>
+              <div className="min-w-0">
+                <div className="text-[9.5px] uppercase tracking-wider font-semibold text-[#718096] leading-tight flex items-center gap-1.5">
+                  <span>NEXT DEPARTURE</span>
+                  {upcomingDepartures.length > 1 && (
+                    <span className="text-[9px] text-[#e8622a] font-bold">
+                      • {upcomingDepartures.length} dates
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs sm:text-sm font-bold text-[#0f2922] leading-tight truncate">
+                  {upcomingDepartures[0].displayDate}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                upcomingDepartures[0].spotsLeft <= 3
+                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                  : "bg-emerald-50 text-emerald-700 border border-emerald-200"
+              }`}>
+                {upcomingDepartures[0].spotsLeft} {upcomingDepartures[0].spotsLeft === 1 ? "seat" : "seats"} left
+              </span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#718096" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </div>
+          </div>
+        )}
+
+        {/* Section Jump Tabs on Mobile */}
+        <nav className="flex items-center gap-4 overflow-x-auto no-scrollbar pt-3 mt-1 text-xs font-semibold text-[#718096]">
+          <a href="#overview" className="text-[#0f2922] border-b-2 border-[#0f2922] pb-1.5 whitespace-nowrap">Overview</a>
+          <a href="#itinerary" className="hover:text-[#0f2922] pb-1.5 whitespace-nowrap">Itinerary</a>
+          <a href="#inclusions" className="hover:text-[#0f2922] pb-1.5 whitespace-nowrap">Inclusions</a>
+          {activeTrip?.gallery && activeTrip.gallery.length > 0 && (
+            <a href="#gallery" className="hover:text-[#0f2922] pb-1.5 whitespace-nowrap">Photos</a>
+          )}
+          <a href="#faqs" className="hover:text-[#0f2922] pb-1.5 whitespace-nowrap">FAQs</a>
+        </nav>
+      </div>
+
       {/* Content */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-7 sm:py-12">
+      <div id="overview" className="max-w-7xl mx-auto px-4 sm:px-6 py-6 sm:py-10 md:py-12">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-10">
           {/* Left Column */}
           <div className="lg:col-span-2 space-y-6 sm:space-y-12">
@@ -601,77 +729,6 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                 ))}
               </div>
             </section>
-
-            {/* MOBILE ONLY: Upcoming Departures & Dates (for regular visitors) */}
-            {!isAdmin && (
-              <section id="mobile-scheduled-departures" className="block lg:hidden border-t border-[#e2e8f0] pt-6 sm:pt-8">
-                <div className="flex items-center justify-between mb-3 sm:mb-4 flex-wrap gap-2">
-                  <div>
-                    <div className="text-[#e8622a] text-[10px] sm:text-xs uppercase tracking-widest font-semibold mb-0.5 sm:mb-1">
-                      UPCOMING DATES
-                    </div>
-                    <h2 className="text-[#0f2922] text-[20px] sm:text-2xl leading-snug" style={{ fontFamily: "var(--font-serif)" }}>
-                      Scheduled Departures
-                    </h2>
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[11px] sm:text-xs text-[#718096]">Starting from</div>
-                    <div className="text-lg sm:text-xl font-bold text-[#0f2922] leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
-                      {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
-                    </div>
-                  </div>
-                </div>
-
-                {upcomingDepartures.length > 0 ? (
-                  <div className="space-y-2.5 sm:space-y-3">
-                    {upcomingDepartures.map((d) => (
-                      <div
-                        key={d.id}
-                        onClick={() => openEnquiryModal(tripId, d.id)}
-                        className="bg-white rounded-xl p-3 sm:p-3.5 border border-[#e2e8f0] shadow-sm hover:border-[#0f2922] transition cursor-pointer"
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[13.5px] sm:text-sm font-semibold text-[#0f2922]">{d.displayDate}</span>
-                            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
-                              d.spotsLeft <= 3
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
-                                : "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            }`}>
-                              {d.spotsLeft} {d.spotsLeft === 1 ? "spot" : "spots"} remaining
-                            </span>
-                          </div>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#a0aec0" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="shrink-0">
-                            <polyline points="9 18 15 12 9 6" />
-                          </svg>
-                        </div>
-                        {d.notes && (
-                          <div className="text-[11px] text-[#4a5568] mt-2 italic flex items-center gap-1.5 bg-[#f7f8f5] px-2.5 py-1 rounded-md border border-[#e2e8f0]/60">
-                            <span className="text-[#e8622a] text-xs">✦</span>
-                            <span className="line-clamp-1">{d.notes}</span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="bg-[#f7f8f5] rounded-xl px-3.5 py-3 sm:p-5 border border-dashed border-[#cbd5e1] text-center">
-                    <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-white text-[#0f2922] flex items-center justify-center mx-auto mb-1.5 sm:mb-2 border border-[#e2e8f0]">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                        <line x1="16" y1="2" x2="16" y2="6"/>
-                        <line x1="8" y1="2" x2="8" y2="6"/>
-                        <line x1="3" y1="10" x2="21" y2="10"/>
-                      </svg>
-                    </div>
-                    <p className="text-[13px] sm:text-sm font-semibold text-[#0f2922] leading-snug mb-0.5 sm:mb-1">No upcoming departures scheduled for now</p>
-                    <p className="text-[11.5px] sm:text-xs text-[#718096] leading-snug sm:leading-relaxed mb-0">
-                      We organize customized and private departures on any dates of your choice. You can still reach out to plan your dates!
-                    </p>
-                  </div>
-                )}
-              </section>
-            )}
 
             {/* DEDICATED SECTION: Departure Management for Admin (Requirement 8 & 9) */}
             {isAdmin && (
@@ -940,7 +997,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
 
             {/* Itinerary */}
             {tripItinerary.length > 0 && (
-              <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+              <section id="itinerary" className="border-t border-[#e2e8f0] pt-6 sm:pt-10 scroll-mt-14">
                 <h2 className="text-[#0f2922] text-[20px] sm:text-2xl mb-3 sm:mb-5" style={{ fontFamily: "var(--font-serif)" }}>The Mindful Itinerary</h2>
                 <div className="space-y-2">
                   {tripItinerary.map((d, i) => {
@@ -973,7 +1030,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             )}
 
             {/* Inclusions */}
-            <section className="grid sm:grid-cols-2 gap-3.5 sm:gap-5 border-t border-[#e2e8f0] pt-6 sm:pt-10">
+            <section id="inclusions" className="grid sm:grid-cols-2 gap-3.5 sm:gap-5 border-t border-[#e2e8f0] pt-6 sm:pt-10 scroll-mt-14">
               <div className="border border-[#e2e8f0] rounded-xl p-3.5 sm:p-5">
                 <h3 className="text-[#0f2922] font-semibold text-xs sm:text-sm uppercase tracking-wide mb-2.5 sm:mb-4">WHAT'S INCLUDED</h3>
                 <ul className="space-y-1.5 sm:space-y-2">
@@ -1027,10 +1084,11 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
                     </svg>
                   </button>
                 </div>
-                <div className={`grid ${activeTrip.gallery.length === 1 ? "grid-cols-1" : "grid-cols-2"} ${activeTrip.gallery.length === 2 ? "sm:grid-cols-2" : activeTrip.gallery.length === 1 ? "sm:grid-cols-1" : "sm:grid-cols-3"} gap-2.5 sm:gap-4`}>
-                  {activeTrip.gallery.slice(0, 3).map((img, i) => {
-                    const remainingDesktop = activeTrip.gallery.length - 3;
-                    const remainingMobile = activeTrip.gallery.length - 2;
+                <div className={`grid ${(activeTrip?.gallery?.length || 0) === 1 ? "grid-cols-1" : "grid-cols-2"} ${(activeTrip?.gallery?.length || 0) === 2 ? "sm:grid-cols-2" : (activeTrip?.gallery?.length || 0) === 1 ? "sm:grid-cols-1" : "sm:grid-cols-3"} gap-2.5 sm:gap-4`}>
+                  {(activeTrip?.gallery || []).slice(0, 3).map((img, i) => {
+                    const galleryLen = activeTrip?.gallery?.length || 0;
+                    const remainingDesktop = galleryLen - 3;
+                    const remainingMobile = galleryLen - 2;
                     const isLastDesktop = i === 2 && remainingDesktop > 0;
                     const isLastMobile = i === 1 && remainingMobile > 0;
                     return (
@@ -1135,7 +1193,7 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
             </section>
 
             {/* Manageable FAQs (Requirement 12) */}
-            <section className="border-t border-[#e2e8f0] pt-6 sm:pt-10">
+            <section id="faqs" className="border-t border-[#e2e8f0] pt-6 sm:pt-10 scroll-mt-14">
               <h2 className="text-[#0f2922] text-[20px] sm:text-xl mb-3 sm:mb-4 font-bold" style={{ fontFamily: "var(--font-serif)" }}>
                 Trip FAQs
               </h2>
@@ -1371,18 +1429,18 @@ export default function TripDetailPage({ adminMode }: TripDetailPageProps) {
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
             </svg>
           </button>
-          <button
-            onClick={() => openEnquiryModal(tripId)}
-            className="flex-1 flex items-center justify-center gap-1.5 bg-[#0f2922] hover:bg-[#1a3d31] text-white py-3 rounded-full text-sm font-semibold shadow-sm transition-colors cursor-pointer"
-          >
-            Raise Enquiry
-          </button>
-          <div className="text-right shrink-0">
-            <div className="text-[#0f2922] font-bold text-base sm:text-lg" style={{ fontFamily: "var(--font-serif)" }}>
+          <div className="min-w-0 pr-1">
+            <div className="text-[#0f2922] font-bold text-base sm:text-lg leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
               {activeTrip?.price ? `₹${activeTrip.price.toLocaleString("en-IN")}` : "₹9,999"}
             </div>
-            <div className="text-[#4a5568] text-xs">per person</div>
+            <div className="text-[#718096] text-[10.5px] leading-none">per person</div>
           </div>
+          <button
+            onClick={() => openEnquiryModal(tripId)}
+            className="flex-1 flex items-center justify-center gap-1.5 bg-[#e8622a] hover:bg-[#d45520] text-white py-2.5 sm:py-3 rounded-full text-xs sm:text-sm font-semibold shadow-sm transition-colors cursor-pointer"
+          >
+            Enquire Now →
+          </button>
         </div>
       )}
 

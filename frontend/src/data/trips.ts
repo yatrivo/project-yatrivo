@@ -13,7 +13,38 @@ export interface TripInstance {
   notes?: string;
 }
 
-export const INITIAL_TRIP_INSTANCES: TripInstance[] = [];
+export const INITIAL_TRIP_INSTANCES: TripInstance[] = [
+  {
+    id: "inst-chopta-upcoming-1",
+    tripId: "chopta-trek",
+    date: "2026-10-28",
+    displayDate: "28 October 2026",
+    price: 9999,
+    spotsTotal: 12,
+    spotsLeft: 5,
+    status: "upcoming",
+  },
+  {
+    id: "inst-chakrata-upcoming-1",
+    tripId: "chakrata-nature",
+    date: "2026-11-12",
+    displayDate: "12 November 2026",
+    price: 8499,
+    spotsTotal: 12,
+    spotsLeft: 7,
+    status: "upcoming",
+  },
+  {
+    id: "inst-rishikesh-upcoming-1",
+    tripId: "rishikesh-rafting",
+    date: "2026-11-25",
+    displayDate: "25 November 2026",
+    price: 7499,
+    spotsTotal: 12,
+    spotsLeft: 4,
+    status: "upcoming",
+  },
+];
 
 
 export interface TripDestination {

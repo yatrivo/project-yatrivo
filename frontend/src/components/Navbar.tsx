@@ -46,6 +46,9 @@ export default function Navbar() {
     pathname === "/privacy" ||
     pathname === "/profile";
 
+  const isTripDetailPage =
+    pathname.startsWith("/trips/") && pathname !== "/trips" && pathname !== "/trips/";
+
   const atTop = scrollY < 60;
   const transparent = isHeroPage && atTop && !menuOpen;
 
@@ -91,7 +94,7 @@ export default function Navbar() {
       )}
 
       <header
-        className={`${isNonHeroPage ? "sticky" : "fixed"} top-0 left-0 right-0 z-50 transition-all duration-300 ${isNonHeroPage ? "bg-white border-b border-[#e2e8f0]" : navBg} ${
+        className={`${isTripDetailPage ? "hidden md:block" : ""} ${isNonHeroPage ? "sticky" : "fixed"} top-0 left-0 right-0 z-50 transition-all duration-300 ${isNonHeroPage ? "bg-white border-b border-[#e2e8f0]" : navBg} ${
           hidden && !menuOpen ? "-translate-y-full" : "translate-y-0"
         }`}
       >

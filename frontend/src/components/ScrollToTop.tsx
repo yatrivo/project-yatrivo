@@ -12,7 +12,7 @@ export default function ScrollToTop() {
   useEffect(() => {
     const pendingHash = consumePendingBackHash();
     const effectiveHash = hash || pendingHash;
-    if (effectiveHash) {
+    if (effectiveHash && effectiveHash !== "#gallery-view") {
       const targetId = effectiveHash.replace("#", "");
       const element = document.getElementById(targetId);
       if (element) {
@@ -23,6 +23,10 @@ export default function ScrollToTop() {
         document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
       }, 100);
       return () => clearTimeout(timer);
+    }
+    if (effectiveHash === "#gallery-view") {
+      // Do nothing to scroll position when gallery lightbox opens/closes
+      return;
     }
     window.scrollTo({ top: 0, left: 0, behavior: "instant" });
   }, [pathname, hash]);

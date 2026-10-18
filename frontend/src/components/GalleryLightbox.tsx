@@ -383,6 +383,42 @@ export default function GalleryLightbox({
     };
   }, [clearTransitionTimer]);
 
+  // Handle mobile natural back button / browser back button:
+  // When the lightbox opens, append #gallery-view to window.location.
+  // When user taps natural/browser back button, hash change triggers closing the lightbox cleanly.
+  useEffect(() => {
+    // If hash not present, push hash so back button pops it
+    const originalHash = window.location.hash;
+    if (!window.location.hash.includes("gallery-view")) {
+      window.location.hash = "gallery-view";
+    }
+
+    const handleHashChange = () => {
+      if (!window.location.hash.includes("gallery-view")) {
+        onClose();
+      }
+    };
+
+    window.addEventListener("hashchange", handleHashChange);
+
+    return () => {
+      window.removeEventListener("hashchange", handleHashChange);
+      // Clean up hash if lightbox is closed via close button or backdrop click
+      if (window.location.hash.includes("gallery-view")) {
+        if (originalHash && originalHash !== "#gallery-view") {
+          window.location.hash = originalHash;
+        } else {
+          // Remove hash without adding another history entry or navigating back
+          window.history.replaceState(
+            window.history.state,
+            "",
+            window.location.pathname + window.location.search
+          );
+        }
+      }
+    };
+  }, [onClose]);
+
   // Lock body scroll while preserving exact scroll position, and manage focus on open/close
   useEffect(() => {
     const savedScrollY = window.scrollY;

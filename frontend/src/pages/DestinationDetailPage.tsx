@@ -302,53 +302,61 @@ export default function DestinationDetailPage({ adminMode }: DestinationDetailPa
               </div>
 
               {destTrips.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-5">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                   {destTrips.map((trip) => (
-                    <div key={trip.id} className="bg-white rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-shadow group flex flex-col justify-between">
-                      <div>
-                        <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`} className="relative h-40 sm:h-44 overflow-hidden block">
-                          <ProgressiveImage
-                            src={trip.image}
-                            alt={trip.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-                            containerClassName="w-full h-full relative"
-                            priority={false}
-                          />
+                    <div key={trip.id} className="h-full bg-white rounded-xl sm:rounded-2xl border border-[#e2e8f0] overflow-hidden hover:shadow-lg transition-all group flex flex-col justify-between min-w-0">
+                      <div className="flex-1 flex flex-col">
+                        <div className="relative aspect-[16/9] sm:aspect-[16/9.5] w-full overflow-hidden block bg-[#f7f8f5]">
+                          <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`} className="block w-full h-full">
+                            <ProgressiveImage
+                              src={trip.image}
+                              alt={trip.name}
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              containerClassName="w-full h-full relative"
+                              priority={false}
+                            />
+                          </Link>
                           {(trip.badge || trip.category) && (
-                            <span className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 text-[10px] font-semibold tracking-wide uppercase px-2 sm:px-2.5 py-0.5 rounded-full badge-glass-dark text-white z-10">
+                            <span className="absolute top-2 sm:top-2.5 left-2 sm:left-2.5 text-[9.5px] sm:text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full badge-glass-dark text-white z-10 pointer-events-none">
                               {trip.badge || trip.category}
                             </span>
                           )}
                           {trip.duration && (
-                            <span className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-3 text-[10px] sm:text-[11px] font-medium px-2 sm:px-2.5 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm z-10">
+                            <span className="absolute bottom-2 sm:bottom-2.5 right-2 sm:right-2.5 text-[9.5px] sm:text-[10px] font-medium px-2 py-0.5 rounded-full bg-black/60 text-white backdrop-blur-sm z-10 pointer-events-none">
                               {trip.duration}
                             </span>
                           )}
-                        </Link>
-                        <div className="px-3.5 pt-3 pb-2.5 sm:p-3.5">
-                          <div className="flex items-center justify-between gap-2 text-xs text-[#718096] mb-1">
-                            <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px] leading-tight">{trip.category}</span>
-                            {trip.difficulty && (
-                              <span className="text-[10px] sm:text-[11px] text-[#718096] leading-tight">{trip.difficulty}</span>
-                            )}
+                        </div>
+                        <div className="px-3.5 pt-2.5 pb-2 sm:px-4 sm:pt-3 sm:pb-2.5 flex-1 flex flex-col justify-between">
+                          <div>
+                            <div className="flex items-center justify-between gap-2 text-xs text-[#718096] mb-1">
+                              <span className="text-[#e8622a] font-medium uppercase tracking-wider text-[10px] sm:text-[11px] leading-tight">
+                                {trip.category}
+                              </span>
+                              {trip.difficulty && (
+                                <span className="text-[10px] sm:text-[11px] text-[#718096] leading-tight">
+                                  {trip.difficulty}
+                                </span>
+                              )}
+                            </div>
+                            <h3 className="text-[#0f2922] text-[15px] sm:text-[16.5px] leading-snug font-semibold hover:text-[#e8622a] transition-colors line-clamp-2" style={{ fontFamily: "var(--font-serif)" }}>
+                              <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
+                            </h3>
                           </div>
-                          <h3 className="text-[#0f2922] text-[15.5px] sm:text-[17px] leading-snug font-semibold mb-0 hover:text-[#e8622a] transition-colors line-clamp-1" style={{ fontFamily: "var(--font-serif)" }}>
-                            <Link to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}>{trip.name}</Link>
-                          </h3>
                         </div>
                       </div>
 
-                      <div className="px-3.5 py-2.5 sm:px-3.5 sm:py-2.5 border-t border-[#f1f5f9] sm:border-[#e2e8f0] bg-white sm:bg-[#fafafa] flex items-center justify-between gap-2 flex-wrap mt-auto">
+                      <div className="px-3.5 py-2 sm:px-4 sm:py-2.5 border-t border-[#f1f5f9] bg-[#fafafa]/80 flex items-center justify-between gap-2 mt-auto">
                         <div className="min-w-0">
-                          <div className="text-[9px] sm:text-[10px] text-[#718096] uppercase tracking-wider font-medium leading-tight">STARTING PRICE</div>
-                          <div className="text-[#0f2922] text-[17px] sm:text-lg font-bold leading-tight mt-0.5" style={{ fontFamily: "var(--font-serif)" }}>
+                          <div className="text-[8.5px] sm:text-[9.5px] text-[#718096] uppercase tracking-wider font-medium leading-tight mb-0.5">STARTING PRICE</div>
+                          <div className="text-[#0f2922] text-[15px] sm:text-base font-bold leading-tight" style={{ fontFamily: "var(--font-serif)" }}>
                             ₹{trip.price.toLocaleString("en-IN")}
-                            <span className="text-[11px] sm:text-xs font-normal text-[#718096]"> / person</span>
+                            <span className="text-[10px] sm:text-[11px] font-normal text-[#718096]"> / person</span>
                           </div>
                         </div>
                         <Link
                           to={isAdmin ? `/admin/trips/${trip.slug || trip.id}` : `/trips/${trip.slug || trip.id}`}
-                          className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-[11px] sm:text-xs font-semibold px-4 py-2 rounded-full transition-colors cursor-pointer shrink-0 whitespace-nowrap"
+                          className="bg-[#0f2922] hover:bg-[#1a4a39] text-white text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 sm:px-4 sm:py-2 rounded-full transition-colors cursor-pointer shrink-0 whitespace-nowrap"
                         >
                           {isAdmin ? "MANAGE TRIP" : "VIEW PACKAGE"}
                         </Link>

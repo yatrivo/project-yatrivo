@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { useApp } from "@/context/AppContext";
+import { useApp, type CarouselSlide } from "@/context/AppContext";
+import type { TripInstance } from "@/data/trips";
 import Footer from "@/components/Footer";
 import SiteImage from "@/components/SiteImage";
 import ProgressiveImage from "@/components/ProgressiveImage";
@@ -52,7 +53,7 @@ export default function HomePage() {
     return [];
   })();
 
-  // Build resolved slides for the carousel
+  // Build resolved slides for fallback metadata and images
   const resolvedSlides = (() => {
     const raw = (carouselSlides && carouselSlides.length > 0)
       ? carouselSlides
@@ -109,64 +110,200 @@ export default function HomePage() {
     return [];
   })();
 
-  const [heroIdx, setHeroIdx] = useState(0);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // 1. Stationary Hero Background Image & Meta
+  const heroBgImage =
+    homepageContent?.heroImages?.[0] ||
+    resolvedSlides[0]?.imageUrl ||
+    "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg";
 
-  const resetTimer = () => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    if (resolvedSlides.length > 1) {
-      timerRef.current = setInterval(() => {
-        setHeroIdx((i) => (i + 1) % resolvedSlides.length);
-      }, 5000);
+  const heroHeadline =
+    homepageContent?.heroTitle && homepageContent.heroTitle.trim() && homepageContent.heroTitle !== "Jai Ho!"
+      ? homepageContent.heroTitle
+      : (resolvedSlides[0]?.title || "Find Your Next Mountain Story");
+
+  const heroSubtext =
+    homepageContent?.heroSubtitle ||
+    resolvedSlides[0]?.subtitle ||
+    "Curated journeys. Local experiences. Unforgettable landscapes.";
+
+  // 2. Determine eligible upcoming departures from existing data
+  const upcomingDepartures = useMemo(() => {
+    const allInstances: TripInstance[] = [...tripInstances];
+    trips.forEach((t) => {
+      (t.departures || []).forEach((d) => {
+        if (!allInstances.some((inst) => inst.id === d.id)) {
+          allInstances.push({ ...d, tripId: d.tripId || t.id });
+        }
+      });
+    });
+
+    const upcoming = allInstances.filter((inst) => inst.status === "upcoming");
+    upcoming.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+
+    return upcoming
+      .map((inst, index) => {
+        const trip = trips.find(
+          (t) => t.id === inst.tripId || (t.slug && t.slug === inst.tripId)
+        );
+        if (!trip) return null;
+        return {
+          id: inst.id,
+          tripId: trip.slug || trip.id,
+          rawTripId: trip.id,
+          name: trip.name,
+          image: trip.image,
+          duration: trip.duration,
+          category: trip.category,
+          date: inst.date,
+          displayDate: inst.displayDate || inst.date,
+          price: inst.price > 0 ? inst.price : trip.price,
+          spotsLeft: inst.spotsLeft,
+          spotsTotal: inst.spotsTotal,
+          isNextDeparture: index === 0,
+        };
+      })
+      .filter(Boolean) as Array<{
+        id: string;
+        tripId: string;
+        rawTripId: string;
+        name: string;
+        image: string;
+        duration: string;
+        category: string;
+        date: string;
+        displayDate: string;
+        price: number;
+        spotsLeft: number;
+        spotsTotal: number;
+        isNextDeparture: boolean;
+      }>;
+  }, [trips, tripInstances]);
+
+  // 3. Compact Departure Carousel state & continuous seamless circular transitions
+  // We clone last item at beginning and first item at end to achieve true infinite loop in the same direction
+  const totalSlides = upcomingDepartures.length;
+  // currentTrackIdx: 1 represents the first real slide (index 0 in upcomingDepartures)
+  // 0 is clone of last, totalSlides + 1 is clone of first
+  const [currentTrackIdx, setCurrentTrackIdx] = useState(1);
+  const [enableTransition, setEnableTransition] = useState(true);
+  const [isDepPaused, setIsDepPaused] = useState(false);
+  const depTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isNavigatingRef = useRef(false);
+
+  // Active departure index (0 to totalSlides - 1)
+  const activeDepIdx = totalSlides > 0 ? (currentTrackIdx - 1 + totalSlides) % totalSlides : 0;
+
+  // Handle seamless infinite jump on transition end without visual jump
+  const handleTransitionEnd = () => {
+    isNavigatingRef.current = false;
+    if (totalSlides <= 1) return;
+    if (currentTrackIdx === 0) {
+      setEnableTransition(false);
+      setCurrentTrackIdx(totalSlides);
+    } else if (currentTrackIdx === totalSlides + 1) {
+      setEnableTransition(false);
+      setCurrentTrackIdx(1);
     }
+  };
+
+  // Re-enable transition on the next animation frame after an instant reset
+  useEffect(() => {
+    if (!enableTransition) {
+      const raf = requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setEnableTransition(true);
+        });
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [enableTransition]);
+
+  const nextDep = () => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    setEnableTransition(true);
+    setCurrentTrackIdx((prev) => prev + 1);
+    if (depTimerRef.current) clearInterval(depTimerRef.current);
+  };
+
+  const prevDep = () => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    setEnableTransition(true);
+    setCurrentTrackIdx((prev) => prev - 1);
+    if (depTimerRef.current) clearInterval(depTimerRef.current);
+  };
+
+  const goToDep = (targetRealIdx: number) => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    isNavigatingRef.current = true;
+    setEnableTransition(true);
+    setCurrentTrackIdx(targetRealIdx + 1);
+    if (depTimerRef.current) clearInterval(depTimerRef.current);
   };
 
   useEffect(() => {
-    resetTimer();
-    return () => { if (timerRef.current) clearInterval(timerRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [resolvedSlides.length]);
-
-  const goTo = (idx: number) => {
-    setHeroIdx(idx);
-    resetTimer();
-  };
-
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-
-  const minSwipeDistance = 45;
-
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-  const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
-    if (isLeftSwipe) {
-      goTo((heroIdx + 1) % resolvedSlides.length);
-    } else if (isRightSwipe) {
-      goTo((heroIdx - 1 + resolvedSlides.length) % resolvedSlides.length);
+    if (depTimerRef.current) clearInterval(depTimerRef.current);
+    if (totalSlides > 1 && !isDepPaused) {
+      depTimerRef.current = setInterval(() => {
+        if (!isNavigatingRef.current) {
+          isNavigatingRef.current = true;
+          setEnableTransition(true);
+          setCurrentTrackIdx((prev) => prev + 1);
+        }
+      }, 5000);
     }
+    return () => {
+      if (depTimerRef.current) clearInterval(depTimerRef.current);
+    };
+  }, [totalSlides, isDepPaused]);
+
+  // Scoped touch swiping specifically for the departure card carousel
+  const [cardTouchStart, setCardTouchStart] = useState<number | null>(null);
+  const [cardTouchEnd, setCardTouchEnd] = useState<number | null>(null);
+
+  const onCardTouchStart = (e: React.TouchEvent) => {
+    setCardTouchEnd(null);
+    setCardTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onCardTouchMove = (e: React.TouchEvent) => {
+    setCardTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onCardTouchEnd = () => {
+    if (!cardTouchStart || !cardTouchEnd) return;
+    const distance = cardTouchStart - cardTouchEnd;
+    if (distance > 35) {
+      nextDep();
+    } else if (distance < -35) {
+      prevDep();
+    }
+    setCardTouchStart(null);
+    setCardTouchEnd(null);
   };
 
   return (
     <div>
-      {/* Hero Carousel with Smooth Sliding Track */}
-      <section
-        className="relative h-[82vh] md:h-[84vh] min-h-[500px] md:min-h-[580px] max-h-[840px] overflow-hidden touch-pan-y"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+      {/* Hero Section */}
+      <section className="relative h-[86vh] sm:h-[84vh] min-h-[560px] md:min-h-[580px] max-h-[840px] overflow-hidden">
+        {/* Stationary Hero Background Image */}
+        {heroBgImage ? (
+          <img
+            src={heroBgImage}
+            alt="Yatrivo"
+            loading="eager"
+            fetchPriority="high"
+            decoding="sync"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
+        )}
+
+        {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
+        <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
+
         {/* Mobile-Only Center-Top Brand & Tagline */}
         <div className="md:hidden absolute top-14 sm:top-16 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
           <img
@@ -187,104 +324,187 @@ export default function HomePage() {
           </div>
         </div>
 
-        {/* Sliding Track containing all slides */}
-        <div
-          className="flex h-full w-full transition-transform duration-700 ease-out"
-          style={{ transform: `translateX(-${heroIdx * 100}%)` }}
-        >
-          {resolvedSlides.length === 0 ? (
-            <div className="relative w-full h-full shrink-0 flex items-end pb-9 sm:pb-10 md:pb-12 overflow-hidden">
-              <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
-            </div>
-          ) : (
-            resolvedSlides.map((slide, i) => (
-              <div
-                key={i}
-                className="relative w-full h-full shrink-0 flex items-end pb-9 sm:pb-10 md:pb-12 overflow-hidden"
+        {/* Stationary Hero Content & Integrated Upcoming Departure Carousel */}
+        <div className="relative h-full max-w-7xl mx-auto px-4 sm:px-6 w-full z-10 flex flex-col justify-end pb-4 sm:pb-9 md:pb-12">
+          <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 lg:gap-8">
+            {/* Left: Stationary Main Headline, Supporting Text & Existing CTAs */}
+            <div className="max-w-xl">
+              <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2">
+                EXPLORE UTTARAKHAND
+              </div>
+              <h1
+                className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-2 sm:mb-2.5 font-normal text-contrast-title"
+                style={{ fontFamily: "var(--font-serif)" }}
               >
-                {/* Background image */}
-                {slide.imageUrl ? (
-                  <img
-                    src={slide.imageUrl}
-                    alt={slide.title || "Yatrivo"}
-                    loading="eager"
-                    fetchPriority={i === 0 ? "high" : "auto"}
-                    decoding={i === 0 ? "sync" : "async"}
-                    className="absolute inset-0 w-full h-full object-cover transition-opacity duration-700"
-                  />
-                ) : (
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#071712] via-[#0f2922] to-[#071712]" />
-                )}
+                {heroHeadline.split(". ").map((part, pIdx, arr) => (
+                  <span key={pIdx}>
+                    {part}
+                    {pIdx < arr.length - 1 ? "." : ""}
+                    {pIdx < arr.length - 1 && <br />}
+                  </span>
+                ))}
+              </h1>
 
-                {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
-                <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
+              {heroSubtext && (
+                <p className="text-white/90 text-[13px] sm:text-sm md:text-[15px] max-w-lg mb-3.5 sm:mb-4 leading-snug sm:leading-relaxed text-contrast-body line-clamp-2">
+                  {heroSubtext}
+                </p>
+              )}
 
-                {/* Slide text & buttons */}
-                <div className="relative max-w-7xl mx-auto px-4 sm:px-6 w-full z-10">
-                  {slide.title ? (
-                    <h1
-                      className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-1.5 sm:mb-2 max-w-xl font-normal text-contrast-title"
-                      style={{ fontFamily: "var(--font-serif)" }}
-                    >
-                      {slide.title.split(". ").map((part, pIdx, arr) => (
-                        <span key={pIdx}>
-                          {part}
-                          {pIdx < arr.length - 1 ? "." : ""}
-                          {pIdx < arr.length - 1 && <br />}
-                        </span>
-                      ))}
-                    </h1>
-                  ) : null}
-
-                  {slide.subtitle ? (
-                    <p className="text-white/90 text-[13px] sm:text-sm md:text-[15px] max-w-lg mb-3 sm:mb-4 leading-snug sm:leading-relaxed text-contrast-body line-clamp-2">
-                      {slide.subtitle}
-                    </p>
-                  ) : null}
-
-                {/* Symmetrical Uniform Buttons */}
-                <div className="flex items-center gap-2 sm:gap-2.5 mb-1">
-                  <Link
-                    to={slide.tripId ? `/trips/${slide.tripId}` : "/trips"}
-                    className="w-32 sm:w-36 h-9 sm:h-10 btn-glass-outline text-white rounded-full text-xs font-medium transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
-                  >
-                    {slide.tripId ? "VIEW TRIP" : "EXPLORE TRIPS"}
-                  </Link>
-
-                  {slide.tripId ? (
-                    <button
-                      onClick={() => openEnquiryModal(slide.tripId!)}
-                      className="w-32 sm:w-36 h-9 sm:h-10 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors cursor-pointer shrink-0 tracking-wide btn-primary-elevated"
-                    >
-                      INQUIRE NOW →
-                    </button>
-                  ) : (
-                    <Link
-                      to="/plan"
-                      className="w-32 sm:w-36 h-9 sm:h-10 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shrink-0 tracking-wide btn-primary-elevated"
-                    >
-                      PLAN MY TRIP →
-                    </Link>
-                  )}
-                </div>
+              {/* Symmetrical Uniform Buttons - Stable and Stationary */}
+              <div className="flex items-center gap-2 sm:gap-2.5">
+                <Link
+                  to="/trips"
+                  className="w-32 sm:w-36 h-9 sm:h-10 btn-glass-outline text-white rounded-full text-xs font-medium transition-all flex items-center justify-center text-center shrink-0 tracking-wide"
+                >
+                  EXPLORE TRIPS
+                </Link>
+                <Link
+                  to="/plan"
+                  className="w-32 sm:w-36 h-9 sm:h-10 bg-[#e8622a] hover:bg-[#d45520] text-white rounded-full text-xs font-medium flex items-center justify-center gap-1.5 transition-colors shrink-0 tracking-wide btn-primary-elevated"
+                >
+                  PLAN MY TRIP →
+                </Link>
               </div>
             </div>
-          )))}
-        </div>
 
-        {/* Dot indicators */}
-        {resolvedSlides.length > 1 && (
-          <div className="absolute bottom-3 md:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-30 px-3 py-1.5 rounded-full bg-black/30 backdrop-blur-xs">
-            {resolvedSlides.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => goTo(i)}
-                className={`w-2 h-2 rounded-full transition-all ${i === heroIdx ? "bg-white scale-125 shadow-xs" : "bg-white/50 hover:bg-white/80"}`}
-                aria-label={`Go to slide ${i + 1}`}
-              />
-            ))}
+            {/* Right: Compact Upcoming-Departure Carousel Card */}
+            {upcomingDepartures.length > 0 && (
+              <div
+                className="w-full max-w-sm sm:max-w-md lg:max-w-[340px] xl:max-w-[360px] shrink-0"
+                onMouseEnter={() => setIsDepPaused(true)}
+                onMouseLeave={() => setIsDepPaused(false)}
+              >
+                {/* Horizontal Sliding Track of Departure Cards */}
+                <div
+                  className="overflow-hidden touch-pan-y"
+                  onTouchStart={onCardTouchStart}
+                  onTouchMove={onCardTouchMove}
+                  onTouchEnd={onCardTouchEnd}
+                >
+                  <div
+                    className="flex will-change-transform"
+                    style={{
+                      transform: `translate3d(-${currentTrackIdx * 100}%, 0, 0)`,
+                      transition: enableTransition
+                        ? "transform 600ms cubic-bezier(0.25, 1, 0.5, 1)"
+                        : "none",
+                    }}
+                    onTransitionEnd={handleTransitionEnd}
+                  >
+                    {/* Cloned slides array: [last, ...all, first] */}
+                    {(totalSlides > 1
+                      ? [upcomingDepartures[totalSlides - 1], ...upcomingDepartures, upcomingDepartures[0]]
+                      : upcomingDepartures
+                    ).map((item, index) => (
+                      <div
+                        key={`${item.id}-${index}`}
+                        className="w-full shrink-0"
+                      >
+                        <div className="bg-white/95 backdrop-blur-md rounded-2xl p-2.5 sm:p-3 border border-white/40 shadow-lg text-[#0f2922]">
+                          {/* Top indicator row: subtle NEXT DEPARTURE label without extra clutter */}
+                          <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-[#e2e8f0]/60">
+                            {item.isNextDeparture ? (
+                              <span className="inline-flex items-center gap-1 text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-[#e8622a] bg-[#e8622a]/10 px-2 py-0.5 rounded-full border border-[#e8622a]/20">
+                                <span className="w-1.5 h-1.5 rounded-full bg-[#e8622a] animate-pulse" />
+                                NEXT DEPARTURE
+                              </span>
+                            ) : (
+                              <span className="text-[10px] uppercase tracking-wider font-semibold text-[#718096]">
+                                UPCOMING TRIP
+                              </span>
+                            )}
+                            <span className="text-[10px] text-[#718096] font-medium truncate">
+                              {item.duration || item.category}
+                            </span>
+                          </div>
+
+                          {/* Horizontal Compact Composition: Thumbnail + Details + Action */}
+                          <div className="flex items-center gap-2.5 sm:gap-3">
+                            <Link to={`/trips/${item.tripId}`} className="shrink-0 block overflow-hidden rounded-xl">
+                              <img
+                                src={item.image}
+                                alt={item.name}
+                                className="w-14 h-14 sm:w-16 sm:h-16 object-cover hover:scale-105 transition-transform duration-300"
+                              />
+                            </Link>
+
+                            <div className="min-w-0 flex-1">
+                              <h4
+                                className="text-[#0f2922] font-semibold text-xs sm:text-[13.5px] leading-tight truncate hover:text-[#e8622a] transition-colors mb-0.5"
+                                style={{ fontFamily: "var(--font-serif)" }}
+                              >
+                                <Link to={`/trips/${item.tripId}`}>{item.name}</Link>
+                              </h4>
+                              <div className="flex items-center gap-1 text-[11px] text-[#4a5568]">
+                                <svg className="w-3 h-3 text-[#e8622a] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                </svg>
+                                <span className="truncate">{item.displayDate}</span>
+                              </div>
+                              <div
+                                className="text-[#0f2922] font-bold text-xs sm:text-sm mt-0.5 leading-none"
+                                style={{ fontFamily: "var(--font-serif)" }}
+                              >
+                                ₹{item.price.toLocaleString("en-IN")}
+                                <span className="text-[9.5px] font-normal text-[#718096]"> / person</span>
+                              </div>
+                            </div>
+
+                            <Link
+                              to={`/trips/${item.tripId}`}
+                              className="w-8 h-8 rounded-full bg-[#0f2922] hover:bg-[#e8622a] text-white flex items-center justify-center transition-colors shrink-0 shadow-xs cursor-pointer"
+                              aria-label={`View details for ${item.name}`}
+                              title={`View ${item.name}`}
+                            >
+                              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Subtle Pagination Indicators & Controls */}
+                {upcomingDepartures.length > 1 && (
+                  <div className="flex items-center justify-center md:justify-between mt-2.5 md:mt-2 px-1">
+                    <div className="flex items-center gap-1.5">
+                      {upcomingDepartures.map((_, i) => (
+                        <button
+                          key={i}
+                          onClick={() => goToDep(i)}
+                          className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                            i === activeDepIdx ? "w-4 bg-white" : "w-1.5 bg-white/40 hover:bg-white/70"
+                          }`}
+                          aria-label={`Go to departure slide ${i + 1}`}
+                        />
+                      ))}
+                    </div>
+                    <div className="hidden md:flex items-center gap-1">
+                      <button
+                        onClick={prevDep}
+                        className="w-5 h-5 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                        aria-label="Previous departure"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        onClick={nextDep}
+                        className="w-5 h-5 rounded-full bg-black/30 hover:bg-black/50 text-white flex items-center justify-center text-xs transition-colors cursor-pointer"
+                        aria-label="Next departure"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
       </section>
 
       {/* Trust Badges */}

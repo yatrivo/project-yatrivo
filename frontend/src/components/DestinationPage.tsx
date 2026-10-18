@@ -443,30 +443,37 @@ export default function DestinationPage({ onBack }: DestinationPageProps) {
 
 function PackageCard({ pkg }: { pkg: Package }) {
   return (
-    <div className="border border-[#e2e8f0] rounded-2xl overflow-hidden hover:shadow-md transition-shadow group">
-      <div className="h-40 overflow-hidden">
-        <img
-          src={pkg.image}
-          alt={pkg.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+    <div className="h-full border border-[#e2e8f0] rounded-2xl overflow-hidden hover:shadow-lg transition-all group flex flex-col justify-between bg-white min-w-0">
+      <div className="flex-1 flex flex-col">
+        <div className="aspect-[16/10] w-full overflow-hidden bg-[#f7f8f5] relative block">
+          <img
+            src={pkg.image}
+            alt={pkg.name}
+            className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+            loading="lazy"
+          />
+        </div>
+        <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
+          <div>
+            <div className="flex items-start justify-between gap-2 mb-1.5">
+              <h3
+                className="text-[#0f2922] text-[15.5px] sm:text-base font-semibold leading-tight line-clamp-2 min-h-[2.4rem]"
+                style={{ fontFamily: '"Instrument Serif:Regular", serif' }}
+              >
+                {pkg.name}
+              </h3>
+              <span className="text-[#e8622a] font-bold text-sm shrink-0">{pkg.price}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-[#718096] mb-3">
+              <span>{pkg.duration}</span>
+              <span>·</span>
+              <span>{pkg.difficulty}</span>
+            </div>
+          </div>
+        </div>
       </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2 mb-2">
-          <h3
-            className="text-[#0f2922] text-base leading-tight"
-            style={{ fontFamily: '"Instrument Serif:Regular", serif' }}
-          >
-            {pkg.name}
-          </h3>
-          <span className="text-[#e8622a] font-semibold text-sm shrink-0">{pkg.price}</span>
-        </div>
-        <div className="flex gap-3 text-xs text-[#4a5568] mb-3" style={{ fontVariationSettings: '"opsz" 14' }}>
-          <span>{pkg.duration}</span>
-          <span>·</span>
-          <span>{pkg.difficulty}</span>
-        </div>
-        <button className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-sm py-2 rounded-full transition-colors">
+      <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 pt-0 mt-auto">
+        <button className="w-full bg-[#0f2922] hover:bg-[#1a4a39] text-white text-xs sm:text-sm font-semibold py-2 rounded-full transition-colors cursor-pointer">
           View Package
         </button>
       </div>
