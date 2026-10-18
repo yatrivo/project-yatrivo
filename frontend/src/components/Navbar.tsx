@@ -116,13 +116,15 @@ export default function Navbar() {
               >
                 YATRIVO
               </div>
-              <div
-                className={`transition-colors text-[8.5px] sm:text-[10px] md:text-[11px] font-medium tracking-[0.06em] sm:tracking-[0.09em] uppercase leading-[1.3] truncate sm:whitespace-nowrap ${
-                  transparent ? "brand-tagline-light" : "brand-tagline-dark"
-                }`}
-              >
-                {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
-              </div>
+              {pathname !== "/" && (
+                <div
+                  className={`transition-colors text-[8.5px] sm:text-[10px] md:text-[11px] font-medium tracking-[0.06em] sm:tracking-[0.09em] uppercase leading-[1.3] truncate sm:whitespace-nowrap ${
+                    transparent ? "brand-tagline-light" : "brand-tagline-dark"
+                  }`}
+                >
+                  {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
+                </div>
+              )}
             </div>
           </Link>
 

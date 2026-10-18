@@ -275,7 +275,7 @@ export default function AdminSettings({ initialTab }: AdminSettingsProps = {}) {
                   <div className="space-y-5">
                     <Field
                       label="Brand Tagline"
-                      hint="Shown across the top navigation bar, footer logo, splash screen, and browser tab."
+                      hint="Authoritative source for the official brand tagline (e.g. 'Explore More. Travel Better.'). Displayed across website branding, including the homepage hero, footer, splash screen, and navbar on interior pages."
                       value={tagline}
                       onChange={setTagline}
                     />

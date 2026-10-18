@@ -48,7 +48,7 @@ async function run() {
       method: 'PUT',
       headers: authHeaders,
       body: JSON.stringify({
-        heroTitle: 'Live Deeply. Travel Boldly.',
+        heroTitle: 'Explore More. Travel Better.',
         heroSubtitle: 'Uncover the raw, untold beauty of Uttarakhand with small groups of mindful travellers.',
         whyUsTitle: 'The Mindful Adventure Movement',
         whyUsDescription: 'We started Yatrivo to bridge the gap between heavy commercial bus tours and risky, unguided expeditions.',

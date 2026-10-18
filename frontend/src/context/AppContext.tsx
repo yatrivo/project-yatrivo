@@ -146,7 +146,7 @@ export const DEFAULT_CAROUSEL_SLIDES: CarouselSlide[] = [
 
 const DEFAULT_HOMEPAGE_CONTENT: HomepageContent = {
   heroImages: DEFAULT_CAROUSEL_SLIDES.map((s) => s.imageUrl || "").filter(Boolean),
-  heroTitle: "Jai Ho!",
+  heroTitle: "Explore More. Travel Better.",
   heroSubtitle:
     "Uncover the raw, untold beauty of Uttarakhand. Mindfully designed travel packages for young explorers wanting to experience the Himalayas beyond the ordinary.",
   featuredDestIds: ["chopta", "auli", "kedarnath"],
@@ -659,9 +659,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
       };
     });
     setHomepageContent((prev) => {
+      const incomingTitle = homepage.heroTitle?.trim();
+      const cleanHeroTitle =
+        incomingTitle && incomingTitle !== "Live Deeply. Travel Boldly." && incomingTitle !== "Jai Ho!"
+          ? incomingTitle
+          : (prev.heroTitle && prev.heroTitle !== "Live Deeply. Travel Boldly." && prev.heroTitle !== "Jai Ho!"
+              ? prev.heroTitle
+              : "Explore More. Travel Better.");
+
       const next: HomepageContent = {
         ...prev,
-        heroTitle: homepage.heroTitle || prev.heroTitle,
+        heroTitle: cleanHeroTitle,
         heroSubtitle: homepage.heroSubtitle || prev.heroSubtitle,
         whyUsTitle: homepage.whyUsTitle || prev.whyUsTitle,
         whyUsDesc: homepage.whyUsDescription || prev.whyUsDesc,

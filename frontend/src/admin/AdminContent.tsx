@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useApp } from "@/context/AppContext";
 import type { FaqItem, CarouselSlide } from "@/context/AppContext";
@@ -33,54 +33,129 @@ const TABS: { id: ContentTab; label: string }[] = [
 ];
 
 // ---- Hero Tab ----
-type AddSlideMode = null | "trip" | "static";
-
 function HeroTab() {
-  const { homepageContent, setHomepageContent, showToast, tripInstances, trips, refreshContent, refreshTrips } = useApp();
-  const [slides, setSlides] = useState<CarouselSlide[]>(
-    homepageContent.carouselSlides ?? homepageContent.heroImages.map((url) => ({ type: "static" as const, imageUrl: url, title: "", subtitle: "" }))
-  );
-  const [addMode, setAddMode] = useState<AddSlideMode>(null);
+  const { homepageContent, setHomepageContent, showToast, tripInstances, trips, refreshContent, refreshTrips, siteSettings } = useApp();
+
+  const [heroImage, setHeroImage] = useState<string>(() => {
+    return (
+      homepageContent.heroImages?.[0] ||
+      homepageContent.carouselSlides?.[0]?.imageUrl ||
+      "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg"
+    );
+  });
+
+  const [heroTitle, setHeroTitle] = useState<string>(() => {
+    return homepageContent.heroTitle &&
+      homepageContent.heroTitle !== "Jai Ho!" &&
+      homepageContent.heroTitle !== "Live Deeply. Travel Boldly."
+      ? homepageContent.heroTitle
+      : (siteSettings?.general?.tagline || "Explore More. Travel Better.");
+  });
+
+  const [heroSubtitle, setHeroSubtitle] = useState<string>(() => {
+    return (
+      homepageContent.heroSubtitle ||
+      homepageContent.carouselSlides?.[0]?.subtitle ||
+      "Curated journeys. Local experiences. Unforgettable landscapes."
+    );
+  });
+
   const [saving, setSaving] = useState(false);
-  // Add trip slide form
-  const [addTripId, setAddTripId] = useState("");
-  const [addTripTitle, setAddTripTitle] = useState("");
-  const [addTripSubtitle, setAddTripSubtitle] = useState("");
-  // Add static slide form
-  const [addStaticUrl, setAddStaticUrl] = useState("");
-  const [addStaticTitle, setAddStaticTitle] = useState("");
-  const [addStaticSubtitle, setAddStaticSubtitle] = useState("");
+
+  useEffect(() => {
+    if (trips.length === 0) {
+      void refreshTrips({ bypassCache: true });
+    }
+  }, [refreshTrips, trips.length]);
+
+  // Keep in sync if homepageContent updates from background refresh
+  useEffect(() => {
+    const img = homepageContent.heroImages?.[0] || homepageContent.carouselSlides?.[0]?.imageUrl;
+    if (img) setHeroImage(img);
+
+    if (
+      homepageContent.heroTitle &&
+      homepageContent.heroTitle !== "Jai Ho!" &&
+      homepageContent.heroTitle !== "Live Deeply. Travel Boldly."
+    ) {
+      setHeroTitle(homepageContent.heroTitle);
+    } else if (
+      homepageContent.carouselSlides?.[0]?.title &&
+      homepageContent.carouselSlides[0].title !== "Live Deeply. Travel Boldly."
+    ) {
+      setHeroTitle(homepageContent.carouselSlides[0].title);
+    } else {
+      setHeroTitle(siteSettings?.general?.tagline || "Explore More. Travel Better.");
+    }
+
+    if (homepageContent.heroSubtitle) {
+      setHeroSubtitle(homepageContent.heroSubtitle);
+    } else if (homepageContent.carouselSlides?.[0]?.subtitle) {
+      setHeroSubtitle(homepageContent.carouselSlides[0].subtitle);
+    }
+  }, [homepageContent]);
+
+  // Determine currently eligible upcoming departures for admin awareness
+  const upcomingDepartures = useMemo(() => {
+    const allInstances: { id: string; tripId: string; date: string; seatsLeft?: number; price?: number; status: string; tripName: string }[] = [];
+
+    (tripInstances || []).forEach((inst) => {
+      if (inst && inst.status === "upcoming") {
+        const trip = (trips || []).find((t) => t.id === inst.tripId || (t.departures && t.departures.some((d) => d.id === inst.id)));
+        allInstances.push({
+          id: inst.id,
+          tripId: inst.tripId,
+          date: inst.date || "",
+          seatsLeft: inst.seatsLeft,
+          price: inst.price || trip?.price,
+          status: inst.status,
+          tripName: trip?.name || "Himalayan Expedition",
+        });
+      }
+    });
+
+    (trips || []).forEach((t) => {
+      (t.departures || []).forEach((d) => {
+        if (d && d.status === "upcoming" && !allInstances.some((inst) => inst.id === d.id)) {
+          allInstances.push({
+            id: d.id,
+            tripId: d.tripId || t.id,
+            date: d.date || "",
+            seatsLeft: d.seatsLeft,
+            price: d.price || t.price,
+            status: d.status,
+            tripName: t.name,
+          });
+        }
+      });
+    });
+
+    allInstances.sort((a, b) => (a.date || "").localeCompare(b.date || ""));
+    return allInstances;
+  }, [tripInstances, trips]);
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Map slides to API format
-      const apiSlides: CarouselSlideApi[] = slides.map((slide, i) => {
-        if (slide.type === "trip") {
-          return {
-            slideType: "trip" as const,
-            tripId: slide.tripId || slide.tripInstanceId,
-            tripInstanceId: slide.tripInstanceId || undefined,
-            titleOverride: slide.title || undefined,
-            subtitleOverride: slide.subtitle || undefined,
-            sortOrder: i,
-            isActive: true,
-          };
-        }
-        return {
-          slideType: "static" as const,
-          imageUrl: slide.imageUrl,
-          titleOverride: slide.title,
-          subtitleOverride: slide.subtitle,
-          sortOrder: i,
-          isActive: true,
-        };
-      });
+      const trimmedTitle = heroTitle.trim();
+      const trimmedSubtitle = heroSubtitle.trim();
+      const trimmedImage = heroImage.trim();
+
+      const singleSlide: CarouselSlideApi = {
+        slideType: "static",
+        imageUrl: trimmedImage,
+        titleOverride: trimmedTitle,
+        subtitleOverride: trimmedSubtitle,
+        sortOrder: 0,
+        isActive: true,
+      };
 
       await contentApi.updateHomepageConfig({
+        heroTitle: trimmedTitle || null,
+        heroSubtitle: trimmedSubtitle || null,
         whyUsTitle: homepageContent.whyUsTitle,
         whyUsDescription: homepageContent.whyUsDesc,
-        slides: apiSlides,
+        slides: [singleSlide],
         featuredDestinationIds: homepageContent.featuredDestIds,
         featuredReviewIds: homepageContent.featuredReviewIds,
         whyUsPoints: homepageContent.whyUsPoints.map((p, i) => ({
@@ -91,9 +166,23 @@ function HeroTab() {
         })),
       });
 
-      setHomepageContent({ ...homepageContent, carouselSlides: slides });
-      await refreshContent();
-      showToast("Hero content saved.", "success");
+      setHomepageContent({
+        ...homepageContent,
+        heroTitle: trimmedTitle,
+        heroSubtitle: trimmedSubtitle,
+        heroImages: [trimmedImage],
+        carouselSlides: [
+          {
+            type: "static",
+            imageUrl: trimmedImage,
+            title: trimmedTitle,
+            subtitle: trimmedSubtitle,
+          },
+        ],
+      });
+
+      await refreshContent({ bypassCache: true });
+      showToast("Hero section updated successfully.", "success");
     } catch (err) {
       console.error("Failed to save hero content:", err);
       showToast("Failed to save hero content.", "error");
@@ -102,246 +191,263 @@ function HeroTab() {
     }
   };
 
-  const move = (idx: number, dir: -1 | 1) => {
-    const next = [...slides];
-    const target = idx + dir;
-    if (target < 0 || target >= next.length) return;
-    [next[idx], next[target]] = [next[target], next[idx]];
-    setSlides(next);
-  };
-
-  const remove = (idx: number) => setSlides(slides.filter((_, i) => i !== idx));
-
-  const handleAddTrip = () => {
-    if (!addTripId) return;
-    const newSlide: CarouselSlide = {
-      type: "trip",
-      tripId: addTripId,
-      tripInstanceId: addTripId,
-      title: addTripTitle.trim() || undefined,
-      subtitle: addTripSubtitle.trim() || undefined,
-    };
-    setSlides([...slides, newSlide]);
-    setAddMode(null);
-    setAddTripId("");
-    setAddTripTitle("");
-    setAddTripSubtitle("");
-  };
-
-  useEffect(() => {
-    if (addMode === "trip" && trips.length === 0) {
-      void refreshTrips({ bypassCache: true });
-    }
-  }, [addMode, refreshTrips, trips.length]);
-
-  const handleAddStatic = () => {
-    if (!addStaticUrl.trim() || !addStaticTitle.trim()) return;
-    const newSlide: CarouselSlide = {
-      type: "static",
-      imageUrl: addStaticUrl.trim(),
-      title: addStaticTitle.trim(),
-      subtitle: addStaticSubtitle.trim(),
-    };
-    setSlides([...slides, newSlide]);
-    setAddMode(null);
-    setAddStaticUrl("");
-    setAddStaticTitle("");
-    setAddStaticSubtitle("");
-  };
-
-  const resolveTripFromSlide = (slide: CarouselSlide) => {
-    if (slide.type !== "trip") return null;
-
-    if (slide.tripId) {
-      const match = trips.find((t) => t.id === slide.tripId || t.slug === slide.tripId);
-      if (match) return match;
-    }
-
-    if (slide.tripInstanceId) {
-      const match = trips.find((t) => t.id === slide.tripInstanceId || t.slug === slide.tripInstanceId);
-      if (match) return match;
-
-      const directInstance = tripInstances.find((ti) => ti.id === slide.tripInstanceId);
-      if (directInstance) {
-        return trips.find((trip) => trip.id === directInstance.tripId) ?? null;
+  const formatDateLabel = (dateStr?: string) => {
+    if (!dateStr) return "";
+    try {
+      const parts = dateStr.split("-");
+      if (parts.length === 3) {
+        const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
       }
-
-      return trips.find((trip) =>
-        trip.departures?.some((departure) => departure.id === slide.tripInstanceId)
-      ) ?? null;
+      return dateStr;
+    } catch {
+      return dateStr;
     }
-
-    return null;
-  };
-
-  const getSlidePreviewLabel = (slide: CarouselSlide): string => {
-    if (slide.type === "trip") {
-      const trip = resolveTripFromSlide(slide);
-      return slide.title ?? trip?.name ?? "Trip unavailable";
-    }
-    return slide.title;
-  };
-
-  const getSlideSubLabel = (slide: CarouselSlide): string => {
-    if (slide.type === "trip") {
-      const trip = resolveTripFromSlide(slide);
-      if (trip) {
-        return slide.subtitle || trip.shortDescription || trip.overview || "Trip package";
-      }
-      return slide.tripId || slide.tripInstanceId ? "Trip data unavailable" : "No trip selected";
-    }
-    return slide.imageUrl.substring(0, 60) + (slide.imageUrl.length > 60 ? "..." : "");
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>Hero Section</h3>
-        <p className="text-sm text-[#718096] mt-1">Manage the hero carousel slides displayed on the public homepage.</p>
+        <h3 className="text-lg font-bold text-[#0f2922]" style={{ fontFamily: "var(--font-serif, serif)" }}>
+          Hero Section
+        </h3>
+        <p className="text-sm text-[#718096] mt-1">
+          Configure the public homepage hero banner, main headline, and subtext. Upcoming departure cards are automatically fed from your active scheduled batches.
+        </p>
       </div>
 
-      {/* Carousel Slides */}
-      <div>
-        <div className="flex items-center justify-between mb-2">
-          <label className="text-sm font-medium text-[#4a5568]">Carousel Slides</label>
-          {addMode === null && (
-            <button
-              onClick={() => setAddMode("trip")}
-              className="text-[#e8622a] text-xs font-medium hover:underline"
-            >
-              + Add Slide
-            </button>
-          )}
-        </div>
+      {/* Main Hero Background & Text Content */}
+      <div className="bg-white border border-[#e2e8f0] rounded-2xl p-5 sm:p-6 space-y-5 shadow-sm">
+        <h4 className="text-sm font-bold uppercase tracking-wider text-[#0f2922]">
+          Hero Banner & Copy
+        </h4>
 
-        {/* Slides list */}
-        <div className="space-y-2 mb-3">
-          {slides.length === 0 && (
-            <p className="text-[#a0aec0] text-sm text-center py-4 bg-[#f7f8f5] rounded-xl">No slides yet. Add a trip or static slide.</p>
-          )}
-          {slides.map((slide, i) => (
-            <div key={i} className="bg-white border border-[#e2e8f0] rounded-xl p-3 flex items-start gap-3">
-              {/* Type badge */}
-              <span className={`mt-0.5 shrink-0 text-[10px] font-bold px-2 py-0.5 rounded-full ${slide.type === "trip" ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-600"}`}>
-                {slide.type === "trip" ? "TRIP" : "STATIC"}
-              </span>
-              {/* Preview image */}
-              {slide.type === "static" && (
-                <img src={slide.imageUrl} alt="" className="w-12 h-9 object-cover rounded shrink-0" />
-              )}
-              {slide.type === "trip" && (() => {
-                const trip = resolveTripFromSlide(slide);
-                return trip?.image ? <img src={trip.image} alt="" className="w-12 h-9 object-cover rounded shrink-0" /> : null;
-              })()}
-              <div className="flex-1 min-w-0">
-                <div className="text-[#0f2922] text-sm font-medium truncate">{getSlidePreviewLabel(slide)}</div>
-                <div className="text-[#a0aec0] text-xs truncate">{getSlideSubLabel(slide)}</div>
-              </div>
-              {/* Actions */}
-              <div className="flex items-center gap-1 shrink-0">
-                <button onClick={() => move(i, -1)} disabled={i === 0} className="p-1 text-[#a0aec0] hover:text-[#0f2922] disabled:opacity-30">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7"/></svg>
-                </button>
-                <button onClick={() => move(i, 1)} disabled={i === slides.length - 1} className="p-1 text-[#a0aec0] hover:text-[#0f2922] disabled:opacity-30">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7"/></svg>
-                </button>
-                <button onClick={() => remove(i)} className="p-1 text-red-400 hover:text-red-600">
-                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Add slide form */}
-        {addMode !== null && (
-          <div className="bg-[#f7f8f5] rounded-xl p-4 space-y-3">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-semibold text-[#0f2922]">New Slide</span>
-              <div className="flex gap-1 bg-white rounded-lg p-0.5 border border-[#e2e8f0]">
-                <button
-                  onClick={() => setAddMode("trip")}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition ${addMode === "trip" ? "bg-[#0f2922] text-white" : "text-[#718096] hover:text-[#0f2922]"}`}
-                >
-                  Trip
-                </button>
-                <button
-                  onClick={() => setAddMode("static")}
-                  className={`px-3 py-1 rounded-md text-xs font-medium transition ${addMode === "static" ? "bg-[#0f2922] text-white" : "text-[#718096] hover:text-[#0f2922]"}`}
-                >
-                  Static
-                </button>
-              </div>
-              <button onClick={() => setAddMode(null)} className="ml-auto text-[#a0aec0] hover:text-[#0f2922] text-xs">Cancel</button>
-            </div>
-
-            {addMode === "trip" && (
-              <>
-                <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Trip Package</label>
-                  <select
-                    value={addTripId}
-                    onChange={(e) => setAddTripId(e.target.value)}
-                    className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922] bg-white"
-                  >
-                    <option value="">Select a trip package...</option>
-                    {trips.map((trip) => (
-                      <option key={trip.id} value={trip.id}>
-                        {trip.name} {trip.durationDays ? `(${trip.durationDays}D/${Math.max(1, trip.durationDays - 1)}N)` : ""}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Override Title (optional)</label>
-                  <input value={addTripTitle} onChange={(e) => setAddTripTitle(e.target.value)} placeholder="Defaults to trip name" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Override Subtitle (optional)</label>
-                  <input value={addTripSubtitle} onChange={(e) => setAddTripSubtitle(e.target.value)} placeholder="Defaults to trip short description" className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-                </div>
-                <button
-                  onClick={handleAddTrip}
-                  disabled={!addTripId}
-                  className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50"
-                >
-                  Add Trip Slide
-                </button>
-              </>
-            )}
-
-            {addMode === "static" && (
-              <>
-                <MediaPicker
-                  label="Image"
-                  value={addStaticUrl}
-                  onChange={setAddStaticUrl}
-                  context={{ category: "homepage" }}
-                />
-                <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Title</label>
-                  <input value={addStaticTitle} onChange={(e) => setAddStaticTitle(e.target.value)} placeholder="Slide title..." className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-[#4a5568] mb-1">Subtitle</label>
-                  <input value={addStaticSubtitle} onChange={(e) => setAddStaticSubtitle(e.target.value)} placeholder="Slide subtitle..." className="w-full border border-[#e2e8f0] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#0f2922]" />
-                </div>
-                <button
-                  onClick={handleAddStatic}
-                  disabled={!addStaticUrl.trim() || !addStaticTitle.trim()}
-                  className="bg-[#e8622a] hover:bg-[#d4541f] text-white text-sm font-semibold px-5 py-2 rounded-lg transition disabled:opacity-50"
-                >
-                  Add Static Slide
-                </button>
-              </>
-            )}
+        {/* Brand Tagline vs Hero Promotional Copy Notice */}
+        <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-3.5 flex items-start gap-3 text-xs text-[#4a5568]">
+          <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
           </div>
-        )}
+          <div className="leading-relaxed">
+            <span className="font-semibold text-[#0f2922]">Brand Tagline vs. Hero Copy: </span>
+            The headline and supporting text below are promotional content specific to this hero section. The official brand tagline (<span className="font-semibold text-[#e8622a]">"{siteSettings?.general?.tagline || "Explore More. Travel Better."}"</span>) is managed centrally in <Link to="/admin/settings" className="underline font-semibold text-[#0f2922] hover:text-[#e8622a]">Settings → General</Link> and displayed in the website branding and hero eyebrow.
+          </div>
+        </div>
+
+        {/* Hero Background Image */}
+        <div className="space-y-2">
+          <MediaPicker
+            label="Hero Background Image"
+            value={heroImage}
+            onChange={setHeroImage}
+            context={{ category: "homepage" }}
+          />
+          {heroImage && (
+            <div className="relative mt-2 rounded-2xl overflow-hidden border border-[#e2e8f0] bg-slate-950 aspect-[16/9] sm:aspect-[21/9] max-h-64 group shadow-md">
+              <img
+                src={heroImage}
+                alt="Hero banner preview"
+                className="w-full h-full object-cover"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/20 flex flex-col justify-end p-4 sm:p-5 text-white">
+                <div className="text-[10px] sm:text-[11px] uppercase tracking-widest font-semibold text-[#e8622a] mb-1">
+                  EXPLORE UTTARAKHAND
+                </div>
+                <div
+                  className="font-serif text-lg sm:text-2xl font-normal text-white leading-tight mb-1.5"
+                  style={{ fontFamily: "var(--font-serif, serif)" }}
+                >
+                  {(heroTitle || "Explore More. Travel Better.").split(". ").map((part, pIdx, arr) => (
+                    <span key={pIdx}>
+                      {part}{pIdx < arr.length - 1 ? "." : ""}
+                      {pIdx < arr.length - 1 && <br />}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-[11px] sm:text-xs text-white/90 line-clamp-2 max-w-md leading-relaxed mb-3">
+                  {heroSubtitle || "Curated journeys. Local experiences. Unforgettable landscapes."}
+                </p>
+                <div className="flex items-center gap-2">
+                  <span className="text-[9.5px] uppercase tracking-wider font-medium px-3 py-1 rounded-full border border-white/70 text-white bg-black/20 backdrop-blur-xs">
+                    EXPLORE TRIPS
+                  </span>
+                  <span className="text-[9.5px] uppercase tracking-wider font-medium px-3 py-1 rounded-full bg-[#e8622a] text-white">
+                    PLAN MY TRIP →
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Hero Headline */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#4a5568] mb-1.5">
+            Main Headline
+          </label>
+          <input
+            type="text"
+            value={heroTitle}
+            onChange={(e) => setHeroTitle(e.target.value)}
+            placeholder="e.g. Find Your Next Mountain Story"
+            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0f2922] focus:ring-1 focus:ring-[#0f2922]"
+          />
+          <p className="text-xs text-[#a0aec0] mt-1">
+            Displayed prominently in large serif font over the hero background.
+          </p>
+        </div>
+
+        {/* Hero Subtitle */}
+        <div>
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#4a5568] mb-1.5">
+            Supporting Subtext
+          </label>
+          <textarea
+            rows={2}
+            value={heroSubtitle}
+            onChange={(e) => setHeroSubtitle(e.target.value)}
+            placeholder="e.g. Curated journeys. Local experiences. Unforgettable landscapes."
+            className="w-full border border-[#e2e8f0] rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-[#0f2922] focus:ring-1 focus:ring-[#0f2922] resize-y"
+          />
+          <p className="text-xs text-[#a0aec0] mt-1">
+            Short, evocative description displayed right beneath the headline.
+          </p>
+        </div>
+
+        {/* Call to Action Buttons */}
+        <div className="pt-2 border-t border-[#e2e8f0]">
+          <label className="block text-xs font-semibold uppercase tracking-wider text-[#4a5568] mb-2">
+            Call-to-Action Buttons
+          </label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-[#0f2922]">Primary Action</span>
+                <p className="text-[11px] text-[#718096]">Links to: /trips</p>
+              </div>
+              <span className="text-xs font-medium px-3 py-1 rounded-full border border-[#0f2922]/20 text-[#0f2922] bg-white">
+                EXPLORE TRIPS
+              </span>
+            </div>
+            <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-xl p-3 flex items-center justify-between">
+              <div>
+                <span className="text-xs font-semibold text-[#0f2922]">Secondary Action</span>
+                <p className="text-[11px] text-[#718096]">Links to: /plan</p>
+              </div>
+              <span className="text-xs font-medium px-3 py-1 rounded-full bg-[#e8622a] text-white">
+                PLAN MY TRIP →
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Save button */}
+        <div className="pt-2">
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold px-6 py-2.5 rounded-xl transition shadow-sm disabled:opacity-60 flex items-center gap-2 cursor-pointer"
+          >
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Saving Hero...
+              </>
+            ) : (
+              "Save Hero Changes"
+            )}
+          </button>
+        </div>
       </div>
 
-      <button onClick={handleSave} disabled={saving} className="bg-[#0f2922] hover:bg-[#1a3d31] text-white text-sm font-semibold px-6 py-2.5 rounded-lg transition disabled:opacity-60">
-        {saving ? "Saving..." : "Save Hero"}
-      </button>
+      {/* Upcoming & Next Departures Explanation & Status */}
+      <div className="bg-[#f7f8f5] border border-[#e2e8f0] rounded-2xl p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-[#e8622a]/10 text-[#e8622a] flex items-center justify-center shrink-0">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
+            </div>
+            <div>
+              <h4 className="text-sm font-bold text-[#0f2922]">
+                Upcoming Departures & Next Departure
+              </h4>
+              <p className="text-xs text-[#718096]">
+                Automatically synced in real-time from scheduled batches
+              </p>
+            </div>
+          </div>
+
+          <Link
+            to="/admin/trips"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#e8622a] hover:text-[#d4541f] bg-white border border-[#e2e8f0] hover:border-[#e8622a]/40 px-3.5 py-2 rounded-lg transition shadow-2xs shrink-0 self-start sm:self-auto"
+          >
+            <span>Manage Trips & Departures</span>
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+          </Link>
+        </div>
+
+        <p className="text-xs text-[#4a5568] leading-relaxed">
+          The hero carousel cards are generated dynamically. The earliest scheduled departure across all published trips is tagged with <span className="font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">NEXT DEPARTURE</span>, while subsequent upcoming departures are tagged with <span className="font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">UPCOMING TRIP</span>. To add or change these cards, manage departures under your Trips packages.
+        </p>
+
+        {/* Live list of detected departures */}
+        <div className="space-y-2 pt-1">
+          <div className="text-xs font-semibold text-[#718096] uppercase tracking-wider">
+            Active Queue ({upcomingDepartures.length})
+          </div>
+
+          {upcomingDepartures.length === 0 ? (
+            <div className="bg-white rounded-xl border border-dashed border-[#cbd5e1] p-4 text-center">
+              <p className="text-xs text-[#718096]">
+                No upcoming departures currently scheduled. Go to <Link to="/admin/trips" className="text-[#e8622a] underline font-medium">Trips</Link> and add upcoming batch dates to display them on the homepage hero.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
+              {upcomingDepartures.map((dep, idx) => (
+                <div
+                  key={dep.id}
+                  className="bg-white border border-[#e2e8f0] rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full shrink-0 ${
+                        idx === 0
+                          ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                          : "bg-blue-50 text-blue-700 border border-blue-100"
+                      }`}
+                    >
+                      {idx === 0 ? "NEXT DEPARTURE" : "UPCOMING"}
+                    </span>
+                    <span className="font-semibold text-[#0f2922] truncate">
+                      {dep.tripName}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-3 shrink-0 text-[#718096]">
+                    <span className="font-medium text-[#4a5568]">
+                      {formatDateLabel(dep.date)}
+                    </span>
+                    {typeof dep.seatsLeft === "number" && (
+                      <span className="hidden sm:inline-block bg-slate-100 text-slate-600 px-2 py-0.5 rounded text-[11px]">
+                        {dep.seatsLeft} seats left
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

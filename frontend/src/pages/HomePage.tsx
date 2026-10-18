@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { Link } from "react-router-dom";
 import { useApp, type CarouselSlide } from "@/context/AppContext";
 import type { TripInstance } from "@/data/trips";
@@ -116,10 +116,11 @@ export default function HomePage() {
     resolvedSlides[0]?.imageUrl ||
     "https://br-orange-sun-b3bidgrg.storage.c-4.ap-southeast-1.aws.neon.tech/yatrivo-media/destinations/images/fb19581e-dca3-4cdb-b122-c193099be3a1-wp6584296.jpg";
 
+  const rawHeadline = homepageContent?.heroTitle?.trim();
   const heroHeadline =
-    homepageContent?.heroTitle && homepageContent.heroTitle.trim() && homepageContent.heroTitle !== "Jai Ho!"
-      ? homepageContent.heroTitle
-      : (resolvedSlides[0]?.title || "Find Your Next Mountain Story");
+    rawHeadline && rawHeadline !== "Jai Ho!" && rawHeadline !== "Live Deeply. Travel Boldly."
+      ? rawHeadline
+      : (siteSettings?.general?.tagline || "Explore More. Travel Better.");
 
   const heroSubtext =
     homepageContent?.heroSubtitle ||
@@ -186,16 +187,28 @@ export default function HomePage() {
   // 0 is clone of last, totalSlides + 1 is clone of first
   const [currentTrackIdx, setCurrentTrackIdx] = useState(1);
   const [enableTransition, setEnableTransition] = useState(true);
-  const [isDepPaused, setIsDepPaused] = useState(false);
-  const depTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const depTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isNavigatingRef = useRef(false);
+  const unlockTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Active departure index (0 to totalSlides - 1)
   const activeDepIdx = totalSlides > 0 ? (currentTrackIdx - 1 + totalSlides) % totalSlides : 0;
 
+  const markNavigating = () => {
+    isNavigatingRef.current = true;
+    if (unlockTimerRef.current) clearTimeout(unlockTimerRef.current);
+    unlockTimerRef.current = setTimeout(() => {
+      isNavigatingRef.current = false;
+    }, 650);
+  };
+
   // Handle seamless infinite jump on transition end without visual jump
   const handleTransitionEnd = () => {
     isNavigatingRef.current = false;
+    if (unlockTimerRef.current) {
+      clearTimeout(unlockTimerRef.current);
+      unlockTimerRef.current = null;
+    }
     if (totalSlides <= 1) return;
     if (currentTrackIdx === 0) {
       setEnableTransition(false);
@@ -218,51 +231,71 @@ export default function HomePage() {
     }
   }, [enableTransition]);
 
-  const nextDep = () => {
-    if (totalSlides <= 1 || isNavigatingRef.current) return;
-    isNavigatingRef.current = true;
-    setEnableTransition(true);
-    setCurrentTrackIdx((prev) => prev + 1);
-    if (depTimerRef.current) clearInterval(depTimerRef.current);
-  };
-
-  const prevDep = () => {
-    if (totalSlides <= 1 || isNavigatingRef.current) return;
-    isNavigatingRef.current = true;
-    setEnableTransition(true);
-    setCurrentTrackIdx((prev) => prev - 1);
-    if (depTimerRef.current) clearInterval(depTimerRef.current);
-  };
-
-  const goToDep = (targetRealIdx: number) => {
-    if (totalSlides <= 1 || isNavigatingRef.current) return;
-    isNavigatingRef.current = true;
-    setEnableTransition(true);
-    setCurrentTrackIdx(targetRealIdx + 1);
-    if (depTimerRef.current) clearInterval(depTimerRef.current);
-  };
-
-  useEffect(() => {
-    if (depTimerRef.current) clearInterval(depTimerRef.current);
-    if (totalSlides > 1 && !isDepPaused) {
+  // Autoplay timer function that always keeps sliding forward
+  const startAutoplay = useCallback(() => {
+    if (depTimerRef.current) {
+      clearInterval(depTimerRef.current);
+      depTimerRef.current = null;
+    }
+    if (totalSlides > 1) {
       depTimerRef.current = setInterval(() => {
         if (!isNavigatingRef.current) {
-          isNavigatingRef.current = true;
+          markNavigating();
           setEnableTransition(true);
           setCurrentTrackIdx((prev) => prev + 1);
         }
       }, 5000);
     }
+  }, [totalSlides]);
+
+  const nextDep = () => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    markNavigating();
+    setEnableTransition(true);
+    setCurrentTrackIdx((prev) => prev + 1);
+    startAutoplay();
+  };
+
+  const prevDep = () => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    markNavigating();
+    setEnableTransition(true);
+    setCurrentTrackIdx((prev) => prev - 1);
+    startAutoplay();
+  };
+
+  const goToDep = (targetRealIdx: number) => {
+    if (totalSlides <= 1 || isNavigatingRef.current) return;
+    markNavigating();
+    setEnableTransition(true);
+    setCurrentTrackIdx(targetRealIdx + 1);
+    startAutoplay();
+  };
+
+  useEffect(() => {
+    startAutoplay();
     return () => {
-      if (depTimerRef.current) clearInterval(depTimerRef.current);
+      if (depTimerRef.current) {
+        clearInterval(depTimerRef.current);
+        depTimerRef.current = null;
+      }
+      if (unlockTimerRef.current) {
+        clearTimeout(unlockTimerRef.current);
+        unlockTimerRef.current = null;
+      }
     };
-  }, [totalSlides, isDepPaused]);
+  }, [startAutoplay]);
 
   // Scoped touch swiping specifically for the departure card carousel
   const [cardTouchStart, setCardTouchStart] = useState<number | null>(null);
   const [cardTouchEnd, setCardTouchEnd] = useState<number | null>(null);
 
   const onCardTouchStart = (e: React.TouchEvent) => {
+    // Temporarily pause the timer while finger is actively swiping
+    if (depTimerRef.current) {
+      clearInterval(depTimerRef.current);
+      depTimerRef.current = null;
+    }
     setCardTouchEnd(null);
     setCardTouchStart(e.targetTouches[0].clientX);
   };
@@ -272,12 +305,17 @@ export default function HomePage() {
   };
 
   const onCardTouchEnd = () => {
-    if (!cardTouchStart || !cardTouchEnd) return;
+    if (!cardTouchStart || !cardTouchEnd) {
+      startAutoplay();
+      return;
+    }
     const distance = cardTouchStart - cardTouchEnd;
     if (distance > 35) {
       nextDep();
     } else if (distance < -35) {
       prevDep();
+    } else {
+      startAutoplay();
     }
     setCardTouchStart(null);
     setCardTouchEnd(null);
@@ -304,23 +342,18 @@ export default function HomePage() {
         {/* Shading gradients: directional overlay ensuring top scrim for brand & bottom gradient for text */}
         <div className="absolute inset-0 hero-overlay-directional pointer-events-none" />
 
-        {/* Mobile-Only Center-Top Brand & Tagline */}
-        <div className="md:hidden absolute top-14 sm:top-16 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+        {/* Mobile-Only Center-Top Brand */}
+        <div className="md:hidden absolute top-12 sm:top-14 inset-x-0 z-30 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
           <img
             src={logoImg}
             alt="Yatrivo"
-            className="h-10 w-10 sm:h-12 sm:w-12 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] mb-1 sm:mb-1.5"
+            className="h-12 w-12 sm:h-14 sm:w-14 object-contain drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)] mb-1.5"
           />
           <div
-            className="text-white font-bold text-base sm:text-xl tracking-[0.2em] text-contrast-title"
+            className="text-white font-bold text-xl sm:text-2xl tracking-[0.24em] text-contrast-title"
             style={{ fontFamily: "var(--font-serif)" }}
           >
             YATRIVO
-          </div>
-          <div
-            className="brand-tagline-light text-[11px] sm:text-xs tracking-[0.08em] sm:tracking-[0.09em] mt-0.5 sm:mt-1 max-w-full truncate"
-          >
-            {siteSettings?.general?.tagline || "EXPLORE MORE. TRAVEL BETTER."}
           </div>
         </div>
 
@@ -329,11 +362,11 @@ export default function HomePage() {
           <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5 lg:gap-8">
             {/* Left: Stationary Main Headline, Supporting Text & Existing CTAs */}
             <div className="max-w-xl">
-              <div className="text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2">
+              <div className="hidden md:block text-[#e8622a] text-[11px] sm:text-xs uppercase tracking-widest font-semibold mb-1.5 sm:mb-2">
                 EXPLORE UTTARAKHAND
               </div>
               <h1
-                className="text-white text-2xl sm:text-3xl md:text-4xl lg:text-[42px] leading-[1.15] mb-2 sm:mb-2.5 font-normal text-contrast-title"
+                className="text-white text-[30px] sm:text-[34px] md:text-4xl lg:text-[44px] leading-[1.12] mb-2 sm:mb-2.5 font-normal text-contrast-title"
                 style={{ fontFamily: "var(--font-serif)" }}
               >
                 {heroHeadline.split(". ").map((part, pIdx, arr) => (
@@ -370,11 +403,7 @@ export default function HomePage() {
 
             {/* Right: Compact Upcoming-Departure Carousel Card */}
             {upcomingDepartures.length > 0 && (
-              <div
-                className="w-full max-w-sm sm:max-w-md lg:max-w-[340px] xl:max-w-[360px] shrink-0"
-                onMouseEnter={() => setIsDepPaused(true)}
-                onMouseLeave={() => setIsDepPaused(false)}
-              >
+              <div className="w-full max-w-sm sm:max-w-md lg:max-w-[340px] xl:max-w-[360px] shrink-0">
                 {/* Horizontal Sliding Track of Departure Cards */}
                 <div
                   className="overflow-hidden touch-pan-y"
